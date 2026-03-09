@@ -13,11 +13,13 @@ Last updated: March 9, 2026
 
 - modular monolith on Next.js App Router with TypeScript, Tailwind, shadcn/ui, Prisma, PostgreSQL and Better Auth
 - landing, authentication, dashboard, list, movie detail, selection, watch session, profile and admin pages
+- notifications inbox page for invites, live sessions and recent activity
 - TMDB-backed movie search with local caching of essential metadata
 - collaborative lists with members, owner controls, list invites and friend invites
 - watch sessions with group membership, resume state and manual playback checkpoints
 - streaming provider abstraction with admin-managed runtime configuration
 - self-hosted SSE broker with live refresh on list, selection, movie-detail and watch-session pages
+- installable PWA baseline with manifest, service worker registration and offline fallback page
 - initial reusable form controls for select, switch, checkbox lists and server-safe time rendering
 - Docker Compose self-hosting setup and living project documentation
 
@@ -57,8 +59,10 @@ Last updated: March 9, 2026
 - completed: self-hosted SSE event broker and route
 - completed: live refresh wiring for list, selection, movie detail and watch-session flows
 - completed: first reusable form-control pass for admin and movie-detail pages
-- in progress: responsive hardening, streaming UX cleanup and production install polish
-- pending: presence indicators without full refresh, notifications center, richer collaborative playback controls, stronger PWA shell
+- completed: first notifications inbox and working topbar account/notification actions
+- completed: minimal PWA install/offline shell
+- in progress: responsive hardening, streaming UX cleanup and richer notification/presence behavior
+- pending: presence indicators without full refresh, delivery preferences, richer collaborative playback controls, stronger PWA shell
 
 ## Open Notes
 

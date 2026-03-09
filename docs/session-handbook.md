@@ -20,6 +20,9 @@ Last updated: March 9, 2026
 
 - authentication now uses a single access flow on `/login`, with `/register` kept as a compatibility redirect
 - realtime live refresh exists through the self-hosted SSE route and broker
+- the app shell now exposes working notification and account actions instead of dead navbar controls
+- a first notifications inbox exists for list invites, friend invites, live sessions and recent activity
+- a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - reusable form/time primitives exist and should be extended before creating new UI variants
 - Docker runtime has been optimized with a much smaller multi-stage image and a working startup bootstrap
 - test baseline exists with Vitest and should keep expanding in risky server and action paths
@@ -30,6 +33,8 @@ Last updated: March 9, 2026
 - assistant work on streaming should focus on compatibility, reliability, typing, tests, UX wiring, and operability around the user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - admin/provider UI must not make unsupported compliance or production-readiness claims
+- notifications are still summary-first: there is no read state, delivery preference model, or push channel yet
+- responsive hardening is better in the shell, but still not complete across every complex page
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
 
 ## Working checklist for future sessions
@@ -70,8 +75,8 @@ Before finishing:
 
 ## Suggested next priorities
 
-- finish responsive and UI/UX cleanup, especially in complex collaborative pages
-- implement richer presence and notifications without relying only on full refresh
+- finish responsive and UI/UX cleanup, especially in complex collaborative pages beyond the shell
+- implement richer presence and notifications without relying only on full refresh or summary cards alone
 - expand tests around server actions and list/watch flows
 - improve the existing user-provided streaming integration through safer typing, tests, UI wiring, and operational tooling
 
@@ -82,3 +87,4 @@ Before finishing:
 - March 9, 2026: aligned the deployment-specific streaming provider type shape with the admin UI contract so custom provider metadata can compile cleanly
 - March 9, 2026: moved the admin-promotion CLI to a runtime-safe Node script so it works inside the production Docker container
 - March 9, 2026: added a persistent rule that user-provided streaming integrations must not be removed, downgraded to placeholder, or replaced by the assistant
+- March 9, 2026: shipped a first notifications inbox, fixed the broken navbar account/actions flow, and added a minimal installable PWA shell with offline fallback

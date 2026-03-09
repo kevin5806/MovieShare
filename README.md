@@ -25,6 +25,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - system admin page for streaming providers
 - system admin panel for TMDB, email and streaming configuration
 - user profile page
+- notifications inbox page
 - list invite flow with shareable acceptance links
 - friend invite flow for existing movieshare users
 - TMDB search and metadata caching
@@ -32,6 +33,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - manual playback checkpoint saving and resume-point updates
 - abstract streaming provider registry
 - realtime-ready event broker interface
+- install prompt and offline fallback baseline for PWA-style usage
 - project vision, development notes and session handbook in `docs/`
 
 ## Architecture
@@ -85,6 +87,7 @@ Realtime sync is partially implemented:
 - a self-hosted SSE broker now powers live refresh for list, selection, movie-detail and watch-session views
 - watch session membership and presence state are persisted
 - playback checkpoints and activity logs already emit realtime events
+- a notifications inbox now surfaces invites, live sessions and recent shared activity
 - invite and social flows are still persistence-first and can later emit richer notifications
 
 What is still missing:
@@ -92,6 +95,22 @@ What is still missing:
 - push-style in-app notifications
 - presence badges without a full page refresh
 - collaborative playback controls and heartbeats beyond manual checkpoints
+- per-notification read state and delivery preferences
+
+## PWA note
+
+movieshare now includes a first installable PWA baseline:
+
+- manifest and app icon metadata
+- service worker registration in production builds
+- install prompt when the browser exposes `beforeinstallprompt`
+- offline fallback page for navigation failures
+
+What is still missing:
+
+- richer asset caching strategy
+- background sync or push delivery
+- deeper offline support for authenticated collaborative flows
 
 ## Admin settings
 
