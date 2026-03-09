@@ -4,6 +4,7 @@ import {
   updateStreamingProviderAction,
   updateTmdbSettingsAction,
 } from "@/features/system/actions";
+import { Field, FieldLabel } from "@/components/forms/field";
 import { SwitchField } from "@/components/forms/switch-field";
 import { AccessMethodCard } from "@/components/system/access-method-card";
 import {
@@ -163,79 +164,86 @@ export default async function SystemAdminPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-3">
-        <Card className="border-border/70 bg-card/85">
+        <Card className="h-full border-border/70 bg-card/85">
           <CardHeader>
             <CardTitle>TMDB integration</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm leading-6 text-muted-foreground">
+          <CardContent className="flex h-full flex-col">
+            <p className="min-h-[72px] text-sm leading-6 text-muted-foreground">
               Prefer the API Read Access Token. If both values are present, the bearer token
               wins over the API key fallback.
             </p>
-            <form action={updateTmdbSettingsAction} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">API Read Access Token</label>
+            <form action={updateTmdbSettingsAction} className="mt-4 flex flex-1 flex-col gap-4">
+              <Field>
+                <FieldLabel htmlFor="tmdb-api-token">API Read Access Token</FieldLabel>
                 <Textarea
+                  id="tmdb-api-token"
                   name="tmdbApiToken"
-                  rows={4}
+                  rows={3}
                   defaultValue={adminState.config.tmdbApiToken ?? ""}
-                  className="font-mono text-xs"
+                  className="h-24 resize-none font-mono text-xs"
                   placeholder="Paste the TMDB bearer token"
                 />
+              </Field>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="tmdb-api-key">API Key</FieldLabel>
+                  <Input
+                    id="tmdb-api-key"
+                    name="tmdbApiKey"
+                    defaultValue={adminState.config.tmdbApiKey ?? ""}
+                    className="font-mono text-xs"
+                    placeholder="de1011..."
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="tmdb-language">Default language</FieldLabel>
+                  <Input
+                    id="tmdb-language"
+                    name="tmdbLanguage"
+                    defaultValue={adminState.config.tmdbLanguage}
+                    placeholder="en-US"
+                  />
+                </Field>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">API Key</label>
-                <Input
-                  name="tmdbApiKey"
-                  defaultValue={adminState.config.tmdbApiKey ?? ""}
-                  className="font-mono text-xs"
-                  placeholder="de1011..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Default language</label>
-                <Input
-                  name="tmdbLanguage"
-                  defaultValue={adminState.config.tmdbLanguage}
-                  placeholder="en-US"
-                />
-              </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="mt-auto w-full">
                 Save TMDB settings
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/85">
+        <Card className="h-full border-border/70 bg-card/85">
           <CardHeader>
             <CardTitle>Email delivery</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm leading-6 text-muted-foreground">
+          <CardContent className="flex h-full flex-col">
+            <p className="min-h-[72px] text-sm leading-6 text-muted-foreground">
               These SMTP settings are stored for future invite emails, notifications and
               digest workflows. Empty values keep the environment fallback active.
             </p>
-            <form action={updateEmailSettingsAction} className="grid gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">SMTP host</label>
+            <form action={updateEmailSettingsAction} className="mt-4 flex flex-1 flex-col gap-4">
+              <Field>
+                <FieldLabel htmlFor="smtp-host">SMTP host</FieldLabel>
                 <Input
+                  id="smtp-host"
                   name="smtpHost"
                   defaultValue={adminState.config.smtpHost ?? ""}
                   placeholder="smtp.example.com"
                 />
-              </div>
-              <div className="grid gap-4 md:grid-cols-[140px_1fr]">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Port</label>
+              </Field>
+              <div className="grid gap-4 md:grid-cols-[140px_1fr] md:items-end">
+                <Field>
+                  <FieldLabel htmlFor="smtp-port">Port</FieldLabel>
                   <Input
+                    id="smtp-port"
                     name="smtpPort"
                     type="number"
                     defaultValue={adminState.config.smtpPort.toString()}
                     placeholder="587"
                   />
-                </div>
-                <div className="mt-7">
+                </Field>
+                <div>
                   <SwitchField
                     name="smtpSecure"
                     label="Use secure SMTP"
@@ -244,32 +252,37 @@ export default async function SystemAdminPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">SMTP user</label>
-                <Input
-                  name="smtpUser"
-                  defaultValue={adminState.config.smtpUser ?? ""}
-                  placeholder="mailer@example.com"
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="smtp-user">SMTP user</FieldLabel>
+                  <Input
+                    id="smtp-user"
+                    name="smtpUser"
+                    defaultValue={adminState.config.smtpUser ?? ""}
+                    placeholder="mailer@example.com"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="smtp-password">SMTP password</FieldLabel>
+                  <Input
+                    id="smtp-password"
+                    name="smtpPassword"
+                    type="password"
+                    defaultValue={adminState.config.smtpPassword ?? ""}
+                    placeholder="App password or SMTP secret"
+                  />
+                </Field>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">SMTP password</label>
+              <Field>
+                <FieldLabel htmlFor="smtp-from">From</FieldLabel>
                 <Input
-                  name="smtpPassword"
-                  type="password"
-                  defaultValue={adminState.config.smtpPassword ?? ""}
-                  placeholder="App password or SMTP secret"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">From</label>
-                <Input
+                  id="smtp-from"
                   name="smtpFrom"
                   defaultValue={adminState.config.smtpFrom ?? ""}
                   placeholder="movieshare <noreply@example.com>"
                 />
-              </div>
-              <Button type="submit" className="w-full">
+              </Field>
+              <Button type="submit" className="mt-auto w-full">
                 Save email settings
               </Button>
             </form>
