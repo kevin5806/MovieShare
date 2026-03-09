@@ -29,7 +29,7 @@ export default async function WatchSessionPage({
   const providerLabel = watchSession.streamingPlaybackUrl
     ? watchSession.streamingProvider || "embedded"
     : watchSession.streamingProvider
-      ? `${watchSession.streamingProvider} placeholder`
+      ? `${watchSession.streamingProvider} scaffolded`
       : "tracking-only";
 
   return (
@@ -89,7 +89,11 @@ export default async function WatchSessionPage({
             <p className="text-sm text-muted-foreground">Playback provider</p>
             <p className="text-lg font-semibold">{providerLabel}</p>
             <p className="text-sm text-muted-foreground">
-              {watchSession.streamingPlaybackUrl ? "Embedded source available" : "Tracking-only session"}
+              {watchSession.streamingPlaybackUrl
+                ? "Embedded source available"
+                : watchSession.streamingProvider
+                  ? "Provider slot exists but playback is not integrated"
+                  : "Tracking-only session"}
             </p>
           </CardContent>
         </Card>
@@ -129,7 +133,7 @@ export default async function WatchSessionPage({
                   <p className="font-medium">No embedded streaming source available</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     {playbackInfo?.message ||
-                      "No active playback provider is configured for this deployment."}
+                      "No compliant playback provider is configured for this deployment."}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-card/80 p-4 text-sm text-muted-foreground">

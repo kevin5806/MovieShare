@@ -4,6 +4,10 @@ import {
   updateTmdbSettingsAction,
 } from "@/features/system/actions";
 import { SwitchField } from "@/components/forms/switch-field";
+import {
+  StreamingProviderNotes,
+  StreamingProviderStatus,
+} from "@/components/streaming/provider-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -244,8 +248,8 @@ export default async function SystemAdminPage() {
           <p className="text-sm leading-6 text-muted-foreground">
             The current catalog is intentionally small. The active provider can be managed
             here without coupling the main domain to a single implementation. The current
-            `vixsrc` slot is only a placeholder and does not generate a working playback URL
-            in this build.
+            `vixsrc` slot is only a placeholder scaffold. It is not integrated and must not
+            be treated as a production playback source in this build.
           </p>
         </div>
 
@@ -262,24 +266,19 @@ export default async function SystemAdminPage() {
                 <div className="flex gap-2">
                   <Badge variant="secondary">{config.isEnabled ? "Enabled" : "Disabled"}</Badge>
                   {config.isActive ? <Badge>Active</Badge> : null}
-                  <Badge variant="secondary">
-                    {providerCatalog.get(config.provider)?.isReady ? "Ready" : "Placeholder"}
-                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                <StreamingProviderStatus provider={providerCatalog.get(config.provider)} />
                 <p className="text-sm leading-6 text-muted-foreground">
                   {config.notes ||
                     "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
                 </p>
-                {providerCatalog.get(config.provider)?.readinessNote ? (
-                  <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm text-muted-foreground">
-                    {providerCatalog.get(config.provider)?.readinessNote}
-                  </div>
-                ) : null}
+                <StreamingProviderNotes provider={providerCatalog.get(config.provider)} />
                 <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
                   Enabling this slot only marks it as the preferred provider in the domain.
-                  Playback remains unavailable until a deployment-specific adapter is wired.
+                  Playback remains unavailable until a compliant deployment-specific adapter is
+                  wired.
                 </div>
                 <form action={updateStreamingProviderAction} className="space-y-4">
                   <input type="hidden" name="provider" value={config.provider} />
@@ -295,7 +294,7 @@ export default async function SystemAdminPage() {
                     description={
                       providerCatalog.get(config.provider)?.isReady
                         ? "Only one ready provider can be active at a time."
-                        : "Placeholder adapters cannot become the active playback source."
+                        : "Not-integrated adapters cannot become the active playback source."
                     }
                     defaultChecked={config.isActive}
                     disabled={!providerCatalog.get(config.provider)?.isReady}

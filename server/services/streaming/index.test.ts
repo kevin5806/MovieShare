@@ -50,7 +50,9 @@ describe("streaming service", () => {
       activeConfig: null,
       providers: [
         expect.objectContaining({
+          compliance: "do-not-enable",
           key: StreamingProviderKey.VIXSRC,
+          maturity: "placeholder",
           isReady: false,
         }),
       ],

@@ -66,7 +66,7 @@ The repository already includes:
 Current implementation detail:
 
 - the `vixsrc` adapter is intentionally scaffolded as unavailable and does not return a working playback URL
-- the watch-session domain and admin UI are ready, but you should replace the provider adapter with a compliant streaming implementation for real deployments
+- the watch-session domain and admin UI are ready, but you should replace the provider adapter with a compliant deployment-specific streaming implementation for real deployments
 
 ## Watch session note
 

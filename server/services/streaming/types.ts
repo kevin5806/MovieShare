@@ -1,5 +1,9 @@
 import { StreamingProviderKey } from "@/generated/prisma/client";
 
+export type StreamingProviderMaturity = "placeholder" | "deployment-specific";
+
+export type StreamingProviderCompliance = "do-not-enable" | "deployment-review";
+
 export type PlaybackSource =
   | {
       kind: "embed";
@@ -15,7 +19,10 @@ export interface StreamingProviderAdapter {
   key: StreamingProviderKey;
   label: string;
   isReady: boolean;
+  maturity: StreamingProviderMaturity;
+  compliance: StreamingProviderCompliance;
   readinessNote?: string;
+  complianceNote: string;
   supportsGroupSessions: boolean;
   supportsRealtimeSync: boolean;
   getPlaybackSource(input: {

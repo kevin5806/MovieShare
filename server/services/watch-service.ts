@@ -60,7 +60,7 @@ export async function createWatchSession(input: {
       groupState: {
         kind: "unavailable",
         message:
-          "This session is active for watch tracking. Playback stays in each member's own player unless a deployment-specific provider adapter is configured.",
+          "This session is active for watch tracking. Playback stays in each member's own player unless a compliant deployment-specific provider adapter is configured.",
       },
       members: {
         create: [
