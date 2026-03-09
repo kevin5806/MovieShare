@@ -1,9 +1,9 @@
 import { StreamingProviderKey } from "@/generated/prisma/client";
 import { db } from "@/server/db";
-import vixsrc from "@/server/services/streaming/providers/vixsrc";  // ← cambiato nome import per coerenza
+import { vixsrcProvider } from "@/server/services/streaming/providers/vixsrc";
 
 const providers = {
-  [StreamingProviderKey.VIXSRC]: vixsrc,
+  [StreamingProviderKey.VIXSRC]: vixsrcProvider,
 };
 
 function getProviderAdapter(provider: StreamingProviderKey) {
@@ -15,17 +15,14 @@ export async function ensureStreamingProviderConfigSeeded() {
     where: {
       provider: StreamingProviderKey.VIXSRC,
     },
-    update: {},  // non aggiorna nulla se già esiste → così puoi modificare manualmente via admin
+    update: {},
     create: {
       provider: StreamingProviderKey.VIXSRC,
-      label: "VixSrc",
-      isEnabled: false,   // ← default disabilitato fino a review
-      isActive: false,    // ← default non attivo
+      label: "vixsrc",
+      isEnabled: false,
+      isActive: false,
       notes:
-        "Provider embed-based deployment-specific. Genera URL tipo https://vixsrc.to/movie/{tmdbId} " +
-        "o /tv/{tmdbId}/{s}/{e}. Richiede env var VIXSRC_BASE_URL (es. https://vixsrc.to). " +
-        "Maturity: deployment-specific | Compliance: deployment-review. " +
-        "Abilita solo se hai verificato legalità e stabilità della sorgente per il tuo deployment.",
+        "Placeholder provider slot only. This build does not generate an embedded playback URL.",
     },
   });
 }
@@ -59,7 +56,6 @@ export async function updateStreamingProviderConfig(input: {
 
   await db.$transaction(async (tx) => {
     if (canBeActive) {
-      // Disattiva tutti gli altri provider attivi (solo uno alla volta)
       await tx.streamingProviderConfig.updateMany({
         where: {
           provider: {
@@ -106,9 +102,5 @@ export async function resolvePlaybackSource(input: {
   tmdbId: number;
   watchSessionId: string;
 }) {
-  const adapter = getProviderAdapter(input.provider);
-  if (!adapter) {
-    throw new Error(`Provider adapter non trovato per ${input.provider}`);
-  }
-  return adapter.getPlaybackSource(input);
+  return getProviderAdapter(input.provider).getPlaybackSource(input);
 }

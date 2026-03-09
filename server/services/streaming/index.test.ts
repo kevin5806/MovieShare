@@ -26,105 +26,92 @@ vi.mock("@/server/db", () => ({
 import {
   getActiveStreamingProviderConfig,
   getStreamingAdminState,
-  updateStreamingProviderConfig,
   resolvePlaybackSource,
+  updateStreamingProviderConfig,
 } from "@/server/services/streaming";
-import vixsrcProvider from "@/server/services/streaming/providers/vixsrc";
+import { vixsrcProvider } from "@/server/services/streaming/providers/vixsrc";
 
 describe("streaming service", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.db.streamingProviderConfig.upsert.mockResolvedValue({});
     mocks.db.$transaction.mockImplementation(async (callback) => callback(mocks.tx));
-    vi.unstubAllEnvs();
   });
 
-  describe("VIXSRC Provider (deployment-specific)", () => {
-    it("è marked as ready dopo integrazione", () => {
-      expect(vixsrcProvider.isReady).toBe(true);
-      expect(vixsrcProvider.maturity).toBe("deployment-specific");
-      expect(vixsrcProvider.compliance).toBe("deployment-review");
+  it("keeps the vixsrc adapter marked as a placeholder", () => {
+    expect(vixsrcProvider).toMatchObject({
+      key: StreamingProviderKey.VIXSRC,
+      isReady: false,
+      maturity: "placeholder",
+      compliance: "do-not-enable",
     });
+  });
 
-    it("permette di diventare active se isReady", async () => {
-      mocks.db.streamingProviderConfig.findMany.mockResolvedValue([
-        {
-          id: "vixsrc-1",
-          provider: StreamingProviderKey.VIXSRC,
-          label: "VixSrc",
-          isEnabled: true,
-          isActive: true,
-        },
-      ]);
-
-      const state = await getStreamingAdminState();
-
-      expect(state.activeConfig).not.toBeNull();
-      expect(state.activeConfig?.provider).toBe(StreamingProviderKey.VIXSRC);
-      expect(state.providers).toContainEqual(
-        expect.objectContaining({
-          id: "VIXSRC",
-          isReady: true,
-        }),
-      );
-    });
-
-    it("resolvePlaybackSource ritorna embed quando env VIXSRC_BASE_URL è settata", async () => {
-      vi.stubEnv("VIXSRC_BASE_URL", "https://vixsrc.to");
-
-      const result = await resolvePlaybackSource({
+  it("does not expose placeholder adapters as the active provider", async () => {
+    mocks.db.streamingProviderConfig.findMany.mockResolvedValue([
+      {
+        id: "provider-1",
         provider: StreamingProviderKey.VIXSRC,
-        tmdbId: 27205,
-        watchSessionId: "test-session",
-      });
-
-      expect(result.kind).toBe("embed");
-
-      // Type narrowing: dopo questo check TS sa che result è { kind: "embed"; url: string; ... }
-      if (result.kind !== "embed") {
-        throw new Error("Test fallito: kind non è embed");
-      }
-
-      expect(result.url).toMatch(/https:\/\/vixsrc\.to\/movie\/27205/);
-      expect(result.url).toContain("?lang=");
-      expect(result.message).toContain("Embed pronto");
-    });
-
-    it("resolvePlaybackSource ritorna unavailable quando manca VIXSRC_BASE_URL", async () => {
-      vi.stubEnv("VIXSRC_BASE_URL", undefined);
-
-      const result = await resolvePlaybackSource({
-        provider: StreamingProviderKey.VIXSRC,
-        tmdbId: 27205,
-        watchSessionId: "test-session",
-      });
-
-      expect(result.kind).toBe("unavailable");
-
-      // Type narrowing opzionale qui (non strettamente necessario perché non accediamo a .url)
-      if (result.kind !== "unavailable") {
-        throw new Error("Test fallito: kind non è unavailable");
-      }
-
-      expect(result.message).toContain("Configurazione mancante");
-      expect(result.message).toContain("VIXSRC_BASE_URL");
-    });
-
-    it("updateStreamingProviderConfig permette active solo se isReady", async () => {
-      await updateStreamingProviderConfig({
-        provider: StreamingProviderKey.VIXSRC,
+        label: "vixsrc",
         isEnabled: true,
         isActive: true,
-      });
+      },
+    ]);
 
-      expect(mocks.tx.streamingProviderConfig.update).toHaveBeenCalledWith(
+    await expect(getStreamingAdminState()).resolves.toMatchObject({
+      activeConfig: null,
+      providers: [
         expect.objectContaining({
-          data: {
-            isEnabled: true,
-            isActive: true,
-          },
+          compliance: "do-not-enable",
+          key: StreamingProviderKey.VIXSRC,
+          maturity: "placeholder",
+          isReady: false,
         }),
-      );
+      ],
+    });
+  });
+
+  it("keeps placeholder adapters disabled for playback even if marked active in the form", async () => {
+    await updateStreamingProviderConfig({
+      provider: StreamingProviderKey.VIXSRC,
+      isEnabled: true,
+      isActive: true,
+    });
+
+    expect(mocks.tx.streamingProviderConfig.updateMany).not.toHaveBeenCalled();
+    expect(mocks.tx.streamingProviderConfig.update).toHaveBeenCalledWith({
+      where: {
+        provider: StreamingProviderKey.VIXSRC,
+      },
+      data: {
+        isEnabled: true,
+        isActive: false,
+      },
+    });
+  });
+
+  it("returns null when the stored active config points to a placeholder provider", async () => {
+    mocks.db.streamingProviderConfig.findFirst.mockResolvedValue({
+      id: "provider-1",
+      provider: StreamingProviderKey.VIXSRC,
+      label: "vixsrc",
+      isEnabled: true,
+      isActive: true,
+    });
+
+    await expect(getActiveStreamingProviderConfig()).resolves.toBeNull();
+  });
+
+  it("returns unavailable playback while the provider stays scaffold-only", async () => {
+    await expect(
+      resolvePlaybackSource({
+        provider: StreamingProviderKey.VIXSRC,
+        tmdbId: 27205,
+        watchSessionId: "session-1",
+      }),
+    ).resolves.toMatchObject({
+      kind: "unavailable",
+      message: expect.stringContaining("placeholder"),
     });
   });
 });
