@@ -26,11 +26,15 @@ export default async function WatchSessionPage({
   const startedBy =
     watchSession.startedBy.profile?.displayName || watchSession.startedBy.name;
   const joinedMembers = watchSession.members.filter((member) => member.presence === "JOINED");
+
+  const isVixsrc = watchSession.streamingProvider === "VIXSRC";
   const providerLabel = watchSession.streamingPlaybackUrl
-    ? watchSession.streamingProvider || "embedded"
-    : watchSession.streamingProvider
-      ? `${watchSession.streamingProvider} scaffolded`
-      : "tracking-only";
+    ? isVixsrc ? "VixSrc Embed" : watchSession.streamingProvider || "embedded"
+    : isVixsrc
+      ? "VixSrc (config mancante)"
+      : watchSession.streamingProvider
+        ? `${watchSession.streamingProvider} scaffolded`
+        : "tracking-only";
 
   return (
     <div className="space-y-8">
@@ -91,9 +95,11 @@ export default async function WatchSessionPage({
             <p className="text-sm text-muted-foreground">
               {watchSession.streamingPlaybackUrl
                 ? "Embedded source available"
-                : watchSession.streamingProvider
-                  ? "Provider slot exists but playback is not integrated"
-                  : "Tracking-only session"}
+                : isVixsrc
+                  ? "Configura VIXSRC_BASE_URL nelle env per abilitare embed"
+                  : watchSession.streamingProvider
+                    ? "Provider slot exists but playback is not integrated"
+                    : "Tracking-only session"}
             </p>
           </CardContent>
         </Card>
@@ -120,11 +126,17 @@ export default async function WatchSessionPage({
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="strict-origin-when-cross-origin"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                   />
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span>Provider {providerLabel}</span>
-                  <span>Resume point {formatSeconds(watchSession.resumeFromSeconds)}</span>
+                  <span>Provider: {providerLabel}</span>
+                  <span>Resume point: {formatSeconds(watchSession.resumeFromSeconds)}</span>
+                  {isVixsrc && (
+                    <span className="text-yellow-600 dark:text-yellow-400">
+                      Deployment-specific – verifica compliance legale per il tuo uso
+                    </span>
+                  )}
                 </div>
               </div>
             ) : (
@@ -132,8 +144,11 @@ export default async function WatchSessionPage({
                 <div>
                   <p className="font-medium">No embedded streaming source available</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {playbackInfo?.message ||
-                      "No compliant playback provider is configured for this deployment."}
+                    {isVixsrc
+                      ? playbackInfo?.message ||
+                        "VixSrc non configurato correttamente. Imposta VIXSRC_BASE_URL (es. https://vixsrc.to) nelle env vars e riavvia. Richiede review compliance deployment-specific."
+                      : playbackInfo?.message ||
+                        "No compliant playback provider is configured for this deployment."}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-card/80 p-4 text-sm text-muted-foreground">

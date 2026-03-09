@@ -10,17 +10,23 @@ async function main() {
       provider: StreamingProviderKey.VIXSRC,
     },
     update: {
-      label: "vixsrc",
+      label: "VixSrc",
       notes:
-        "Provider slot scaffolded for future work. Playback integration remains intentionally disabled until a compliant provider adapter is configured.",
+        "Provider embed-based deployment-specific. Genera URL embed diretti (es. https://vixsrc.to/movie/{tmdbId} o /tv/...). " +
+        "Richiede env var VIXSRC_BASE_URL impostata (default: https://vixsrc.to). " +
+        "Maturity: deployment-specific | Compliance: deployment-review obbligatoria. " +
+        "Abilita solo dopo verifica legale/stabilità per il tuo deployment. Non usare per sorgenti non conformi.",
     },
     create: {
       provider: StreamingProviderKey.VIXSRC,
-      label: "vixsrc",
+      label: "VixSrc",
       isEnabled: false,
       isActive: false,
       notes:
-        "Provider slot scaffolded for future work. Playback integration remains intentionally disabled until a compliant provider adapter is configured.",
+        "Provider embed-based deployment-specific. Genera URL embed diretti (es. https://vixsrc.to/movie/{tmdbId} o /tv/...). " +
+        "Richiede env var VIXSRC_BASE_URL impostata (default: https://vixsrc.to). " +
+        "Maturity: deployment-specific | Compliance: deployment-review obbligatoria. " +
+        "Abilita solo dopo verifica legale/stabilità per il tuo deployment. Non usare per sorgenti non conformi.",
     },
   });
 

@@ -246,66 +246,73 @@ export default async function SystemAdminPage() {
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">Streaming providers</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            The current catalog is intentionally small. The active provider can be managed
-            here without coupling the main domain to a single implementation. The current
-            `vixsrc` slot is only a placeholder scaffold. It is not integrated and must not
-            be treated as a production playback source in this build.
+            Gestisci i provider di streaming disponibili. Ogni slot può essere abilitato/disabilitato e marcato come preferito (solo uno attivo alla volta). 
+            Il provider VixSrc è deployment-specific: genera embed URL diretti (es. https://vixsrc.to/movie/{tmdbId}) se VIXSRC_BASE_URL è configurata nelle env. 
+            Maturity: deployment-specific | Compliance: richiede review legale per il tuo deployment. Non implica tele-sharing sincronizzato.
           </p>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          {adminState.streaming.configs.map((config) => (
-            <Card key={config.id} className="border-border/70 bg-card/85">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>{config.label}</CardTitle>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Provider key: {config.provider}
+          {adminState.streaming.configs.map((config) => {
+            const isVixsrc = config.provider === "VIXSRC";
+            const provider = providerCatalog.get(config.provider);
+
+            return (
+              <Card key={config.id} className="border-border/70 bg-card/85">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>{config.label}</CardTitle>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Provider key: {config.provider}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge variant="secondary">{config.isEnabled ? "Enabled" : "Disabled"}</Badge>
+                    {config.isActive ? <Badge>Active</Badge> : null}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <StreamingProviderStatus provider={provider} />
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {isVixsrc
+                      ? config.notes ||
+                        "Provider embed-based. Pronto se VIXSRC_BASE_URL è settata (es. https://vixsrc.to). Genera URL embed per film/TV. Richiede verifica compliance deployment-specific. Non usare per sorgenti non autorizzate."
+                      : config.notes ||
+                        "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
                   </p>
-                </div>
-                <div className="flex gap-2">
-                  <Badge variant="secondary">{config.isEnabled ? "Enabled" : "Disabled"}</Badge>
-                  {config.isActive ? <Badge>Active</Badge> : null}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <StreamingProviderStatus provider={providerCatalog.get(config.provider)} />
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {config.notes ||
-                    "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
-                </p>
-                <StreamingProviderNotes provider={providerCatalog.get(config.provider)} />
-                <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
-                  Enabling this slot only marks it as the preferred provider in the domain.
-                  Playback remains unavailable until a compliant deployment-specific adapter is
-                  wired.
-                </div>
-                <form action={updateStreamingProviderAction} className="space-y-4">
-                  <input type="hidden" name="provider" value={config.provider} />
-                  <SwitchField
-                    name="isEnabled"
-                    label="Enable this provider slot"
-                    description="Keep the adapter visible in the catalog without activating playback."
-                    defaultChecked={config.isEnabled}
-                  />
-                  <SwitchField
-                    name="isActive"
-                    label="Mark as preferred provider"
-                    description={
-                      providerCatalog.get(config.provider)?.isReady
-                        ? "Only one ready provider can be active at a time."
-                        : "Not-integrated adapters cannot become the active playback source."
-                    }
-                    defaultChecked={config.isActive}
-                    disabled={!providerCatalog.get(config.provider)?.isReady}
-                  />
-                  <Button type="submit" className="w-full">
-                    Save provider settings
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ))}
+                  <StreamingProviderNotes provider={provider} />
+                  <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+                    {isVixsrc
+                      ? "Abilitando questo provider, movieshare tenterà di generare embed URL per le watch session. Playback dipende da configurazione env e stabilità della sorgente. Solo embed – no streaming diretto o sync. Review compliance obbligatoria prima di produzione."
+                      : "Enabling this slot only marks it as the preferred provider in the domain. Playback remains unavailable until a compliant deployment-specific adapter is wired."}
+                  </div>
+                  <form action={updateStreamingProviderAction} className="space-y-4">
+                    <input type="hidden" name="provider" value={config.provider} />
+                    <SwitchField
+                      name="isEnabled"
+                      label="Enable this provider slot"
+                      description="Keep the adapter visible in the catalog without activating playback."
+                      defaultChecked={config.isEnabled}
+                    />
+                    <SwitchField
+                      name="isActive"
+                      label="Mark as preferred provider"
+                      description={
+                        provider?.isReady
+                          ? "Only one ready provider can be active at a time."
+                          : "Not-integrated adapters cannot become the active playback source."
+                      }
+                      defaultChecked={config.isActive}
+                      disabled={!provider?.isReady}
+                    />
+                    <Button type="submit" className="w-full">
+                      Save provider settings
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </section>
     </div>
