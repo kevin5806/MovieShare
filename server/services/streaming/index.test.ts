@@ -24,7 +24,6 @@ vi.mock("@/server/db", () => ({
 }));
 
 import {
-  getActiveStreamingProviderConfig,
   getStreamingAdminState,
   updateStreamingProviderConfig,
   resolvePlaybackSource,

@@ -23,23 +23,6 @@ export type getPlaybackSourceParams = {
   watchSessionId: string;
 };
 
-// Tipo per il provider vero e proprio (era mancante, lo chiamiamo StreamingProvider)
-export interface StreamingProvider {
-  id: StreamingProviderKey;           // o key: StreamingProviderKey se preferisci coerenza
-  name: string;
-  description: string;
-  isReady: boolean;
-  maturity: StreamingProviderMaturity;
-  compliance: StreamingProviderCompliance;
-  readinessNote?: string;
-  complianceNote?: string;
-
-  // Metodo principale
-  getPlaybackSource(params: getPlaybackSourceParams): Promise<PlaybackSource>;
-}
-
-// Opzionale: se usi StreamingProviderAdapter altrove, puoi tenerlo o rimuoverlo
-// (nel tuo codice attuale sembra ridondante rispetto a StreamingProvider)
 export interface StreamingProviderAdapter {
   key: StreamingProviderKey;
   label: string;
@@ -54,4 +37,11 @@ export interface StreamingProviderAdapter {
     tmdbId: number;
     watchSessionId: string;
   }): Promise<PlaybackSource>;
+}
+
+export interface StreamingProvider extends StreamingProviderAdapter {
+  id: StreamingProviderKey;
+  name: string;
+  description: string;
+  getPlaybackSource(params: getPlaybackSourceParams): Promise<PlaybackSource>;
 }

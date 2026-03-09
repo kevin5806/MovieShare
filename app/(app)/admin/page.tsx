@@ -36,7 +36,7 @@ export default async function SystemAdminPage() {
     getApplicationVersion(),
   ]);
   const providerCatalog = new Map(
-    adminState.streaming.providers.map((provider) => [provider.key, provider]),
+    adminState.streaming.providers.map((provider) => [provider.key, provider] as const),
   );
 
   return (
@@ -246,9 +246,14 @@ export default async function SystemAdminPage() {
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">Streaming providers</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            Gestisci i provider di streaming disponibili. Ogni slot può essere abilitato/disabilitato e marcato come preferito (solo uno attivo alla volta). 
-            Il provider VixSrc è deployment-specific: genera embed URL diretti (es. https://vixsrc.to/movie/{tmdbId}) se VIXSRC_BASE_URL è configurata nelle env. 
-            Maturity: deployment-specific | Compliance: richiede review legale per il tuo deployment. Non implica tele-sharing sincronizzato.
+            Gestisci i provider di streaming disponibili. Ogni slot puo essere
+            abilitato/disabilitato e marcato come preferito, con un solo provider attivo
+            alla volta. Il provider VixSrc e deployment-specific: genera embed URL diretti
+            come{" "}
+            <code className="font-mono text-xs">https://vixsrc.to/movie/{"{tmdbId}"}</code>{" "}
+            se <code className="font-mono text-xs">VIXSRC_BASE_URL</code> e configurata
+            nelle env. Maturity: deployment-specific | Compliance: richiede review legale
+            per il tuo deployment. Non implica tele-sharing sincronizzato.
           </p>
         </div>
 
@@ -276,14 +281,14 @@ export default async function SystemAdminPage() {
                   <p className="text-sm leading-6 text-muted-foreground">
                     {isVixsrc
                       ? config.notes ||
-                        "Provider embed-based. Pronto se VIXSRC_BASE_URL è settata (es. https://vixsrc.to). Genera URL embed per film/TV. Richiede verifica compliance deployment-specific. Non usare per sorgenti non autorizzate."
+                        "Provider embed-based. Pronto se VIXSRC_BASE_URL e settata (es. https://vixsrc.to). Genera URL embed per film/TV. Richiede verifica compliance deployment-specific. Non usare per sorgenti non autorizzate."
                       : config.notes ||
                         "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
                   </p>
                   <StreamingProviderNotes provider={provider} />
                   <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
                     {isVixsrc
-                      ? "Abilitando questo provider, movieshare tenterà di generare embed URL per le watch session. Playback dipende da configurazione env e stabilità della sorgente. Solo embed – no streaming diretto o sync. Review compliance obbligatoria prima di produzione."
+                      ? "Abilitando questo provider, movieshare tentera di generare embed URL per le watch session. Playback dipende da configurazione env e stabilita della sorgente. Solo embed, no streaming diretto o sync. Review compliance obbligatoria prima di produzione."
                       : "Enabling this slot only marks it as the preferred provider in the domain. Playback remains unavailable until a compliant deployment-specific adapter is wired."}
                   </div>
                   <form action={updateStreamingProviderAction} className="space-y-4">

@@ -2,13 +2,17 @@ import { StreamingProvider, getPlaybackSourceParams, PlaybackSource } from '../t
 
 const VIXSRC_PROVIDER: StreamingProvider = {
   id: 'VIXSRC',
+  key: 'VIXSRC',
   name: 'VixSrc (Deployment-Specific)',
+  label: 'VixSrc',
   description: 'Provider di streaming embed-based, configurabile via deployment. Usa TMDB ID per generare URL di playback. Supporta customizzazioni come colori e autoplay via query params.',
   isReady: true,
   maturity: 'deployment-specific',
   compliance: 'deployment-review',
   readinessNote: 'Pronto per uso se configurato con un base URL valido e conforme. Richiede review legale per il deployment.',
   complianceNote: 'Assicurati che la sorgente sia licensed e compliant con le leggi locali. Non usare per fonti non autorizzate.',
+  supportsGroupSessions: true,
+  supportsRealtimeSync: false,
 
   async getPlaybackSource(params: getPlaybackSourceParams): Promise<PlaybackSource> {
     const { tmdbId } = params; // watchSessionId non usato qui, ma disponibile se serve fetchare session data
