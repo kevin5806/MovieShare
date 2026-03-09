@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 export const authModeSchema = z.enum(["sign-in", "sign-up"]);
+export const discoverAuthSchema = z.object({
+  email: z.email(),
+});
 
 export const signInSchema = z.object({
   email: z.email(),

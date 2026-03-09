@@ -1,15 +1,82 @@
 import { env } from "@/server/env";
 import { db } from "@/server/db";
+import { getMediaStorageRuntimeConfig } from "@/server/services/media-storage";
 import { getStreamingAdminState } from "@/server/services/streaming";
 
 const SYSTEM_CONFIG_SCOPE = "default";
 
 export type ConfigSource = "database" | "environment" | "missing";
 export type TmdbAuthMode = "api-read-token" | "api-key" | "not-configured";
+export type AccessMethodKey =
+  | "EMAIL_PASSWORD"
+  | "EMAIL_CODE"
+  | "MAGIC_LINK"
+  | "PASSKEY"
+  | "TWO_FACTOR";
+export type AccessMethodAvailability = "live" | "config-only" | "blocked";
 
 function normalizeOptionalString(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function buildAccessMethodsAdminState(input: {
+  config: Awaited<ReturnType<typeof getSystemConfig>>;
+  emailConfigured: boolean;
+}) {
+  const emailDependentAvailability: AccessMethodAvailability = input.emailConfigured
+    ? "config-only"
+    : "blocked";
+
+  return [
+    {
+      key: "EMAIL_PASSWORD" as const,
+      label: "Email and password",
+      description: "Primary access flow already live in the app.",
+      isEnabled: true,
+      availability: "live" as const,
+      requirement: "No extra dependency beyond Better Auth itself.",
+    },
+    {
+      key: "EMAIL_CODE" as const,
+      label: "Email code",
+      description: "Useful for low-friction sign-in and lightweight account recovery.",
+      isEnabled: input.config.authEmailCodeEnabled,
+      availability: emailDependentAvailability,
+      requirement: input.emailConfigured
+        ? "SMTP is configured, so rollout can be wired on top of the current auth stack."
+        : "Requires working SMTP delivery before it can be turned into a real sign-in method.",
+    },
+    {
+      key: "MAGIC_LINK" as const,
+      label: "Magic link",
+      description: "Email-link based access for users who do not want a password.",
+      isEnabled: input.config.authMagicLinkEnabled,
+      availability: emailDependentAvailability,
+      requirement: input.emailConfigured
+        ? "SMTP is configured, so link delivery can be added without changing the domain model."
+        : "Requires working SMTP delivery before link-based access is viable.",
+    },
+    {
+      key: "PASSKEY" as const,
+      label: "Passkeys",
+      description: "Best future option for passwordless access on modern browsers and devices.",
+      isEnabled: input.config.authPasskeyEnabled,
+      availability: "config-only" as const,
+      requirement:
+        "Requires HTTPS, RP configuration and explicit Better Auth passkey wiring before rollout.",
+    },
+    {
+      key: "TWO_FACTOR" as const,
+      label: "Two-factor authentication",
+      description: "Additional step for protecting sensitive or admin accounts.",
+      isEnabled: input.config.authTwoFactorEnabled,
+      availability: emailDependentAvailability,
+      requirement: input.emailConfigured
+        ? "SMTP exists, so OTP-based 2FA can be layered on top of the current login flow."
+        : "Needs a delivery channel such as email OTP or TOTP onboarding before activation.",
+    },
+  ];
 }
 
 export async function ensureSystemConfigSeeded() {
@@ -23,6 +90,11 @@ export async function ensureSystemConfigSeeded() {
       tmdbLanguage: "en-US",
       smtpPort: 587,
       smtpSecure: false,
+      authEmailPasswordEnabled: true,
+      authEmailCodeEnabled: false,
+      authMagicLinkEnabled: false,
+      authPasskeyEnabled: false,
+      authTwoFactorEnabled: false,
     },
   });
 }
@@ -96,11 +168,17 @@ export async function getSystemAdminState() {
     getEmailRuntimeConfig(),
     getStreamingAdminState(),
   ]);
+  const storage = getMediaStorageRuntimeConfig();
 
   return {
     config,
     tmdb,
     email,
+    storage,
+    accessMethods: buildAccessMethodsAdminState({
+      config,
+      emailConfigured: email.isConfigured,
+    }),
     streaming,
     authBaseUrl: env.BETTER_AUTH_URL,
   };
@@ -146,6 +224,27 @@ export async function updateEmailSettings(input: {
       smtpUser: normalizeOptionalString(input.smtpUser),
       smtpPassword: normalizeOptionalString(input.smtpPassword),
       smtpFrom: normalizeOptionalString(input.smtpFrom),
+    },
+  });
+}
+
+export async function updateAccessMethodSettings(input: {
+  authEmailCodeEnabled: boolean;
+  authMagicLinkEnabled: boolean;
+  authPasskeyEnabled: boolean;
+  authTwoFactorEnabled: boolean;
+}) {
+  await ensureSystemConfigSeeded();
+
+  await db.systemConfig.update({
+    where: {
+      scope: SYSTEM_CONFIG_SCOPE,
+    },
+    data: {
+      authEmailCodeEnabled: input.authEmailCodeEnabled,
+      authMagicLinkEnabled: input.authMagicLinkEnabled,
+      authPasskeyEnabled: input.authPasskeyEnabled,
+      authTwoFactorEnabled: input.authTwoFactorEnabled,
     },
   });
 }

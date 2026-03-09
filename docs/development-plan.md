@@ -14,10 +14,13 @@ Last updated: March 9, 2026
 - modular monolith on Next.js App Router with TypeScript, Tailwind, shadcn/ui, Prisma, PostgreSQL and Better Auth
 - landing, authentication, dashboard, list, movie detail, selection, watch session, profile and admin pages
 - notifications inbox page for invites, live sessions and recent activity
+- single progressive access form that branches into onboarding only when the email is new
 - TMDB-backed movie search with local caching of essential metadata
 - collaborative lists with members, owner controls, list invites and friend invites
+- profile avatars and list-cover uploads backed by self-hosted media storage
 - watch sessions with group membership, resume state and manual playback checkpoints
 - streaming provider abstraction with admin-managed runtime configuration
+- media storage stack with MinIO and an internal media-cdn service
 - self-hosted SSE broker with live refresh on list, selection, movie-detail and watch-session pages
 - installable PWA baseline with manifest, service worker registration and offline fallback page
 - registry-first deployment path through GitHub Actions image publishing and source-free production Docker Compose
@@ -64,8 +67,10 @@ Last updated: March 9, 2026
 - completed: first notifications inbox and working topbar account/notification actions
 - completed: minimal PWA install/offline shell
 - completed: registry-first image publishing and source-free production deployment path
+- completed: self-hosted media storage and image delivery for avatars and list covers
+- completed: admin roadmap section for future access methods
 - in progress: responsive hardening, streaming UX cleanup and richer notification/presence behavior
-- pending: presence indicators without full refresh, delivery preferences, richer collaborative playback controls, stronger PWA shell
+- pending: presence indicators without full refresh, delivery preferences, richer collaborative playback controls, stronger PWA shell, deeper auth-method rollout
 
 ## Open Notes
 
@@ -75,3 +80,4 @@ Last updated: March 9, 2026
 - avoid premature generic abstractions outside real extension seams
 - prefer server components and server actions unless client interactivity is required
 - current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter
+- current missing production areas also include live passkey/email-code/2FA wiring on top of the new admin roadmap state

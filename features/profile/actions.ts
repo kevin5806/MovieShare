@@ -7,7 +7,12 @@ import {
   profileSchema,
   respondToFriendInviteSchema,
 } from "@/features/profile/schemas";
+import { getOptionalFile } from "@/lib/form-files";
 import { requireSession } from "@/server/session";
+import {
+  deleteManagedImageByUrl,
+  uploadPublicImage,
+} from "@/server/services/media-storage";
 import {
   respondToFriendInvite,
   sendFriendInvite,
@@ -22,11 +27,35 @@ export async function saveProfileAction(formData: FormData) {
     bio: formData.get("bio"),
     location: formData.get("location"),
     favoriteGenres: formData.get("favoriteGenres"),
+    removeAvatar: formData.get("removeAvatar") === "on",
+  });
+  const avatarImageFile = getOptionalFile(formData.get("avatarImage"));
+  let imageUrl: string | null | undefined;
+
+  if (avatarImageFile) {
+    const upload = await uploadPublicImage({
+      file: avatarImageFile,
+      folder: "profiles",
+      ownerId: session.user.id,
+      slug: session.user.email,
+      previousUrl: session.user.image ?? null,
+    });
+
+    imageUrl = upload.url;
+  } else if (parsed.removeAvatar) {
+    imageUrl = null;
+    await deleteManagedImageByUrl(session.user.image ?? null).catch((error) => {
+      console.error("deleteManagedImageByUrl failed", error);
+    });
+  }
+
+  await upsertProfile(session.user.id, {
+    ...parsed,
+    imageUrl,
   });
 
-  await upsertProfile(session.user.id, parsed);
-
   revalidatePath("/profile");
+  revalidatePath("/dashboard");
 }
 
 export async function sendFriendInviteAction(formData: FormData) {

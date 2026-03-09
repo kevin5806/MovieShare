@@ -1,6 +1,7 @@
 export type RealtimeEvent =
   | "list.item.added"
   | "list.feedback.updated"
+  | "list.presentation.updated"
   | "selection.run.completed"
   | "watch.session.created"
   | "watch.session.checkpoint.saved";

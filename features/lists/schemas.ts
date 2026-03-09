@@ -12,6 +12,14 @@ export const createListSchema = z.object({
   description: optionalFormText(240).optional().default(""),
 });
 
+export const updateListPresentationSchema = z.object({
+  listId: z.string().min(1),
+  listSlug: z.string().min(1),
+  name: z.string().min(2).max(80),
+  description: optionalFormText(240).optional().default(""),
+  removeCoverImage: formBoolean,
+});
+
 export const addMovieToListSchema = z.object({
   listId: z.string().min(1),
   listSlug: z.string().min(1),

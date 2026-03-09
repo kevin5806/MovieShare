@@ -27,6 +27,7 @@ type AppShellProps = {
     name: string;
     email: string;
     role: string;
+    image?: string | null;
   };
   notificationCount: number;
   versionLabel: string;
@@ -137,7 +138,12 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
                 ) : null}
               </Link>
               <Separator orientation="vertical" className="hidden h-8 sm:block" />
-              <UserMenu name={user.name} email={user.email} role={user.role} />
+              <UserMenu
+                name={user.name}
+                email={user.email}
+                role={user.role}
+                image={user.image}
+              />
             </div>
           </header>
 

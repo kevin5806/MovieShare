@@ -15,6 +15,17 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().default(""),
   SMTP_PASSWORD: z.string().optional().default(""),
   SMTP_FROM: z.string().optional().default("movieshare <noreply@movieshare.local>"),
+  STORAGE_ENDPOINT: z.string().optional().default(""),
+  STORAGE_PUBLIC_BASE_URL: z.string().optional().default(""),
+  STORAGE_BUCKET: z.string().optional().default(""),
+  STORAGE_REGION: z.string().optional().default("us-east-1"),
+  STORAGE_ACCESS_KEY: z.string().optional().default(""),
+  STORAGE_SECRET_KEY: z.string().optional().default(""),
+  STORAGE_FORCE_PATH_STYLE: z
+    .enum(["true", "false"])
+    .optional()
+    .default("true")
+    .transform((value) => value === "true"),
 });
 
 const parsedEnv = envSchema.parse(process.env);
@@ -42,3 +53,10 @@ if (process.env.NODE_ENV === "production" && !isLocalHost(parsedEnv.BETTER_AUTH_
 export const env = parsedEnv;
 
 export const isTmdbConfigured = Boolean(env.TMDB_API_TOKEN || env.TMDB_API_KEY);
+export const isStorageConfigured = Boolean(
+  env.STORAGE_ENDPOINT &&
+    env.STORAGE_PUBLIC_BASE_URL &&
+    env.STORAGE_BUCKET &&
+    env.STORAGE_ACCESS_KEY &&
+    env.STORAGE_SECRET_KEY,
+);

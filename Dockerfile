@@ -18,7 +18,14 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     SMTP_PORT=587 \
     SMTP_USER= \
     SMTP_PASSWORD= \
-    SMTP_FROM="movieshare <noreply@movieshare.local>"
+    SMTP_FROM="movieshare <noreply@movieshare.local>" \
+    STORAGE_ENDPOINT= \
+    STORAGE_PUBLIC_BASE_URL= \
+    STORAGE_BUCKET= \
+    STORAGE_REGION=us-east-1 \
+    STORAGE_ACCESS_KEY= \
+    STORAGE_SECRET_KEY= \
+    STORAGE_FORCE_PATH_STYLE=true
 
 FROM base AS deps
 

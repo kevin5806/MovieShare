@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { StreamingProviderKey } from "@/generated/prisma/client";
 import {
+  updateAccessMethodSettingsSchema,
   updateEmailSettingsSchema,
   updateStreamingProviderSchema,
 } from "@/features/system/schemas";
@@ -47,6 +48,22 @@ describe("schema boolean coercion", () => {
     ).toMatchObject({
       wouldRewatch: false,
       comment: "",
+    });
+  });
+
+  it("parses access-method switches consistently from checkbox-like values", () => {
+    expect(
+      updateAccessMethodSettingsSchema.parse({
+        authEmailCodeEnabled: "false",
+        authMagicLinkEnabled: "0",
+        authPasskeyEnabled: true,
+        authTwoFactorEnabled: "",
+      }),
+    ).toMatchObject({
+      authEmailCodeEnabled: false,
+      authMagicLinkEnabled: false,
+      authPasskeyEnabled: true,
+      authTwoFactorEnabled: false,
     });
   });
 });

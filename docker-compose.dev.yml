@@ -6,6 +6,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      media-cdn:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/movieshare?schema=public
       HOSTNAME: 0.0.0.0
@@ -23,6 +27,13 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-movieshare <noreply@movieshare.local>}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://minio:9000}
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:3080/media/movieshare-media}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-movieshare-media}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-${MINIO_ROOT_USER:-movieshare}}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-movieshare-secret-key}}
+      STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
       CHOKIDAR_USEPOLLING: "1"
       WATCHPACK_POLLING: "true"
       DEV_AUTO_DB_PUSH: ${DEV_AUTO_DB_PUSH:-1}

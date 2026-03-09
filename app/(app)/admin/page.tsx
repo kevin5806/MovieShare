@@ -1,9 +1,11 @@
 import {
+  updateAccessMethodSettingsAction,
   updateEmailSettingsAction,
   updateStreamingProviderAction,
   updateTmdbSettingsAction,
 } from "@/features/system/actions";
 import { SwitchField } from "@/components/forms/switch-field";
+import { AccessMethodCard } from "@/components/system/access-method-card";
 import {
   StreamingProviderNotes,
   StreamingProviderStatus,
@@ -51,7 +53,7 @@ export default async function SystemAdminPage() {
         </p>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="grid gap-6 xl:grid-cols-4">
         <Card className="border-border/70 bg-card/85">
           <CardHeader>
             <CardTitle>TMDB runtime</CardTitle>
@@ -98,7 +100,31 @@ export default async function SystemAdminPage() {
 
         <Card className="border-border/70 bg-card/85">
           <CardHeader>
-            <CardTitle>Auth and providers</CardTitle>
+            <CardTitle>Media runtime</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between gap-3">
+              <span>Config source</span>
+              <SourceBadge source={adminState.storage.source} />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Bucket</span>
+              <span className="font-medium text-foreground">
+                {adminState.storage.bucket || "Not configured"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Public base URL</span>
+              <span className="font-medium text-foreground">
+                {adminState.storage.publicBaseUrl || "Not configured"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/85">
+          <CardHeader>
+            <CardTitle>Access and providers</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center justify-between gap-3">
@@ -115,6 +141,15 @@ export default async function SystemAdminPage() {
                 {adminState.streaming.activeConfig?.label || "No provider active"}
               </span>
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Live access methods</span>
+              <span className="font-medium text-foreground">
+                {
+                  adminState.accessMethods.filter((method) => method.availability === "live")
+                    .length
+                }
+              </span>
+            </div>
             <p className="pt-2">
               The current watch flow is tracking-first: it records session starts, members
               and checkpoints. It does not imply synced tele-sharing.
@@ -127,7 +162,7 @@ export default async function SystemAdminPage() {
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-3">
         <Card className="border-border/70 bg-card/85">
           <CardHeader>
             <CardTitle>TMDB integration</CardTitle>
@@ -240,6 +275,71 @@ export default async function SystemAdminPage() {
             </form>
           </CardContent>
         </Card>
+
+        <Card className="border-border/70 bg-card/85">
+          <CardHeader>
+            <CardTitle>Access methods</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              Store rollout intent for additional access methods here. Only email and
+              password is live today and remains read-only here; the toggles below keep the admin plan and
+              prerequisites visible until their runtime wiring lands.
+            </p>
+            <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Email and password</p>
+              <p className="mt-1">
+                This method is the current production access flow. It stays on until a
+                different live auth path is actually wired at bootstrap time.
+              </p>
+            </div>
+            <form action={updateAccessMethodSettingsAction} className="grid gap-4">
+              <SwitchField
+                name="authEmailCodeEnabled"
+                label="Email code"
+                description="Plan a one-time-code flow for low-friction sign-in."
+                defaultChecked={adminState.config.authEmailCodeEnabled}
+              />
+              <SwitchField
+                name="authMagicLinkEnabled"
+                label="Magic link"
+                description="Plan passwordless access through emailed links."
+                defaultChecked={adminState.config.authMagicLinkEnabled}
+              />
+              <SwitchField
+                name="authPasskeyEnabled"
+                label="Passkeys"
+                description="Plan WebAuthn/passkey support for modern devices."
+                defaultChecked={adminState.config.authPasskeyEnabled}
+              />
+              <SwitchField
+                name="authTwoFactorEnabled"
+                label="Two-factor auth"
+                description="Plan an extra verification step for sensitive accounts."
+                defaultChecked={adminState.config.authTwoFactorEnabled}
+              />
+              <Button type="submit" className="w-full">
+                Save access method plan
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-4">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight">Access roadmap</h2>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Keep future authentication work visible from the admin panel. These cards
+            separate what is already live from what is only configured or still blocked by
+            prerequisites such as SMTP or HTTPS.
+          </p>
+        </div>
+        <div className="grid gap-6 xl:grid-cols-2">
+          {adminState.accessMethods.map((method) => (
+            <AccessMethodCard key={method.key} method={method} />
+          ))}
+        </div>
       </section>
 
       <section className="space-y-4">

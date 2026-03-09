@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  updateAccessMethodSettingsSchema,
   updateEmailSettingsSchema,
   updateStreamingProviderSchema,
   updateTmdbSettingsSchema,
 } from "@/features/system/schemas";
 import { requireAdminSession } from "@/server/session";
-import { updateEmailSettings, updateTmdbSettings } from "@/server/services/system-config";
+import {
+  updateAccessMethodSettings,
+  updateEmailSettings,
+  updateTmdbSettings,
+} from "@/server/services/system-config";
 import { updateStreamingProviderConfig } from "@/server/services/streaming";
 
 export async function updateStreamingProviderAction(formData: FormData) {
@@ -57,4 +62,20 @@ export async function updateEmailSettingsAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/streaming");
+}
+
+export async function updateAccessMethodSettingsAction(formData: FormData) {
+  await requireAdminSession();
+
+  const parsed = updateAccessMethodSettingsSchema.parse({
+    authEmailCodeEnabled: formData.get("authEmailCodeEnabled") === "on",
+    authMagicLinkEnabled: formData.get("authMagicLinkEnabled") === "on",
+    authPasskeyEnabled: formData.get("authPasskeyEnabled") === "on",
+    authTwoFactorEnabled: formData.get("authTwoFactorEnabled") === "on",
+  });
+
+  await updateAccessMethodSettings(parsed);
+
+  revalidatePath("/admin");
+  revalidatePath("/login");
 }

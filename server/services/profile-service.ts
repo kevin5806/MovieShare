@@ -90,6 +90,7 @@ export async function upsertProfile(
     bio?: string;
     location?: string;
     favoriteGenres?: string;
+    imageUrl?: string | null;
   },
 ) {
   const favoriteGenres = (input.favoriteGenres ?? "")
@@ -97,23 +98,36 @@ export async function upsertProfile(
     .map((value) => value.trim())
     .filter(Boolean);
 
-  return db.profile.upsert({
-    where: {
-      userId,
-    },
-    update: {
-      displayName: input.displayName || null,
-      bio: input.bio || null,
-      location: input.location || null,
-      favoriteGenres,
-    },
-    create: {
-      userId,
-      displayName: input.displayName || null,
-      bio: input.bio || null,
-      location: input.location || null,
-      favoriteGenres,
-    },
+  return db.$transaction(async (tx) => {
+    if (input.imageUrl !== undefined) {
+      await tx.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          image: input.imageUrl,
+        },
+      });
+    }
+
+    return tx.profile.upsert({
+      where: {
+        userId,
+      },
+      update: {
+        displayName: input.displayName || null,
+        bio: input.bio || null,
+        location: input.location || null,
+        favoriteGenres,
+      },
+      create: {
+        userId,
+        displayName: input.displayName || null,
+        bio: input.bio || null,
+        location: input.location || null,
+        favoriteGenres,
+      },
+    });
   });
 }
 

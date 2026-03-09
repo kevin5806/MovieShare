@@ -29,6 +29,8 @@ and network integration.
   deploys from a prebuilt image instead of building from source
 - `.env.production.example`
   provides the production env baseline
+- `infra/nginx/media-cdn.conf`
+  is the small runtime config file used by the media-cdn service in image-based deploys
 
 ## GitHub Container Registry flow
 
@@ -47,8 +49,10 @@ git push origin v1.0.0
 - `ghcr.io/<owner>/movieshare:latest`
 
 3. On the production server, create an env file from `.env.production.example`.
+4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
+   deployment bundle.
 
-4. Pull and run the image:
+5. Pull and run the image:
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.registry.yml pull

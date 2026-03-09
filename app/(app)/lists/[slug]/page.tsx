@@ -1,6 +1,8 @@
 import { UsersRound, WandSparkles } from "lucide-react";
 
 import { InviteMembersCard } from "@/components/lists/invite-members-card";
+import { ListPresentationForm } from "@/components/lists/list-presentation-form";
+import { MediaImage } from "@/components/media/media-image";
 import { AddMovieDialog } from "@/components/movies/add-movie-dialog";
 import { MovieCard } from "@/components/movies/movie-card";
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
@@ -23,26 +25,38 @@ export default async function ListPage({
   return (
     <div className="space-y-8">
       <RealtimeRefresh channels={[`list:${list.id}`]} />
-      <section className="flex flex-col gap-5 rounded-[32px] border border-border/70 bg-card/85 p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{list.items.length} movies</Badge>
-            <Badge variant="secondary">{list.members.length} members</Badge>
+      <section className="relative overflow-hidden rounded-[32px] border border-border/70 bg-card/85 p-6 shadow-sm">
+        {list.coverImageUrl ? (
+          <MediaImage
+            src={list.coverImageUrl}
+            alt={list.name}
+            fill
+            sizes="100vw"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.08),rgba(248,250,252,0.94))]" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{list.items.length} movies</Badge>
+              <Badge variant="secondary">{list.members.length} members</Badge>
+            </div>
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight">{list.name}</h1>
+              <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
+                {list.description || "No description yet for this room."}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
+                <UsersRound className="size-4" />
+                {list.members.map((member) => member.user.name).join(", ")}
+              </span>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight">{list.name}</h1>
-            <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
-              {list.description || "No description yet for this room."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <UsersRound className="size-4" />
-              {list.members.map((member) => member.user.name).join(", ")}
-            </span>
-          </div>
+          <AddMovieDialog listId={list.id} listSlug={list.slug} />
         </div>
-        <AddMovieDialog listId={list.id} listSlug={list.slug} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
@@ -100,6 +114,25 @@ export default async function ListPage({
               )}
             </CardContent>
           </Card>
+
+          {isOwner ? (
+            <Card className="border-border/70 bg-card/85">
+              <CardHeader>
+                <CardTitle>List presentation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ListPresentationForm
+                  list={{
+                    id: list.id,
+                    slug: list.slug,
+                    name: list.name,
+                    description: list.description,
+                    coverImageUrl: list.coverImageUrl,
+                  }}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           {isOwner ? (
             <InviteMembersCard

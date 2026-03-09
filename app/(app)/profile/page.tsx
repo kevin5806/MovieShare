@@ -1,5 +1,6 @@
 import { saveProfileAction } from "@/features/profile/actions";
 import { FriendshipPanel } from "@/components/profile/friendship-panel";
+import { ImageUploadField } from "@/components/media/image-upload-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,8 +30,27 @@ export default async function ProfilePage() {
           </CardHeader>
           <CardContent>
             <form action={saveProfileAction} className="space-y-4">
-              <Input name="displayName" defaultValue={user?.profile?.displayName ?? ""} placeholder="Display name" />
-              <Input name="location" defaultValue={user?.profile?.location ?? ""} placeholder="Location" />
+              <ImageUploadField
+                name="avatarImage"
+                label="Profile image"
+                description="Use a lightweight public avatar so collaborators recognize you across lists and sessions."
+                previewUrl={user?.image}
+                previewAlt={user?.name ?? session.user.name}
+                placeholderLabel={user?.profile?.displayName || user?.name || session.user.name}
+                variant="avatar"
+                removeName="removeAvatar"
+                removeLabel="Remove profile image"
+              />
+              <Input
+                name="displayName"
+                defaultValue={user?.profile?.displayName ?? ""}
+                placeholder="Display name"
+              />
+              <Input
+                name="location"
+                defaultValue={user?.profile?.location ?? ""}
+                placeholder="Location"
+              />
               <Input
                 name="favoriteGenres"
                 defaultValue={user?.profile?.favoriteGenres.join(", ") ?? ""}
@@ -51,6 +71,10 @@ export default async function ProfilePage() {
             <CardTitle>Account snapshot</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="rounded-3xl border border-border/70 bg-background p-4">
+              <p className="text-sm text-muted-foreground">Account email</p>
+              <p className="mt-2 text-lg font-semibold">{session.user.email}</p>
+            </div>
             <div className="rounded-3xl border border-border/70 bg-background p-4">
               <p className="text-sm text-muted-foreground">Lists joined</p>
               <p className="mt-2 text-3xl font-semibold">{user?._count.listMemberships ?? 0}</p>

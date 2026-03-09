@@ -1,107 +1,159 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-import { type AuthMode, signInSchema, signUpSchema } from "@/features/auth/schemas";
+import { discoverAuthSchema, signInSchema, signUpSchema } from "@/features/auth/schemas";
 import { authClient } from "@/lib/auth-client";
 import { Field, FieldDescription, FieldLabel } from "@/components/forms/field";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 type AuthFormProps = {
-  defaultMode?: AuthMode;
   defaultEmail?: string;
 };
 
-const modeCopy: Record<
-  AuthMode,
+type AuthStage = "credentials" | "profile";
+type PendingAction = "discover" | "sign-in" | "sign-up" | null;
+
+const stageCopy: Record<
+  AuthStage,
   {
+    eyebrow: string;
     title: string;
     description: string;
     submitLabel: string;
     pendingLabel: string;
   }
 > = {
-  "sign-in": {
-    title: "Sign in",
-    description: "Use your existing account to continue where the group left off.",
-    submitLabel: "Continue to dashboard",
-    pendingLabel: "Signing in...",
+  credentials: {
+    eyebrow: "Access",
+    title: "Continue with your email",
+    description:
+      "Use the same form whether you are coming back or entering for the first time.",
+    submitLabel: "Continue",
+    pendingLabel: "Checking access...",
   },
-  "sign-up": {
-    title: "Create account",
-    description: "Create your account here and you will be signed in immediately.",
+  profile: {
+    eyebrow: "Finish setup",
+    title: "This email is new here",
+    description:
+      "Add the last missing detail and movieshare will create the account and sign you in immediately.",
     submitLabel: "Create account and continue",
     pendingLabel: "Creating account...",
   },
 };
 
-export function AuthForm({
-  defaultMode = "sign-in",
-  defaultEmail = "",
-}: AuthFormProps) {
+async function discoverAccessMode(email: string) {
+  const parsed = discoverAuthSchema.safeParse({
+    email,
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Enter a valid email address.");
+  }
+
+  const response = await fetch("/api/auth/discover", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(parsed.data),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { mode?: "sign-in" | "sign-up"; error?: string }
+    | null;
+
+  if (!response.ok || !payload?.mode) {
+    throw new Error(payload?.error ?? "Unable to prepare the access flow right now.");
+  }
+
+  return payload.mode;
+}
+
+export function AuthForm({ defaultEmail = "" }: AuthFormProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>(defaultMode);
-  const [isPending, setIsPending] = useState(false);
+  const [stage, setStage] = useState<AuthStage>("credentials");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [email, setEmail] = useState(defaultEmail);
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
 
-  async function handleSubmit(formData: FormData) {
-    const rawValues = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-    };
-
-    if (mode === "sign-up") {
-      const parsed = signUpSchema.safeParse(rawValues);
+  async function handleSubmit() {
+    if (stage === "credentials") {
+      const parsed = signInSchema.safeParse({
+        email,
+        password,
+      });
 
       if (!parsed.success) {
         toast.error(parsed.error.issues[0]?.message ?? "Check the form fields and try again.");
         return;
       }
 
-      setIsPending(true);
+      try {
+        setPendingAction("discover");
+        const mode = await discoverAccessMode(parsed.data.email);
 
-      const result = await authClient.signUp.email({
-        name: parsed.data.name,
-        email: parsed.data.email,
-        password: parsed.data.password,
-        callbackURL: "/dashboard",
-      });
+        if (mode === "sign-up") {
+          setStage("profile");
+          setPendingAction(null);
+          return;
+        }
 
-      setIsPending(false);
+        setPendingAction("sign-in");
 
-      if (result.error) {
-        toast.error(result.error.message ?? "Unable to create your account.");
-        return;
+        const result = await authClient.signIn.email({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          callbackURL: "/dashboard",
+        });
+
+        setPendingAction(null);
+
+        if (result.error) {
+          toast.error(result.error.message ?? "Unable to sign in.");
+          return;
+        }
+
+        router.push("/dashboard");
+        router.refresh();
+      } catch (error) {
+        setPendingAction(null);
+        toast.error(error instanceof Error ? error.message : "Unable to continue right now.");
       }
 
-      router.push("/dashboard");
-      router.refresh();
       return;
     }
 
-    const parsed = signInSchema.safeParse(rawValues);
+    const parsed = signUpSchema.safeParse({
+      name,
+      email,
+      password,
+    });
 
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Check the form fields and try again.");
       return;
     }
 
-    setIsPending(true);
+    setPendingAction("sign-up");
 
-    const result = await authClient.signIn.email({
+    const result = await authClient.signUp.email({
+      name: parsed.data.name,
       email: parsed.data.email,
       password: parsed.data.password,
       callbackURL: "/dashboard",
     });
 
-    setIsPending(false);
+    setPendingAction(null);
 
     if (result.error) {
-      toast.error(result.error.message ?? "Unable to sign in.");
+      toast.error(result.error.message ?? "Unable to create your account.");
       return;
     }
 
@@ -109,28 +161,42 @@ export function AuthForm({
     router.refresh();
   }
 
-  const copy = modeCopy[mode];
+  const copy = stageCopy[stage];
+  const submitLabel =
+    pendingAction === "discover" || pendingAction === "sign-in" || pendingAction === "sign-up"
+      ? copy.pendingLabel
+      : copy.submitLabel;
 
   return (
     <form action={handleSubmit} className="space-y-5">
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border/70 bg-muted/40 p-1">
-          {(["sign-in", "sign-up"] as const).map((nextMode) => (
+      <div className="space-y-3 rounded-[28px] border border-border/70 bg-muted/30 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Badge variant="secondary">{copy.eyebrow}</Badge>
+          {stage === "profile" ? (
             <Button
-              key={nextMode}
               type="button"
-              variant={mode === nextMode ? "secondary" : "ghost"}
-              className={cn("h-10 rounded-xl", mode !== nextMode && "text-muted-foreground")}
-              onClick={() => setMode(nextMode)}
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-full px-3"
+              onClick={() => setStage("credentials")}
             >
-              {modeCopy[nextMode].title}
+              <ArrowLeft className="size-4" />
+              Back
             </Button>
-          ))}
+          ) : (
+            <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              <Sparkles className="size-3.5" />
+              One flow
+            </span>
+          )}
         </div>
-        <FieldDescription>{copy.description}</FieldDescription>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight">{copy.title}</h2>
+          <FieldDescription>{copy.description}</FieldDescription>
+        </div>
       </div>
 
-      {mode === "sign-up" ? (
+      {stage === "profile" ? (
         <Field>
           <FieldLabel htmlFor="name">Name</FieldLabel>
           <Input
@@ -138,6 +204,8 @@ export function AuthForm({
             name="name"
             placeholder="Kevin Rossi"
             autoComplete="name"
+            value={name}
+            onChange={(event) => setName(event.currentTarget.value)}
             required
           />
         </Field>
@@ -151,7 +219,8 @@ export function AuthForm({
           type="email"
           placeholder="you@example.com"
           autoComplete="email"
-          defaultValue={defaultEmail}
+          value={email}
+          onChange={(event) => setEmail(event.currentTarget.value)}
           required
         />
       </Field>
@@ -162,13 +231,22 @@ export function AuthForm({
           id="password"
           name="password"
           type="password"
-          autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
+          autoComplete={stage === "profile" ? "new-password" : "current-password"}
+          value={password}
+          onChange={(event) => setPassword(event.currentTarget.value)}
           required
         />
       </Field>
 
-      <Button className="w-full" type="submit" disabled={isPending}>
-        {isPending ? copy.pendingLabel : copy.submitLabel}
+      {stage === "credentials" ? (
+        <FieldDescription>
+          If this email is new, movieshare will ask only for your name before creating the
+          account.
+        </FieldDescription>
+      ) : null}
+
+      <Button className="w-full" type="submit" disabled={pendingAction !== null}>
+        {submitLabel}
       </Button>
     </form>
   );

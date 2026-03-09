@@ -22,3 +22,10 @@ export const updateEmailSettingsSchema = z.object({
   smtpPassword: z.string().max(1024).default(""),
   smtpFrom: z.string().max(255).default(""),
 });
+
+export const updateAccessMethodSettingsSchema = z.object({
+  authEmailCodeEnabled: formBoolean,
+  authMagicLinkEnabled: formBoolean,
+  authPasskeyEnabled: formBoolean,
+  authTwoFactorEnabled: formBoolean,
+});

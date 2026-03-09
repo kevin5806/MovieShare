@@ -23,6 +23,7 @@ export default async function AuthenticatedLayout({
         name: session.user.name || "movieshare user",
         email: session.user.email,
         role: session.user.role ?? "USER",
+        image: session.user.image ?? null,
       }}
       notificationCount={notificationSummary.total}
       versionLabel={appVersion.label}

@@ -7,6 +7,10 @@ import {
 } from "@/generated/prisma/client";
 import { realtimeBroker } from "@/server/realtime/broker";
 import { db } from "@/server/db";
+import {
+  deleteManagedImageByUrl,
+  uploadPublicImage,
+} from "@/server/services/media-storage";
 import { logActivity } from "@/server/services/activity-log";
 import { sendListInviteEmail } from "@/server/services/email-service";
 import { cacheMovieFromTmdb } from "@/server/services/tmdb-service";
@@ -111,6 +115,21 @@ async function requireListAccessBySlug(slug: string, userId: string) {
   return list;
 }
 
+async function requireListOwner(listId: string, userId: string) {
+  const list = await db.movieList.findFirst({
+    where: {
+      id: listId,
+      ownerId: userId,
+    },
+  });
+
+  if (!list) {
+    throw new Error("Only the list owner can update this list.");
+  }
+
+  return list;
+}
+
 async function generateUniqueSlug(name: string) {
   const base = slugify(name) || "movie-list";
   let slug = base;
@@ -186,8 +205,20 @@ export async function getDashboardData(userId: string) {
   };
 }
 
-export async function createList(userId: string, input: { name: string; description?: string }) {
+export async function createList(
+  userId: string,
+  input: { name: string; description?: string },
+  options?: { coverImageFile?: File | null },
+) {
   const slug = await generateUniqueSlug(input.name);
+  const coverImageUpload = options?.coverImageFile
+    ? await uploadPublicImage({
+        file: options.coverImageFile,
+        folder: "lists",
+        ownerId: userId,
+        slug,
+      })
+    : null;
 
   const list = await db.$transaction(async (tx) => {
     const created = await tx.movieList.create({
@@ -196,6 +227,7 @@ export async function createList(userId: string, input: { name: string; descript
         description: input.description || null,
         slug,
         coverColor: "stone",
+        coverImageUrl: coverImageUpload?.url ?? null,
         ownerId: userId,
       },
     });
@@ -223,6 +255,72 @@ export async function createList(userId: string, input: { name: string; descript
   });
 
   return list;
+}
+
+export async function updateListPresentation(
+  userId: string,
+  input: {
+    listId: string;
+    name: string;
+    description?: string;
+    removeCoverImage: boolean;
+    coverImageFile?: File | null;
+  },
+) {
+  const list = await requireListOwner(input.listId, userId);
+  let coverImageUrl: string | null | undefined;
+
+  if (input.coverImageFile) {
+    const upload = await uploadPublicImage({
+      file: input.coverImageFile,
+      folder: "lists",
+      ownerId: userId,
+      slug: list.slug,
+      previousUrl: list.coverImageUrl,
+    });
+
+    coverImageUrl = upload.url;
+  } else if (input.removeCoverImage) {
+    coverImageUrl = null;
+  }
+
+  const updatedList = await db.movieList.update({
+    where: {
+      id: list.id,
+    },
+    data: {
+      name: input.name,
+      description: input.description || null,
+      ...(coverImageUrl !== undefined ? { coverImageUrl } : {}),
+    },
+  });
+
+  if (coverImageUrl === null && list.coverImageUrl) {
+    await deleteManagedImageByUrl(list.coverImageUrl).catch((error) => {
+      console.error("deleteManagedImageByUrl failed", error);
+    });
+  }
+
+  await logActivity({
+    listId: list.id,
+    actorId: userId,
+    event: "list.presentation.updated",
+    payload: {
+      hasCoverImage: Boolean(updatedList.coverImageUrl),
+    },
+  });
+
+  await realtimeBroker.publish({
+    channel: `list:${list.id}`,
+    event: "list.presentation.updated",
+    payload: {
+      listId: list.id,
+      hasCoverImage: Boolean(updatedList.coverImageUrl),
+    },
+    occurredAt: new Date().toISOString(),
+  });
+
+  return updatedList;
 }
 
 export async function getListDetails(slug: string, userId: string) {

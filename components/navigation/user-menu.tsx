@@ -6,7 +6,7 @@ import { Bell, LogOut, Shield, UserCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-styles";
 import {
@@ -24,9 +24,10 @@ type UserMenuProps = {
   name: string;
   email: string;
   role: string;
+  image?: string | null;
 };
 
-export function UserMenu({ name, email, role }: UserMenuProps) {
+export function UserMenu({ name, email, role, image }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -47,6 +48,7 @@ export function UserMenu({ name, email, role }: UserMenuProps) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger className="rounded-full outline-none ring-offset-background transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
         <Avatar className="size-10 border border-border/70 bg-card shadow-sm">
+          {image ? <AvatarImage src={image} alt={name} /> : null}
           <AvatarFallback>{initialsFromName(name)}</AvatarFallback>
         </Avatar>
       </SheetTrigger>

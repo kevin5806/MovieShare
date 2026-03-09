@@ -19,6 +19,35 @@ const securityHeaders = [
   },
 ];
 
+function getOptionalRemotePattern(
+  urlValue: string | undefined,
+): NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number] | null {
+  if (!urlValue) {
+    return null;
+  }
+
+  try {
+    const url = new URL(urlValue);
+    const normalizedPath = url.pathname.replace(/\/+$/, "");
+    const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
+
+    if (!protocol) {
+      return null;
+    }
+
+    return {
+      protocol,
+      hostname: url.hostname,
+      port: url.port || undefined,
+      pathname: `${normalizedPath || ""}/**`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const storageRemotePattern = getOptionalRemotePattern(process.env.STORAGE_PUBLIC_BASE_URL);
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   ...(process.env.BUILD_STANDALONE === "1" ? { output: "standalone" as const } : {}),
@@ -39,6 +68,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "image.tmdb.org",
       },
+      ...(storageRemotePattern ? [storageRemotePattern] : []),
     ],
   },
 };

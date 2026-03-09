@@ -13,7 +13,9 @@ import {
   runSelectionSchema,
   saveFeedbackSchema,
   startWatchSessionSchema,
+  updateListPresentationSchema,
 } from "@/features/lists/schemas";
+import { getOptionalFile } from "@/lib/form-files";
 import { requireSession } from "@/server/session";
 import {
   addMovieToList,
@@ -22,6 +24,7 @@ import {
   respondToListInvite,
   revokeListInvite,
   saveMovieFeedback,
+  updateListPresentation,
 } from "@/server/services/list-service";
 import { runSelection } from "@/server/services/selection-service";
 import { createWatchSession } from "@/server/services/watch-service";
@@ -33,10 +36,34 @@ export async function createListAction(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description"),
   });
+  const coverImageFile = getOptionalFile(formData.get("coverImage"));
 
-  const list = await createList(session.user.id, parsed);
+  const list = await createList(session.user.id, parsed, {
+    coverImageFile,
+  });
 
   redirect(`/lists/${list.slug}`);
+}
+
+export async function updateListPresentationAction(formData: FormData) {
+  const session = await requireSession();
+
+  const parsed = updateListPresentationSchema.parse({
+    listId: formData.get("listId"),
+    listSlug: formData.get("listSlug"),
+    name: formData.get("name"),
+    description: formData.get("description"),
+    removeCoverImage: formData.get("removeCoverImage") === "on",
+  });
+  const coverImageFile = getOptionalFile(formData.get("coverImage"));
+
+  await updateListPresentation(session.user.id, {
+    ...parsed,
+    coverImageFile,
+  });
+
+  revalidatePath(`/lists/${parsed.listSlug}`);
+  revalidatePath("/dashboard");
 }
 
 export async function addMovieToListAction(formData: FormData) {

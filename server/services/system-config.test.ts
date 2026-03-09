@@ -20,6 +20,13 @@ const mocks = vi.hoisted(() => ({
     SMTP_USER: "env-user",
     SMTP_PASSWORD: "env-password",
     SMTP_FROM: "movieshare <env@example.com>",
+    STORAGE_ENDPOINT: "http://minio:9000",
+    STORAGE_PUBLIC_BASE_URL: "http://localhost:8080/media/movieshare-media",
+    STORAGE_BUCKET: "movieshare-media",
+    STORAGE_REGION: "us-east-1",
+    STORAGE_ACCESS_KEY: "movieshare",
+    STORAGE_SECRET_KEY: "movieshare-secret",
+    STORAGE_FORCE_PATH_STYLE: true,
   },
   getStreamingAdminState: vi.fn(),
 }));
@@ -98,10 +105,31 @@ describe("system-config service", () => {
       smtpUser: null,
       smtpPassword: null,
       smtpFrom: null,
+      authEmailPasswordEnabled: true,
+      authEmailCodeEnabled: true,
+      authMagicLinkEnabled: false,
+      authPasskeyEnabled: false,
+      authTwoFactorEnabled: true,
     });
 
     await expect(getSystemAdminState()).resolves.toMatchObject({
       authBaseUrl: "http://localhost:3000",
+      storage: {
+        isConfigured: true,
+        source: "environment",
+      },
+      accessMethods: expect.arrayContaining([
+        expect.objectContaining({
+          key: "EMAIL_PASSWORD",
+          availability: "live",
+          isEnabled: true,
+        }),
+        expect.objectContaining({
+          key: "EMAIL_CODE",
+          availability: "config-only",
+          isEnabled: true,
+        }),
+      ]),
       streaming: {
         configs: [],
         activeConfig: null,

@@ -167,6 +167,7 @@ model MovieList {
   name          String
   description   String?
   coverColor    String?
+  coverImageUrl String?
   isArchived    Boolean          @default(false)
   ownerId       String
   createdAt     DateTime         @default(now())
@@ -362,20 +363,25 @@ model StreamingProviderConfig {
 }
 
 model SystemConfig {
-  id           String   @id @default(cuid())
-  scope        String   @unique @default("default")
-  tmdbApiToken String?
-  tmdbApiKey   String?
-  tmdbLanguage String   @default("en-US")
-  smtpHost     String?
-  smtpPort     Int      @default(587)
-  smtpSecure   Boolean  @default(false)
-  smtpUser     String?
-  smtpPassword String?
-  smtpFrom     String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  scope                   String   @unique @default("default")
+  tmdbApiToken            String?
+  tmdbApiKey              String?
+  tmdbLanguage            String   @default("en-US")
+  smtpHost                String?
+  smtpPort                Int      @default(587)
+  smtpSecure              Boolean  @default(false)
+  smtpUser                String?
+  smtpPassword            String?
+  smtpFrom                String?
+  authEmailPasswordEnabled Boolean @default(true)
+  authEmailCodeEnabled    Boolean  @default(false)
+  authMagicLinkEnabled    Boolean  @default(false)
+  authPasskeyEnabled      Boolean  @default(false)
+  authTwoFactorEnabled    Boolean  @default(false)
+  notes                   String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model ActivityLog {

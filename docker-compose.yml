@@ -18,6 +18,50 @@ services:
       timeout: 5s
       retries: 10
 
+  minio:
+    image: quay.io/minio/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-movieshare}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-movieshare-secret-key}
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    restart: "no"
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-movieshare}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-movieshare-secret-key}
+      MINIO_BUCKET: ${STORAGE_BUCKET:-movieshare-media}
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - 'until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do sleep 2; done; mc mb -p local/"$$MINIO_BUCKET" || true; mc anonymous set download local/"$$MINIO_BUCKET"'
+
+  media-cdn:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${MEDIA_CDN_PORT:-3080}:8080"
+    volumes:
+      - ./infra/nginx/media-cdn.conf:/etc/nginx/nginx.conf:ro
+      - media-cdn-cache:/var/cache/nginx
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   app:
     build:
       context: .
@@ -25,6 +69,10 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      media-cdn:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/movieshare?schema=public
@@ -42,6 +90,13 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-movieshare <noreply@movieshare.local>}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://minio:9000}
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:3080/media/movieshare-media}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-movieshare-media}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-${MINIO_ROOT_USER:-movieshare}}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-movieshare-secret-key}}
+      STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
     ports:
       - "3000:3000"
     command: node scripts/container-start.mjs
@@ -58,3 +113,5 @@ services:
 
 volumes:
   postgres-data:
+  minio-data:
+  media-cdn-cache:

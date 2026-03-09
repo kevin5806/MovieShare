@@ -1,4 +1,4 @@
-import { optionalFormText } from "@/lib/schema-utils";
+import { formBoolean, optionalFormText } from "@/lib/schema-utils";
 import { z } from "zod";
 
 export const profileSchema = z.object({
@@ -6,6 +6,7 @@ export const profileSchema = z.object({
   bio: optionalFormText(320).optional().default(""),
   location: optionalFormText(80).optional().default(""),
   favoriteGenres: optionalFormText(240).optional().default(""),
+  removeAvatar: formBoolean,
 });
 
 export const friendInviteSchema = z.object({

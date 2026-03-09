@@ -1,18 +1,15 @@
 import { BrandMark } from "@/components/brand-mark";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { authModeSchema } from "@/features/auth/schemas";
 import { redirectIfAuthenticated } from "@/server/session";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; email?: string }>;
+  searchParams: Promise<{ email?: string }>;
 }) {
   await redirectIfAuthenticated();
   const params = await searchParams;
-  const parsedMode = authModeSchema.safeParse(params.mode);
-  const mode = parsedMode.success ? parsedMode.data : "sign-in";
   const defaultEmail = typeof params.email === "string" ? params.email : "";
 
   return (
@@ -25,11 +22,11 @@ export default async function LoginPage({
               Access movieshare
             </p>
             <h1 className="max-w-xl text-5xl font-semibold tracking-tight">
-              One access point for both returning members and new accounts.
+              One access form, whether you are returning or joining for the first time.
             </h1>
             <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-              Sign in if you already exist, or create your account in the same flow and go
-              straight to the workspace.
+              Start with your email and password. If the address is new, movieshare asks
+              only for your name and finishes the account setup in the same place.
             </p>
           </div>
         </section>
@@ -39,7 +36,7 @@ export default async function LoginPage({
             <CardTitle>Continue</CardTitle>
           </CardHeader>
           <CardContent>
-            <AuthForm defaultMode={mode} defaultEmail={defaultEmail} />
+            <AuthForm defaultEmail={defaultEmail} />
           </CardContent>
         </Card>
       </div>

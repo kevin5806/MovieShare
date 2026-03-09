@@ -12,11 +12,13 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - PostgreSQL
 - Better Auth
 - Docker Compose
+- MinIO object storage
+- Nginx media CDN layer
 
 ## What is included
 
 - landing page
-- login and registration
+- single progressive access flow for login and registration
 - authenticated dashboard
 - collaborative list page
 - movie detail page inside a list
@@ -24,6 +26,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - watch session page
 - system admin page for streaming providers
 - system admin panel for TMDB, email and streaming configuration
+- admin roadmap for future access methods
 - user profile page
 - notifications inbox page
 - list invite flow with shareable acceptance links
@@ -34,6 +37,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - abstract streaming provider registry
 - realtime-ready event broker interface
 - install prompt and offline fallback baseline for PWA-style usage
+- self-hosted media storage and public image delivery for avatars and list covers
 - project vision, development notes and session handbook in `docs/`
 
 ## Architecture
@@ -67,8 +71,8 @@ The repository already includes:
 
 Current implementation detail:
 
-- the `vixsrc` adapter is intentionally scaffolded as unavailable and does not return a working playback URL
-- the watch-session domain and admin UI are ready, but you should replace the provider adapter with a compliant deployment-specific streaming implementation for real deployments
+- streaming provider support remains deployment-specific
+- if a custom provider integration already exists in your deployment, keep it under `server/services/streaming/` and improve it there without coupling the rest of the product to one source
 
 ## Watch session note
 
@@ -118,6 +122,8 @@ The admin console at `/admin` currently lets you manage:
 
 - TMDB credentials and default language
 - SMTP host, credentials and sender
+- rollout planning for future access methods such as email code, magic link, passkeys and 2FA
+- media storage runtime visibility for avatar and list-cover uploads
 - streaming provider activation and selection
 
 Runtime behavior:
@@ -142,6 +148,8 @@ Optional but recommended:
 - `SEED_ADMIN_EMAIL`
 - `SEED_ADMIN_NAME`
 - `SMTP_*`
+- `MINIO_ROOT_*`
+- `STORAGE_*`
 
 TMDB auth note:
 
@@ -246,6 +254,9 @@ docker compose up --build
 The compose setup will:
 
 - start PostgreSQL
+- start MinIO object storage
+- initialize the public media bucket
+- start the media-cdn layer for public image delivery
 - build the Next.js app image
 - wait for the database to become reachable
 - run `prisma db push`
@@ -287,6 +298,7 @@ docker compose --env-file .env.production -f docker-compose.registry.yml up -d
 
 Detailed notes:
 
+- keep `infra/nginx/media-cdn.conf` next to `docker-compose.registry.yml` in the deployment bundle
 - see [docs/container-registry.md](./docs/container-registry.md)
 
 ## First admin user
@@ -363,4 +375,4 @@ Current TODOs are intentionally concentrated around:
 - full PWA polish and installable app experience
 - full responsive hardening across mobile, tablet and desktop
 - presence indicators without full page refresh
-- production-ready streaming provider integration
+- stronger access-method rollout and production-ready streaming/provider integration
