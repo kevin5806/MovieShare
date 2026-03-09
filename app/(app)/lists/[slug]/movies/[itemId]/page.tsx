@@ -7,12 +7,13 @@ import {
   saveMovieFeedbackAction,
   startWatchSessionAction,
 } from "@/features/lists/actions";
+import { MediaImage } from "@/components/media/media-image";
 import { CheckboxListField } from "@/components/forms/checkbox-list-field";
 import { SelectField } from "@/components/forms/select-field";
 import { SwitchField } from "@/components/forms/switch-field";
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { formatTmdbScore } from "@/lib/formatters";
-import { tmdbImageUrl } from "@/lib/tmdb";
+import { getMoviePosterUrl } from "@/lib/movie-images";
 import { formatReleaseDate, formatRuntime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,11 +57,11 @@ export default async function MovieDetailPage({
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card className="overflow-hidden border-border/70 bg-card/85">
           <div className="relative aspect-[2/3] bg-muted">
-            {item.movie.posterPath ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={tmdbImageUrl(item.movie.posterPath, "w780") ?? undefined}
+            {getMoviePosterUrl(item.movie, "w780") ? (
+              <MediaImage
+                src={getMoviePosterUrl(item.movie, "w780") ?? ""}
                 alt={item.movie.title}
+                fill
                 className="h-full w-full object-cover"
               />
             ) : (

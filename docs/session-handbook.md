@@ -30,6 +30,7 @@ Last updated: March 9, 2026
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
 - Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
 - MinIO-backed media storage plus the `media-cdn` service now power profile avatars and list-cover images
+- persisted movie posters and backdrops can now be mirrored into the same media storage/CDN layer instead of always loading from TMDB at runtime
 - the admin panel now tracks future auth-method rollout intent and prerequisites
 - the admin panel now exposes multiple configurable streaming slots, including `vixsrc` and `plex`
 - reusable form/time primitives exist and should be extended before creating new UI variants
@@ -66,6 +67,7 @@ While implementing:
 - be explicit about auth checks and route protection
 - avoid regressions in Docker startup or local setup flow
 - keep `minio`, `minio-init`, and `media-cdn` healthy when touching storage, env, or compose
+- prefer CDN-backed movie artwork URLs over raw TMDB image paths for persisted library entries
 
 Before finishing:
 
@@ -110,3 +112,4 @@ Before finishing:
 - March 9, 2026: shipped progressive single-form access, future auth-method planning in admin, and self-hosted media storage plus media-cdn for avatars and list covers
 - March 9, 2026: expanded sidebar navigation with dedicated `/lists` and `/watch` index pages so core areas are reachable without routing everything through the dashboard
 - March 9, 2026: fixed admin toggle form handling, generalized streaming-provider messaging in admin/watch UI, and added a configurable Plex provider slot
+- March 9, 2026: added CDN-backed mirroring for persisted TMDB movie artwork and wired list/detail pages to prefer local media URLs

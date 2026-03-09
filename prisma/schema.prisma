@@ -218,7 +218,9 @@ model Movie {
   title           String
   originalTitle   String?
   posterPath      String?
+  posterImageUrl  String?
   backdropPath    String?
+  backdropImageUrl String?
   overview        String?
   runtimeMinutes  Int?
   genres          Json?

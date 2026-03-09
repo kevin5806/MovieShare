@@ -13,7 +13,11 @@ import {
 } from "@/server/services/media-storage";
 import { logActivity } from "@/server/services/activity-log";
 import { sendListInviteEmail } from "@/server/services/email-service";
-import { cacheMovieFromTmdb } from "@/server/services/tmdb-service";
+import {
+  cacheMovieFromTmdb,
+  syncMovieArtwork,
+  syncMovieArtworkBatch,
+} from "@/server/services/tmdb-service";
 import { slugify } from "@/lib/utils";
 
 async function requireListMember(listId: string, userId: string) {
@@ -384,7 +388,16 @@ export async function updateListPresentation(
 }
 
 export async function getListDetails(slug: string, userId: string) {
-  return requireListAccessBySlug(slug, userId);
+  const list = await requireListAccessBySlug(slug, userId);
+  const syncedMovies = await syncMovieArtworkBatch(list.items.map((item) => item.movie));
+
+  return {
+    ...list,
+    items: list.items.map((item) => ({
+      ...item,
+      movie: syncedMovies.get(item.movie.id) ?? item.movie,
+    })),
+  };
 }
 
 export async function createListInvite(
@@ -697,7 +710,12 @@ export async function getListItemDetail(
     throw new Error("Movie not found in this list.");
   }
 
-  return item;
+  const syncedMovie = await syncMovieArtwork(item.movie);
+
+  return {
+    ...item,
+    movie: syncedMovie,
+  };
 }
 
 export async function addMovieToList(

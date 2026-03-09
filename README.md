@@ -32,6 +32,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - list invite flow with shareable acceptance links
 - friend invite flow for existing movieshare users
 - TMDB search and metadata caching
+- mirrored TMDB movie artwork served through the local media CDN when storage is configured
 - SMTP-backed email delivery for list and friend invites
 - manual playback checkpoint saving and resume-point updates
 - abstract streaming provider registry
@@ -73,6 +74,7 @@ Current implementation detail:
 
 - streaming provider support remains deployment-specific
 - if a custom provider integration already exists in your deployment, keep it under `server/services/streaming/` and improve it there without coupling the rest of the product to one source
+- movie posters and backdrops can be mirrored into the built-in media storage layer so list/detail pages stop depending on TMDB image delivery at runtime
 
 ## Watch session note
 
@@ -152,6 +154,10 @@ Optional but recommended:
 - `STORAGE_*`
 - `VIXSRC_*`
 - `PLEX_WATCH_URL_TEMPLATE`
+
+Media note:
+
+- `STORAGE_*` is also what allows movieshare to mirror TMDB artwork into the local CDN-backed bucket for persisted movie entries
 
 TMDB auth note:
 

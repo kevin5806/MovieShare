@@ -7,6 +7,7 @@ const IMAGE_TYPE_EXTENSIONS = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
+  ["image/avif", "avif"],
 ]);
 
 function trimTrailingSlash(value: string) {
@@ -25,6 +26,10 @@ function hasStorageConfig() {
       env.STORAGE_ACCESS_KEY &&
       env.STORAGE_SECRET_KEY,
   );
+}
+
+export function isMediaStorageConfigured() {
+  return hasStorageConfig();
 }
 
 function sanitizeSegment(value: string) {
@@ -51,6 +56,34 @@ function getExtensionFromFile(file: File) {
   }
 
   return "bin";
+}
+
+function getExtensionFromContentType(contentType: string | null | undefined) {
+  if (!contentType) {
+    return null;
+  }
+
+  const normalized = contentType.split(";")[0]?.trim().toLowerCase();
+  return normalized ? (IMAGE_TYPE_EXTENSIONS.get(normalized) ?? null) : null;
+}
+
+function getExtensionFromUrl(url: string) {
+  try {
+    const pathname = new URL(url).pathname;
+    const extension = pathname.split(".").pop()?.toLowerCase();
+
+    if (extension === "jpg" || extension === "jpeg") {
+      return "jpg";
+    }
+
+    if (extension === "png" || extension === "webp" || extension === "avif") {
+      return extension;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 function assertImageFile(file: File) {
@@ -168,6 +201,64 @@ export async function uploadPublicImage(input: {
       Key: objectKey,
       Body: body,
       ContentType: input.file.type,
+      CacheControl: "public, max-age=31536000, immutable",
+      ContentLength: body.byteLength,
+    }),
+  );
+
+  const url = buildPublicUrl(objectKey);
+
+  if (input.previousUrl && input.previousUrl !== url) {
+    await deleteManagedImageByUrl(input.previousUrl).catch((error) => {
+      console.error("deleteManagedImageByUrl failed", error);
+    });
+  }
+
+  return {
+    objectKey,
+    url,
+  };
+}
+
+export async function mirrorRemoteImageToStorage(input: {
+  sourceUrl: string;
+  folder: "movies";
+  ownerId: string;
+  filenameStem: string;
+  previousUrl?: string | null;
+}) {
+  if (!hasStorageConfig()) {
+    return null;
+  }
+
+  const response = await fetch(input.sourceUrl, {
+    headers: {
+      Accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.9,*/*;q=0.1",
+    },
+    cache: "force-cache",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Remote image request failed with status ${response.status}.`);
+  }
+
+  const extension =
+    getExtensionFromContentType(response.headers.get("content-type")) ||
+    getExtensionFromUrl(input.sourceUrl) ||
+    "jpg";
+  const body = Buffer.from(await response.arrayBuffer());
+  const objectKey = [
+    input.folder,
+    sanitizeSegment(input.ownerId) || "movie",
+    `${sanitizeSegment(input.filenameStem) || "image"}.${extension}`,
+  ].join("/");
+
+  await getStorageClient().send(
+    new PutObjectCommand({
+      Bucket: env.STORAGE_BUCKET,
+      Key: objectKey,
+      Body: body,
+      ContentType: response.headers.get("content-type") || `image/${extension}`,
       CacheControl: "public, max-age=31536000, immutable",
       ContentLength: body.byteLength,
     }),

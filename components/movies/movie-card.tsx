@@ -1,11 +1,11 @@
 import { Heart, MessageSquareText, UserRound } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
+import { MediaImage } from "@/components/media/media-image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatTmdbScore } from "@/lib/formatters";
-import { tmdbImageUrl } from "@/lib/tmdb";
+import { getMoviePosterUrl } from "@/lib/movie-images";
 import { formatReleaseDate } from "@/lib/utils";
 
 type MovieCardProps = {
@@ -15,6 +15,7 @@ type MovieCardProps = {
     movie: {
       title: string;
       posterPath?: string | null;
+      posterImageUrl?: string | null;
       releaseDate?: Date | null;
       tmdbVoteAverage?: number | null;
       overview?: string | null;
@@ -39,9 +40,9 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
     <Link href={`/lists/${listSlug}/movies/${item.id}`}>
       <Card className="overflow-hidden border-border/70 bg-card/85 shadow-sm transition-transform hover:-translate-y-0.5">
         <div className="relative aspect-[2/3] bg-muted">
-          {item.movie.posterPath ? (
-            <Image
-              src={tmdbImageUrl(item.movie.posterPath, "w500") ?? ""}
+          {getMoviePosterUrl(item.movie) ? (
+            <MediaImage
+              src={getMoviePosterUrl(item.movie) ?? ""}
               alt={item.movie.title}
               fill
               className="object-cover"
