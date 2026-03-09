@@ -4,8 +4,8 @@ import path from "node:path";
 import packageJson from "@/package.json";
 
 function normalizeBuildCounter(buildId: string) {
-  if (buildId.startsWith("movielist-")) {
-    return buildId.replace("movielist-", "");
+  if (buildId.startsWith("movieshare-")) {
+    return buildId.replace("movieshare-", "");
   }
 
   return buildId.slice(0, 14);
@@ -26,6 +26,6 @@ export async function getApplicationVersion() {
     version: packageJson.version,
     buildId,
     buildCounter,
-    label: `v${packageJson.version} · build ${buildCounter}`,
+    label: `v${packageJson.version} | build ${buildCounter}`,
   };
 }

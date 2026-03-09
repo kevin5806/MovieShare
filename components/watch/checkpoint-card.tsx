@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DateTimeText } from "@/components/time/date-time";
 
 type CheckpointCardProps = {
   sessionId: string;
@@ -91,7 +92,7 @@ export function CheckpointCard({
                   <Badge variant="secondary">{formatSeconds(checkpoint.positionSeconds)}</Badge>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {new Date(checkpoint.savedAt).toLocaleString()}
+                  <DateTimeText value={checkpoint.savedAt} />
                 </p>
               </div>
             ))

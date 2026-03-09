@@ -18,11 +18,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "movielist",
-    template: "%s | movielist",
+    default: "movieshare",
+    template: "%s | movieshare",
   },
   description:
-    "movielist is a collaborative, self-hosted movie planning workspace for friends.",
+    "movieshare is a collaborative, self-hosted movie planning workspace for friends.",
 };
 
 export default function RootLayout({

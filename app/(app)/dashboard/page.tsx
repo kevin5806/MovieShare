@@ -1,8 +1,8 @@
-import { formatDistanceToNow } from "date-fns";
 import { Activity, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { CreateListForm } from "@/components/lists/create-list-form";
+import { RelativeTime } from "@/components/time/relative-time";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSession } from "@/server/session";
@@ -104,11 +104,14 @@ export default async function DashboardPage() {
           <CardContent className="space-y-3">
             {data.recentActivity.length ? (
               data.recentActivity.map((activity) => (
-                <div key={activity.id} className="rounded-3xl border border-border/70 bg-background p-4">
+                <div
+                  key={activity.id}
+                  className="rounded-3xl border border-border/70 bg-background p-4"
+                >
                   <p className="font-medium">{activity.event.replaceAll(".", " ")}</p>
                   <p className="text-sm text-muted-foreground">
-                    {activity.list?.name || "System activity"} ·{" "}
-                    {formatDistanceToNow(activity.createdAt, { addSuffix: true })}
+                    {activity.list?.name || "System activity"} |{" "}
+                    <RelativeTime value={activity.createdAt.toISOString()} />
                   </p>
                 </div>
               ))

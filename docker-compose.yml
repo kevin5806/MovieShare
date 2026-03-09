@@ -1,9 +1,11 @@
+name: movieshare
+
 services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: movielist
+      POSTGRES_DB: movieshare
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -11,7 +13,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d movielist"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d movieshare"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,24 +27,34 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/movielist?schema=public
-      BETTER_AUTH_URL: http://localhost:3000
-      BETTER_AUTH_SECRET: change-this-to-a-random-32-char-secret
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/movieshare?schema=public
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_BETTER_AUTH_URL: ${NEXT_PUBLIC_BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-this-to-a-random-32-char-secret}
       TMDB_API_TOKEN: ${TMDB_API_TOKEN:-}
-      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@movielist.local}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@movieshare.local}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
-      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-movielist admin}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-movieshare admin}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-movielist <noreply@movielist.local>}
+      SMTP_FROM: ${SMTP_FROM:-movieshare <noreply@movieshare.local>}
     ports:
       - "3000:3000"
-    command: >
-      sh -c "npm run db:push &&
-             npm run db:seed &&
-             npm run start"
+    command: node scripts/container-start.mjs
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
 volumes:
   postgres-data:

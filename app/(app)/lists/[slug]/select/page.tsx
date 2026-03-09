@@ -1,5 +1,6 @@
 import { SelectionMode } from "@/generated/prisma/client";
 import { runSelectionAction } from "@/features/lists/actions";
+import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ export default async function SelectionPage({
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh channels={[`list:${list.id}`]} />
       <section className="space-y-3">
         <Badge variant="secondary">Selection</Badge>
         <h1 className="text-4xl font-semibold tracking-tight">Pick the next movie</h1>

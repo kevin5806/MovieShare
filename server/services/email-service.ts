@@ -75,10 +75,10 @@ export async function sendListInviteEmail(input: {
 
   return sendEmail({
     to: input.to,
-    subject: `${input.senderName} invited you to join ${input.listName} on movielist`,
-    text: `${input.senderName} invited you to join "${input.listName}" on movielist.\n\nOpen the invite: ${inviteUrl}`,
+    subject: `${input.senderName} invited you to join ${input.listName} on movieshare`,
+    text: `${input.senderName} invited you to join "${input.listName}" on movieshare.\n\nOpen the invite: ${inviteUrl}`,
     html: `
-      <p><strong>${escapeHtml(input.senderName)}</strong> invited you to join <strong>${escapeHtml(input.listName)}</strong> on movielist.</p>
+      <p><strong>${escapeHtml(input.senderName)}</strong> invited you to join <strong>${escapeHtml(input.listName)}</strong> on movieshare.</p>
       <p><a href="${inviteUrl}">Open the invite</a></p>
     `,
   });
@@ -94,10 +94,10 @@ export async function sendFriendInviteEmail(input: {
 
   return sendEmail({
     to: input.to,
-    subject: `${input.senderName} sent you a movielist friend invite`,
-    text: `${input.senderName} sent you a movielist friend invite.${input.message ? `\n\nMessage: ${input.message}` : ""}\n\nReview it in your profile: ${profileUrl}`,
+    subject: `${input.senderName} sent you a movieshare friend invite`,
+    text: `${input.senderName} sent you a movieshare friend invite.${input.message ? `\n\nMessage: ${input.message}` : ""}\n\nReview it in your profile: ${profileUrl}`,
     html: `
-      <p><strong>${escapeHtml(input.senderName)}</strong> sent you a movielist friend invite.</p>
+      <p><strong>${escapeHtml(input.senderName)}</strong> sent you a movieshare friend invite.</p>
       ${safeMessage ? `<p>Message: ${safeMessage}</p>` : ""}
       <p><a href="${profileUrl}">Review the invite</a></p>
     `,

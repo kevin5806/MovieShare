@@ -13,7 +13,7 @@ export default async function AuthenticatedLayout({
   return (
     <AppShell
       user={{
-        name: session.user.name || "movielist user",
+        name: session.user.name || "movieshare user",
         email: session.user.email,
         role: session.user.role ?? "USER",
       }}

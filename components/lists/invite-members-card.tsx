@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
 import { Copy, MailPlus, XCircle } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { RelativeTime } from "@/components/time/relative-time";
 
 type InviteMembersCardProps = {
   listId: string;
@@ -84,8 +84,12 @@ export function InviteMembersCard({
   async function handleCopy(token: string) {
     const inviteUrl = `${window.location.origin}/invites/lists/${token}`;
 
-    await navigator.clipboard.writeText(inviteUrl);
-    toast.success("Invite link copied.");
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      toast.success("Invite link copied.");
+    } catch {
+      toast.error("Clipboard access is unavailable in this browser.");
+    }
   }
 
   return (
@@ -96,7 +100,7 @@ export function InviteMembersCard({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm leading-6 text-muted-foreground">
-            Send a private invite by email. If SMTP is configured, movielist also sends
+            Send a private invite by email. If SMTP is configured, movieshare also sends
             the invite message automatically.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -129,10 +133,7 @@ export function InviteMembersCard({
                   <div className="min-w-0">
                     <p className="truncate font-medium">{invite.email}</p>
                     <p className="text-sm text-muted-foreground">
-                      Expires{" "}
-                      {formatDistanceToNow(new Date(invite.expiresAt), {
-                        addSuffix: true,
-                      })}
+                      Expires <RelativeTime value={invite.expiresAt} />
                     </p>
                   </div>
                   <Badge variant="secondary">

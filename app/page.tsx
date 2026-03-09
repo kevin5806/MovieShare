@@ -24,9 +24,9 @@ export default async function Home() {
           <BrandMark />
           <div className="flex items-center gap-3">
             <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }))}>
-              Sign in
+              Access
             </Link>
-            <Link href="/register" className={cn(buttonVariants())}>
+            <Link href="/login?mode=sign-up" className={cn(buttonVariants())}>
               Start free
             </Link>
           </div>
@@ -45,13 +45,13 @@ export default async function Home() {
                 Shared movie lists that feel organized before the night even starts.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                movielist helps friends collect proposals, compare feedback, run lightweight
+                movieshare helps friends collect proposals, compare feedback, run lightweight
                 selection modes and prepare future group watch sessions in one calm workspace.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/register" className={cn(buttonVariants({ size: "lg" }))}>
+              <Link href="/login?mode=sign-up" className={cn(buttonVariants({ size: "lg" }))}>
                 Open your workspace
                 <ArrowRight className="size-4" />
               </Link>

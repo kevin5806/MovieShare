@@ -14,6 +14,8 @@ export type PlaybackSource =
 export interface StreamingProviderAdapter {
   key: StreamingProviderKey;
   label: string;
+  isReady: boolean;
+  readinessNote?: string;
   supportsGroupSessions: boolean;
   supportsRealtimeSync: boolean;
   getPlaybackSource(input: {

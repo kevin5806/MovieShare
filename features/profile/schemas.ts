@@ -1,7 +1,5 @@
+import { optionalFormText } from "@/lib/schema-utils";
 import { z } from "zod";
-
-const optionalFormText = (max: number) =>
-  z.preprocess((value) => (value == null ? "" : value), z.string().max(max));
 
 export const profileSchema = z.object({
   displayName: optionalFormText(60).optional().default(""),

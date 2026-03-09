@@ -1,9 +1,9 @@
-import { StreamingProviderKey } from "@/generated/prisma/client";
 import {
   updateEmailSettingsAction,
   updateStreamingProviderAction,
   updateTmdbSettingsAction,
 } from "@/features/system/actions";
+import { SwitchField } from "@/components/forms/switch-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,9 @@ export default async function SystemAdminPage() {
     getSystemAdminState(),
     getApplicationVersion(),
   ]);
+  const providerCatalog = new Map(
+    adminState.streaming.providers.map((provider) => [provider.key, provider]),
+  );
 
   return (
     <div className="space-y-8">
@@ -39,7 +42,7 @@ export default async function SystemAdminPage() {
         <h1 className="text-4xl font-semibold tracking-tight">System settings</h1>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground">
           Configure TMDB access, email delivery defaults and streaming providers from one
-          place. If a field is left empty here, movielist falls back to the server
+          place. If a field is left empty here, movieshare falls back to the server
           environment when possible.
         </p>
       </section>
@@ -113,8 +116,8 @@ export default async function SystemAdminPage() {
               and checkpoints. It does not imply synced tele-sharing.
             </p>
             <p>
-              In futuro sara possibile aggiungere ulteriori provider di streaming
-              configurabili.
+              Additional streaming providers can be introduced over time without binding
+              the rest of the product to a single adapter.
             </p>
           </CardContent>
         </Card>
@@ -193,10 +196,14 @@ export default async function SystemAdminPage() {
                     placeholder="587"
                   />
                 </div>
-                <label className="mt-7 flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm">
-                  <input type="checkbox" name="smtpSecure" defaultChecked={adminState.config.smtpSecure} />
-                  Use secure SMTP
-                </label>
+                <div className="mt-7">
+                  <SwitchField
+                    name="smtpSecure"
+                    label="Use secure SMTP"
+                    description="Recommended for port 465 and production SMTP relays."
+                    defaultChecked={adminState.config.smtpSecure}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">SMTP user</label>
@@ -220,7 +227,7 @@ export default async function SystemAdminPage() {
                 <Input
                   name="smtpFrom"
                   defaultValue={adminState.config.smtpFrom ?? ""}
-                  placeholder="movielist <noreply@example.com>"
+                  placeholder="movieshare <noreply@example.com>"
                 />
               </div>
               <Button type="submit" className="w-full">
@@ -249,12 +256,15 @@ export default async function SystemAdminPage() {
                 <div>
                   <CardTitle>{config.label}</CardTitle>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Provider key: {StreamingProviderKey.VIXSRC}
+                    Provider key: {config.provider}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <Badge variant="secondary">{config.isEnabled ? "Enabled" : "Disabled"}</Badge>
                   {config.isActive ? <Badge>Active</Badge> : null}
+                  <Badge variant="secondary">
+                    {providerCatalog.get(config.provider)?.isReady ? "Ready" : "Placeholder"}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -262,20 +272,34 @@ export default async function SystemAdminPage() {
                   {config.notes ||
                     "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
                 </p>
+                {providerCatalog.get(config.provider)?.readinessNote ? (
+                  <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm text-muted-foreground">
+                    {providerCatalog.get(config.provider)?.readinessNote}
+                  </div>
+                ) : null}
                 <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
                   Enabling this slot only marks it as the preferred provider in the domain.
                   Playback remains unavailable until a deployment-specific adapter is wired.
                 </div>
                 <form action={updateStreamingProviderAction} className="space-y-4">
                   <input type="hidden" name="provider" value={config.provider} />
-                  <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm">
-                    <input type="checkbox" name="isEnabled" defaultChecked={config.isEnabled} />
-                    Enable this provider slot
-                  </label>
-                  <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm">
-                    <input type="checkbox" name="isActive" defaultChecked={config.isActive} />
-                    Mark as preferred provider
-                  </label>
+                  <SwitchField
+                    name="isEnabled"
+                    label="Enable this provider slot"
+                    description="Keep the adapter visible in the catalog without activating playback."
+                    defaultChecked={config.isEnabled}
+                  />
+                  <SwitchField
+                    name="isActive"
+                    label="Mark as preferred provider"
+                    description={
+                      providerCatalog.get(config.provider)?.isReady
+                        ? "Only one ready provider can be active at a time."
+                        : "Placeholder adapters cannot become the active playback source."
+                    }
+                    defaultChecked={config.isActive}
+                    disabled={!providerCatalog.get(config.provider)?.isReady}
+                  />
                   <Button type="submit" className="w-full">
                     Save provider settings
                   </Button>

@@ -3,6 +3,7 @@ import { UsersRound, WandSparkles } from "lucide-react";
 import { InviteMembersCard } from "@/components/lists/invite-members-card";
 import { AddMovieDialog } from "@/components/movies/add-movie-dialog";
 import { MovieCard } from "@/components/movies/movie-card";
+import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSession } from "@/server/session";
@@ -21,6 +22,7 @@ export default async function ListPage({
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh channels={[`list:${list.id}`]} />
       <section className="flex flex-col gap-5 rounded-[32px] border border-border/70 bg-card/85 p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">

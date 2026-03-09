@@ -114,10 +114,22 @@ export function AppShell({ children, user, versionLabel }: AppShellProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon-sm">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                disabled
+                aria-label="Realtime controls coming soon"
+                title="Realtime controls are planned for a later phase."
+              >
                 <Radio className="size-4" />
               </Button>
-              <Button variant="outline" size="icon-sm">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                disabled
+                aria-label="Notifications coming soon"
+                title="Notifications are planned for a later phase."
+              >
                 <Bell className="size-4" />
               </Button>
               <Separator orientation="vertical" className="hidden h-8 md:block" />

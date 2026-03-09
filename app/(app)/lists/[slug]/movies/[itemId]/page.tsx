@@ -7,6 +7,10 @@ import {
   saveMovieFeedbackAction,
   startWatchSessionAction,
 } from "@/features/lists/actions";
+import { CheckboxListField } from "@/components/forms/checkbox-list-field";
+import { SelectField } from "@/components/forms/select-field";
+import { SwitchField } from "@/components/forms/switch-field";
+import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { formatTmdbScore } from "@/lib/formatters";
 import { tmdbImageUrl } from "@/lib/tmdb";
 import { formatReleaseDate, formatRuntime } from "@/lib/utils";
@@ -37,9 +41,18 @@ export default async function MovieDetailPage({
   const session = await requireSession();
   const item = await getListItemDetail(slug, itemId, session.user.id);
   const yourFeedback = item.feedbacks.find((feedback) => feedback.userId === session.user.id);
+  const memberOptions = item.list.members
+    .filter((member) => member.userId !== session.user.id)
+    .map((member) => ({
+      id: `member-${member.id}`,
+      value: member.userId,
+      label: member.user.profile?.displayName || member.user.name,
+      description: member.user.email,
+    }));
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh channels={[`list:${item.listId}`]} />
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card className="overflow-hidden border-border/70 bg-card/85">
           <div className="relative aspect-[2/3] bg-muted">
@@ -90,42 +103,24 @@ export default async function MovieDetailPage({
                 <form action={saveMovieFeedbackAction} className="space-y-4">
                   <input type="hidden" name="listItemId" value={item.id} />
                   <input type="hidden" name="listSlug" value={slug} />
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Seen state</label>
-                    <select
-                      name="seenState"
-                      defaultValue={yourFeedback?.seenState ?? FeedbackSeenState.UNSEEN}
-                      className="flex h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm"
-                    >
-                      {seenStateOptions.map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Interest</label>
-                    <select
-                      name="interest"
-                      defaultValue={yourFeedback?.interest ?? FeedbackInterest.NOT_SET}
-                      className="flex h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm"
-                    >
-                      {interestOptions.map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm">
-                    <input
-                      type="checkbox"
-                      name="wouldRewatch"
-                      defaultChecked={yourFeedback?.wouldRewatch ?? false}
-                    />
-                    I would rewatch this title
-                  </label>
+                  <SelectField
+                    name="seenState"
+                    label="Seen state"
+                    defaultValue={yourFeedback?.seenState ?? FeedbackSeenState.UNSEEN}
+                    options={seenStateOptions.map(([value, label]) => ({ value, label }))}
+                  />
+                  <SelectField
+                    name="interest"
+                    label="Interest"
+                    defaultValue={yourFeedback?.interest ?? FeedbackInterest.NOT_SET}
+                    options={interestOptions.map(([value, label]) => ({ value, label }))}
+                  />
+                  <SwitchField
+                    name="wouldRewatch"
+                    label="I would rewatch this title"
+                    description="Use this when the movie is a strong repeat candidate for the room."
+                    defaultChecked={yourFeedback?.wouldRewatch ?? false}
+                  />
                   <Textarea
                     name="comment"
                     defaultValue={yourFeedback?.comment ?? ""}
@@ -151,37 +146,24 @@ export default async function MovieDetailPage({
                 <form action={startWatchSessionAction} className="space-y-4">
                   <input type="hidden" name="listItemId" value={item.id} />
                   <input type="hidden" name="listSlug" value={slug} />
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tracking mode</label>
-                    <select
-                      name="type"
-                      defaultValue={WatchSessionType.SOLO}
-                      className="flex h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm"
-                    >
-                      <option value={WatchSessionType.SOLO}>Solo tracking</option>
-                      <option value={WatchSessionType.GROUP}>Group tracking</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Optional members to include</p>
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      Relevant for group tracking. Members are attached to the same session,
-                      but playback still happens in each person&apos;s own player.
-                    </p>
-                    <div className="space-y-2">
-                      {item.list.members
-                        .filter((member) => member.userId !== session.user.id)
-                        .map((member) => (
-                          <label
-                            key={member.id}
-                            className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm"
-                          >
-                            <input type="checkbox" name="memberIds" value={member.userId} />
-                            {member.user.profile?.displayName || member.user.name}
-                          </label>
-                        ))}
-                    </div>
-                  </div>
+                  <SelectField
+                    name="type"
+                    label="Tracking mode"
+                    defaultValue={WatchSessionType.SOLO}
+                    options={[
+                      { value: WatchSessionType.SOLO, label: "Solo tracking" },
+                      { value: WatchSessionType.GROUP, label: "Group tracking" },
+                    ]}
+                    description="Group tracking shares presence and checkpoints, not synced playback."
+                  />
+                  {memberOptions.length ? (
+                    <CheckboxListField
+                      name="memberIds"
+                      label="Optional members to include"
+                      description="Relevant for group tracking. Members join the same session while keeping their own playback setup."
+                      options={memberOptions}
+                    />
+                  ) : null}
                   <Button type="submit" className="w-full">
                     Create tracking session
                   </Button>

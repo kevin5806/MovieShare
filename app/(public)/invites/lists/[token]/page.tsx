@@ -27,7 +27,7 @@ export default async function ListInvitePage({
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>This invite does not exist anymore or the token is invalid.</p>
             <Link href="/" className="underline underline-offset-4">
-              Back to movielist
+              Back to movieshare
             </Link>
           </CardContent>
         </Card>
@@ -66,16 +66,13 @@ export default async function ListInvitePage({
 
           {!session ? (
             <div className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
-              Sign in with <span className="font-medium text-foreground">{invite.email}</span> to
-              accept or decline this invite.
-              <div className="mt-4 flex gap-3">
-                <Link href="/login">
-                  <Button type="button">Sign in</Button>
-                </Link>
-                <Link href="/register">
-                  <Button type="button" variant="outline">
-                    Create account
-                  </Button>
+              Continue with <span className="font-medium text-foreground">{invite.email}</span> to
+              sign in or create an account, then accept or decline this invite.
+              <div className="mt-4">
+                <Link
+                  href={`/login?email=${encodeURIComponent(invite.email)}`}
+                >
+                  <Button type="button">Continue</Button>
                 </Link>
               </div>
             </div>

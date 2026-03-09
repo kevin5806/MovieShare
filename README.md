@@ -1,6 +1,6 @@
-# movielist
+# movieshare
 
-movielist is a self-hosted collaborative movie list workspace built as a modular monolith on top of Next.js App Router.
+movieshare is a self-hosted collaborative movie list workspace built as a modular monolith on top of Next.js App Router.
 
 ## Stack
 
@@ -26,7 +26,7 @@ movielist is a self-hosted collaborative movie list workspace built as a modular
 - system admin panel for TMDB, email and streaming configuration
 - user profile page
 - list invite flow with shareable acceptance links
-- friend invite flow for existing movielist users
+- friend invite flow for existing movieshare users
 - TMDB search and metadata caching
 - SMTP-backed email delivery for list and friend invites
 - manual playback checkpoint saving and resume-point updates
@@ -70,7 +70,7 @@ Current implementation detail:
 
 ## Watch session note
 
-Watch sessions in movielist are currently tracking-first:
+Watch sessions in movieshare are currently tracking-first:
 
 - they record who started a movie
 - they record which members joined the same session
@@ -80,15 +80,18 @@ They do not currently provide synced tele-sharing or realtime group playback con
 
 ## Realtime note
 
-Realtime sync is not fully implemented yet, but the codebase already contains:
+Realtime sync is partially implemented:
 
-- watch session membership and presence state
-- playback checkpoints
-- activity logs
-- a broker contract in `server/realtime/broker.ts`
-- invite and social flows that can later emit realtime notifications
+- a self-hosted SSE broker now powers live refresh for list, selection, movie-detail and watch-session views
+- watch session membership and presence state are persisted
+- playback checkpoints and activity logs already emit realtime events
+- invite and social flows are still persistence-first and can later emit richer notifications
 
-This keeps the domain ready for future WebSocket or SSE integration.
+What is still missing:
+
+- push-style in-app notifications
+- presence badges without a full page refresh
+- collaborative playback controls and heartbeats beyond manual checkpoints
 
 ## Admin settings
 
@@ -101,7 +104,7 @@ The admin console at `/admin` currently lets you manage:
 Runtime behavior:
 
 - database values entered from the admin panel take precedence
-- if a field is empty in the admin panel, movielist falls back to environment variables when available
+- if a field is empty in the admin panel, movieshare falls back to environment variables when available
 
 ## Environment
 
@@ -129,6 +132,10 @@ TMDB auth note:
 
 ## Local development
 
+Recommended local runtime:
+
+- Node.js 22.x (matches the Docker image and avoids local Prisma runtime mismatches)
+
 1. Install dependencies:
 
 ```bash
@@ -138,7 +145,7 @@ npm install
 2. Create your env file:
 
 ```bash
-cp .env.example .env
+npm run setup
 ```
 
 3. Generate Prisma client:
@@ -147,7 +154,11 @@ cp .env.example .env
 npm run db:generate
 ```
 
-4. Start Postgres locally or use Docker Compose.
+4. Start PostgreSQL locally or use Docker Compose:
+
+```bash
+docker compose up -d postgres
+```
 
 5. Push schema and seed defaults:
 
@@ -167,6 +178,7 @@ npm run dev
 Start the full stack with:
 
 ```bash
+npm run setup
 docker compose up --build
 ```
 
@@ -174,9 +186,11 @@ The compose setup will:
 
 - start PostgreSQL
 - build the Next.js app image
+- wait for the database to become reachable
 - run `prisma db push`
 - seed the default streaming provider config
 - start the app on `http://localhost:3000`
+- expose a container healthcheck once the app is actually serving traffic
 
 ## First admin user
 
@@ -196,7 +210,10 @@ docker compose exec app npm run user:promote-admin -- you@example.com
 ## Useful commands
 
 ```bash
+npm run setup
 npm run dev
+npm run test
+npm run test:coverage
 npm run lint
 npm run typecheck
 npm run build
@@ -205,6 +222,14 @@ npm run db:push
 npm run db:seed
 npm run user:promote-admin -- you@example.com
 ```
+
+## Production notes
+
+- use `Node.js 22.x`
+- set a strong `BETTER_AUTH_SECRET` and keep the default placeholder out of production
+- use an `https://` `BETTER_AUTH_URL` outside localhost
+- keep placeholder streaming adapters disabled until a compliant provider is implemented
+- prefer SMTP and TMDB credentials from the admin panel only after securing the initial admin account
 
 ## Data model highlights
 
@@ -222,14 +247,14 @@ The Prisma schema currently covers:
 
 ## Notes for future work
 
-- see [docs/project-vision.md](/c:/GitHub/FilmShare/docs/project-vision.md)
-- see [docs/development-plan.md](/c:/GitHub/FilmShare/docs/development-plan.md)
+- see [docs/project-vision.md](./docs/project-vision.md)
+- see [docs/development-plan.md](./docs/development-plan.md)
 
 Current TODOs are intentionally concentrated around:
 
-- realtime transport
 - richer selection heuristics
 - in-app notifications center and delivery preferences
 - full PWA polish and installable app experience
 - full responsive hardening across mobile, tablet and desktop
+- presence indicators without full page refresh
 - production-ready streaming provider integration

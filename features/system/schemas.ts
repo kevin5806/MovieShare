@@ -1,10 +1,11 @@
 import { StreamingProviderKey } from "@/generated/prisma/client";
+import { formBoolean } from "@/lib/schema-utils";
 import { z } from "zod";
 
 export const updateStreamingProviderSchema = z.object({
   provider: z.nativeEnum(StreamingProviderKey),
-  isEnabled: z.coerce.boolean().default(false),
-  isActive: z.coerce.boolean().default(false),
+  isEnabled: formBoolean,
+  isActive: formBoolean,
 });
 
 export const updateTmdbSettingsSchema = z.object({
@@ -16,7 +17,7 @@ export const updateTmdbSettingsSchema = z.object({
 export const updateEmailSettingsSchema = z.object({
   smtpHost: z.string().max(255).default(""),
   smtpPort: z.coerce.number().int().min(1).max(65535).default(587),
-  smtpSecure: z.coerce.boolean().default(false),
+  smtpSecure: formBoolean,
   smtpUser: z.string().max(255).default(""),
   smtpPassword: z.string().max(1024).default(""),
   smtpFrom: z.string().max(255).default(""),

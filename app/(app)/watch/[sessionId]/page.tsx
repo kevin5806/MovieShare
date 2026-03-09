@@ -1,5 +1,7 @@
 import { PlayCircle, UsersRound } from "lucide-react";
 
+import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
+import { DateTimeText } from "@/components/time/date-time";
 import { CheckpointCard } from "@/components/watch/checkpoint-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +34,7 @@ export default async function WatchSessionPage({
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh channels={[`watch:${watchSession.id}`]} />
       <section className="space-y-3">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{watchSession.type}</Badge>
@@ -66,7 +69,7 @@ export default async function WatchSessionPage({
             <p className="text-sm text-muted-foreground">Started by</p>
             <p className="text-lg font-semibold">{startedBy}</p>
             <p className="text-sm text-muted-foreground">
-              {startedAt.toLocaleString()}
+              <DateTimeText value={startedAt.toISOString()} />
             </p>
           </CardContent>
         </Card>
@@ -111,6 +114,8 @@ export default async function WatchSessionPage({
                     title={watchSession.listItem.movie.title}
                     className="aspect-video w-full"
                     allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
                   />
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">

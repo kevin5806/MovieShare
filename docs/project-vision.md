@@ -1,8 +1,8 @@
-# movielist Vision
+# movieshare Vision
 
 ## Product direction
 
-movielist is a self-hosted collaborative movie list application designed for small groups of friends.
+movieshare is a self-hosted collaborative movie list application designed for small groups of friends.
 The product focus is:
 
 - shared curation instead of solo watchlists

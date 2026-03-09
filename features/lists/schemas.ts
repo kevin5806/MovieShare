@@ -4,10 +4,8 @@ import {
   SelectionMode,
   WatchSessionType,
 } from "@/generated/prisma/client";
+import { formBoolean, optionalFormText } from "@/lib/schema-utils";
 import { z } from "zod";
-
-const optionalFormText = (max: number) =>
-  z.preprocess((value) => (value == null ? "" : value), z.string().max(max));
 
 export const createListSchema = z.object({
   name: z.string().min(2).max(80),
@@ -42,7 +40,7 @@ export const saveFeedbackSchema = z.object({
   listSlug: z.string().min(1),
   seenState: z.nativeEnum(FeedbackSeenState),
   interest: z.nativeEnum(FeedbackInterest),
-  wouldRewatch: z.coerce.boolean().default(false),
+  wouldRewatch: formBoolean,
   comment: optionalFormText(180).optional().default(""),
 });
 

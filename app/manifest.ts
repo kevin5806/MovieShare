@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "movielist",
-    short_name: "movielist",
+    name: "movieshare",
+    short_name: "mosh",
     description: "Self-hosted collaborative movie lists for friends.",
     start_url: "/",
     display: "standalone",

@@ -7,7 +7,7 @@ Last updated: March 9, 2026
 - Phase 1: completed
 - Phase 2: completed
 - Phase 3: completed
-- Phase 4: planned
+- Phase 4: in progress
 
 ## Current Baseline Shipped
 
@@ -17,6 +17,8 @@ Last updated: March 9, 2026
 - collaborative lists with members, owner controls, list invites and friend invites
 - watch sessions with group membership, resume state and manual playback checkpoints
 - streaming provider abstraction with admin-managed runtime configuration
+- self-hosted SSE broker with live refresh on list, selection, movie-detail and watch-session pages
+- initial reusable form controls for select, switch, checkbox lists and server-safe time rendering
 - Docker Compose self-hosting setup and living project documentation
 
 ## Phase 1
@@ -50,6 +52,14 @@ Last updated: March 9, 2026
 - complete responsive QA and layout refinement for mobile, tablet and desktop
 - evolve the app into a stronger PWA with installability and offline-aware shell behavior
 
+### Phase 4 progress
+
+- completed: self-hosted SSE event broker and route
+- completed: live refresh wiring for list, selection, movie detail and watch-session flows
+- completed: first reusable form-control pass for admin and movie-detail pages
+- in progress: responsive hardening, streaming UX cleanup and production install polish
+- pending: presence indicators without full refresh, notifications center, richer collaborative playback controls, stronger PWA shell
+
 ## Open Notes
 
 - streaming provider support must stay abstract and swappable
@@ -57,4 +67,4 @@ Last updated: March 9, 2026
 - selection logic should remain testable and deterministic for most modes
 - avoid premature generic abstractions outside real extension seams
 - prefer server components and server actions unless client interactivity is required
-- current missing production areas are realtime transport, richer selection heuristics, full PWA polish, full responsive hardening and a real streaming adapter
+- current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter

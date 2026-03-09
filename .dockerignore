@@ -3,6 +3,11 @@
 node_modules
 coverage
 movielist-temp
+tests
+docs
+.vscode
+tsconfig.tsbuildinfo
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

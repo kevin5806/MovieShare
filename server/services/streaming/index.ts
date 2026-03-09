@@ -6,6 +6,10 @@ const providers = {
   [StreamingProviderKey.VIXSRC]: vixsrcProvider,
 };
 
+function getProviderAdapter(provider: StreamingProviderKey) {
+  return providers[provider];
+}
+
 export async function ensureStreamingProviderConfigSeeded() {
   await db.streamingProviderConfig.upsert({
     where: {
@@ -34,7 +38,9 @@ export async function getStreamingAdminState() {
 
   return {
     configs,
-    activeConfig: configs.find((config) => config.isActive),
+    activeConfig:
+      configs.find((config) => config.isActive && getProviderAdapter(config.provider).isReady) ??
+      null,
     providers: Object.values(providers),
   };
 }
@@ -45,9 +51,11 @@ export async function updateStreamingProviderConfig(input: {
   isActive: boolean;
 }) {
   await ensureStreamingProviderConfigSeeded();
+  const provider = getProviderAdapter(input.provider);
+  const canBeActive = input.isEnabled && input.isActive && provider.isReady;
 
   await db.$transaction(async (tx) => {
-    if (input.isActive) {
+    if (canBeActive) {
       await tx.streamingProviderConfig.updateMany({
         where: {
           provider: {
@@ -66,7 +74,7 @@ export async function updateStreamingProviderConfig(input: {
       },
       data: {
         isEnabled: input.isEnabled,
-        isActive: input.isEnabled ? input.isActive : false,
+        isActive: canBeActive,
       },
     });
   });
@@ -75,12 +83,18 @@ export async function updateStreamingProviderConfig(input: {
 export async function getActiveStreamingProviderConfig() {
   await ensureStreamingProviderConfigSeeded();
 
-  return db.streamingProviderConfig.findFirst({
+  const config = await db.streamingProviderConfig.findFirst({
     where: {
       isEnabled: true,
       isActive: true,
     },
   });
+
+  if (!config || !getProviderAdapter(config.provider).isReady) {
+    return null;
+  }
+
+  return config;
 }
 
 export async function resolvePlaybackSource(input: {
@@ -88,5 +102,5 @@ export async function resolvePlaybackSource(input: {
   tmdbId: number;
   watchSessionId: string;
 }) {
-  return providers[input.provider].getPlaybackSource(input);
+  return getProviderAdapter(input.provider).getPlaybackSource(input);
 }

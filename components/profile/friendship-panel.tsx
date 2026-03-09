@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
 import { UserPlus, UsersRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RelativeTime } from "@/components/time/relative-time";
 
 type FriendshipPanelProps = {
   friends: Array<{
@@ -102,7 +102,7 @@ export function FriendshipPanel({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            Connect with existing movielist users by email to make collaboration and future
+            Connect with existing movieshare users by email to make collaboration and future
             invite flows easier.
           </p>
           <div className="space-y-3">
@@ -142,8 +142,7 @@ export function FriendshipPanel({
                     <p className="text-sm text-muted-foreground">{invite.senderEmail}</p>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Received{" "}
-                    {formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}
+                    Received <RelativeTime value={invite.createdAt} />
                   </p>
                   {invite.message ? (
                     <p className="text-sm leading-6 text-muted-foreground">{invite.message}</p>
@@ -185,7 +184,7 @@ export function FriendshipPanel({
                   </p>
                   <p className="text-sm text-muted-foreground">{invite.receiverEmail}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Sent {formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}
+                    Sent <RelativeTime value={invite.createdAt} />
                   </p>
                 </div>
               ))

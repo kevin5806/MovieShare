@@ -46,7 +46,7 @@ export async function createWatchSession(input: {
   const activeProvider = await getActiveStreamingProviderConfig();
   const startedAt = new Date();
 
-  const session = await db.watchSession.create({
+  let session = await db.watchSession.create({
     data: {
       listId: listItem.listId,
       listItemId: listItem.id,
@@ -91,7 +91,7 @@ export async function createWatchSession(input: {
       watchSessionId: session.id,
     });
 
-    await db.watchSession.update({
+    session = await db.watchSession.update({
       where: {
         id: session.id,
       },
