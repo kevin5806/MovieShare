@@ -21,7 +21,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx scripts/seed.ts",
-    "user:promote-admin": "tsx scripts/promote-admin.ts",
+    "user:promote-admin": "node scripts/promote-admin.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

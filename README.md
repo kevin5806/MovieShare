@@ -207,6 +207,9 @@ With Docker:
 docker compose exec app npm run user:promote-admin -- you@example.com
 ```
 
+This command is designed to run inside the production-style app container and does not
+depend on `tsx` or other dev-only tooling.
+
 ## Useful commands
 
 ```bash

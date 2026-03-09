@@ -64,6 +64,7 @@ Before finishing:
 - Server-first rendering: prefer server components and actions; when client rendering is required, make hydration-safe choices.
 - Security before convenience: protect search/admin/realtime endpoints, validate env in production, and keep secrets out of defaults.
 - Installation must stay easy: preserve `npm run setup`, reliable Docker startup, and clear README steps.
+- Container-exposed operational scripts must run without dev-only toolchains such as `tsx`.
 
 ## Suggested next priorities
 
@@ -77,3 +78,4 @@ Before finishing:
 - March 9, 2026: added durable session rules, reusable-component guidance, auth-flow note, Docker/runtime note, and explicit reminder that `vixsrc` is still not integrated
 - March 9, 2026: clarified provider maturity/compliance metadata so `vixsrc` stays visibly scaffold-only across service, admin UI, and watch-session messaging
 - March 9, 2026: aligned the deployment-specific streaming provider type shape with the admin UI contract so custom provider metadata can compile cleanly
+- March 9, 2026: moved the admin-promotion CLI to a runtime-safe Node script so it works inside the production Docker container
