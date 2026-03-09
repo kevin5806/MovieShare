@@ -192,6 +192,48 @@ npm run db:seed
 npm run dev
 ```
 
+This path uses Next.js dev mode and does not rebuild the production image on every change.
+
+## Docker development without rebuilds
+
+If you want Docker in development without rebuilding the production image every time, use the
+dedicated dev service:
+
+```bash
+npm run dev:docker
+```
+
+Or detached:
+
+```bash
+npm run dev:docker:detach
+```
+
+What this does:
+
+- reuses the existing `postgres` service
+- runs a dedicated `app-dev` container on `node:22-alpine`
+- mounts the source code into the container
+- keeps `node_modules` and `.next` in named volumes
+- runs Next.js in dev mode with hot reload
+- skips full production builds for normal code edits
+- exposes the dev app on `http://localhost:3001` by default to avoid clashing with the production-style app container
+
+Useful dev commands:
+
+```bash
+npm run dev:db
+npm run dev:docker
+npm run dev:docker:detach
+npm run dev:docker:down
+```
+
+Notes:
+
+- `DEV_AUTO_DB_PUSH=1` is enabled by default in the dev container so Prisma schema changes get applied automatically on start
+- set `DEV_AUTO_DB_PUSH=0` if you want manual control
+- the production-style `docker compose up --build` flow is still available, but it is meant for runtime verification rather than normal iteration
+
 ## Docker Compose
 
 Start the full stack with:
@@ -270,6 +312,10 @@ depend on `tsx` or other dev-only tooling.
 ```bash
 npm run setup
 npm run dev
+npm run dev:db
+npm run dev:docker
+npm run dev:docker:detach
+npm run dev:docker:down
 npm run test
 npm run test:coverage
 npm run lint

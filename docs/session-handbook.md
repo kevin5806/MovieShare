@@ -24,6 +24,7 @@ Last updated: March 9, 2026
 - a first notifications inbox exists for list invites, friend invites, live sessions and recent activity
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
+- Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
 - reusable form/time primitives exist and should be extended before creating new UI variants
 - Docker runtime has been optimized with a much smaller multi-stage image and a working startup bootstrap
 - test baseline exists with Vitest and should keep expanding in risky server and action paths
@@ -73,6 +74,7 @@ Before finishing:
 - Security before convenience: protect search/admin/realtime endpoints, validate env in production, and keep secrets out of defaults.
 - Installation must stay easy: preserve `npm run setup`, reliable Docker startup, and clear README steps.
 - Production install should prefer tagged registry images over rebuilding from source on the target host.
+- Development should prefer `npm run dev` or the dedicated `app-dev` compose service over rebuilding the production image.
 - Container-exposed operational scripts must run without dev-only toolchains such as `tsx`.
 
 ## Suggested next priorities
@@ -91,3 +93,4 @@ Before finishing:
 - March 9, 2026: added a persistent rule that user-provided streaming integrations must not be removed, downgraded to placeholder, or replaced by the assistant
 - March 9, 2026: shipped a first notifications inbox, fixed the broken navbar account/actions flow, and added a minimal installable PWA shell with offline fallback
 - March 9, 2026: added registry-first deployment support with GitHub Actions image publishing and a production compose file that pulls prebuilt images
+- March 9, 2026: added a dedicated Docker dev flow with mounted source, cached dependencies, and Next.js hot reload to avoid repeated production builds

@@ -21,6 +21,7 @@ Last updated: March 9, 2026
 - self-hosted SSE broker with live refresh on list, selection, movie-detail and watch-session pages
 - installable PWA baseline with manifest, service worker registration and offline fallback page
 - registry-first deployment path through GitHub Actions image publishing and source-free production Docker Compose
+- dedicated Docker development path with mounted source and hot reload instead of production rebuilds
 - initial reusable form controls for select, switch, checkbox lists and server-safe time rendering
 - Docker Compose self-hosting setup and living project documentation
 

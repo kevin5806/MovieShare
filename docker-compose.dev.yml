@@ -1,0 +1,39 @@
+services:
+  app-dev:
+    image: node:22-alpine
+    working_dir: /workspace
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/movieshare?schema=public
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      NODE_ENV: development
+      BETTER_AUTH_URL: ${APP_DEV_PUBLIC_URL:-http://localhost:3001}
+      NEXT_PUBLIC_BETTER_AUTH_URL: ${APP_DEV_PUBLIC_URL:-http://localhost:3001}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-this-to-a-random-32-char-secret}
+      TMDB_API_TOKEN: ${TMDB_API_TOKEN:-}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@movieshare.local}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-movieshare admin}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-movieshare <noreply@movieshare.local>}
+      CHOKIDAR_USEPOLLING: "1"
+      WATCHPACK_POLLING: "true"
+      DEV_AUTO_DB_PUSH: ${DEV_AUTO_DB_PUSH:-1}
+    volumes:
+      - ./:/workspace
+      - app-dev-node-modules:/workspace/node_modules
+      - app-dev-next-cache:/workspace/.next
+    ports:
+      - "${APP_DEV_PORT:-3001}:3000"
+    command: node scripts/dev-start.mjs
+
+volumes:
+  app-dev-node-modules:
+  app-dev-next-cache:
