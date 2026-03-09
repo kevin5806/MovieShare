@@ -27,12 +27,15 @@ type AppShellProps = {
     email: string;
     role: string;
   };
+  versionLabel: string;
 };
 
 function SidebarContent({
   items,
+  versionLabel,
 }: {
   items: Array<{ href: string; label: string; icon: typeof LayoutDashboard }>;
+  versionLabel: string;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -55,22 +58,25 @@ function SidebarContent({
         <SidebarNav items={items} />
       </div>
       <div className="mt-auto p-5">
-        <div className="rounded-3xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
-          Notifications and realtime presence are planned for the next iterations.
+        <div className="space-y-3 rounded-3xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+          <p>Notifications and realtime presence are planned for the next iterations.</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
+            {versionLabel}
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-export function AppShell({ children, user }: AppShellProps) {
+export function AppShell({ children, user, versionLabel }: AppShellProps) {
   const items = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/profile", label: "Profile", icon: UserRound },
   ];
 
   if (user.role === "ADMIN") {
-    items.push({ href: "/admin/streaming", label: "System", icon: Settings2 });
+    items.push({ href: "/admin", label: "System", icon: Settings2 });
   }
 
   return (
@@ -78,7 +84,7 @@ export function AppShell({ children, user }: AppShellProps) {
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 py-4 md:px-6">
         <aside className="hidden w-[280px] shrink-0 rounded-[32px] border border-border/70 bg-sidebar/85 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur md:block">
           <ScrollArea className="h-[calc(100vh-2rem)]">
-            <SidebarContent items={items} />
+            <SidebarContent items={items} versionLabel={versionLabel} />
           </ScrollArea>
         </aside>
 
@@ -96,7 +102,7 @@ export function AppShell({ children, user }: AppShellProps) {
                     <SheetTitle>Navigation</SheetTitle>
                     <SheetDescription>Application navigation</SheetDescription>
                   </SheetHeader>
-                  <SidebarContent items={items} />
+                  <SidebarContent items={items} versionLabel={versionLabel} />
                 </SheetContent>
               </Sheet>
               <div>

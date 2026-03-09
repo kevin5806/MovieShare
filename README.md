@@ -23,6 +23,7 @@ movielist is a self-hosted collaborative movie list workspace built as a modular
 - movie selection page
 - watch session page
 - system admin page for streaming providers
+- system admin panel for TMDB, email and streaming configuration
 - user profile page
 - TMDB search and metadata caching
 - abstract streaming provider registry
@@ -46,6 +47,7 @@ Important boundaries:
 - auth and session helpers live in `server/auth.ts` and `server/session.ts`
 - TMDB access is isolated in `server/services/tmdb-service.ts`
 - streaming provider logic lives under `server/services/streaming/`
+- system runtime settings live in `server/services/system-config.ts`
 - Prisma is the single persistence boundary
 
 ## Streaming provider note
@@ -72,6 +74,19 @@ Realtime sync is not fully implemented yet, but the codebase already contains:
 - a broker contract in `server/realtime/broker.ts`
 
 This keeps the domain ready for future WebSocket or SSE integration.
+
+## Admin settings
+
+The admin console at `/admin` currently lets you manage:
+
+- TMDB credentials and default language
+- SMTP host, credentials and sender
+- streaming provider activation and selection
+
+Runtime behavior:
+
+- database values entered from the admin panel take precedence
+- if a field is empty in the admin panel, movielist falls back to environment variables when available
 
 ## Environment
 

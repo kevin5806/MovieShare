@@ -24,6 +24,19 @@ async function main() {
     },
   });
 
+  await db.systemConfig.upsert({
+    where: {
+      scope: "default",
+    },
+    update: {},
+    create: {
+      scope: "default",
+      tmdbLanguage: "en-US",
+      smtpPort: 587,
+      smtpSecure: false,
+    },
+  });
+
   if (env.SEED_ADMIN_EMAIL) {
     await db.user.updateMany({
       where: {

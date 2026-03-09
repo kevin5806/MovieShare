@@ -55,7 +55,7 @@ export function UserMenu({ name, email, role }: UserMenuProps) {
           Profile
         </DropdownMenuItem>
         {role === "ADMIN" ? (
-          <DropdownMenuItem onClick={() => router.push("/admin/streaming")}>
+          <DropdownMenuItem onClick={() => router.push("/admin")}>
             <Shield className="mr-2 size-4" />
             System admin
           </DropdownMenuItem>

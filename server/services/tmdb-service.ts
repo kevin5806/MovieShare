@@ -1,6 +1,6 @@
 import { MovieDataProvider } from "@/generated/prisma/client";
 import { db } from "@/server/db";
-import { env, isTmdbConfigured } from "@/server/env";
+import { getTmdbRuntimeConfig } from "@/server/services/system-config";
 
 type TmdbGenre = {
   id: number;
@@ -35,7 +35,9 @@ export type MovieSearchResult = {
 };
 
 async function tmdbFetch<T>(path: string, params?: URLSearchParams) {
-  if (!isTmdbConfigured) {
+  const tmdbConfig = await getTmdbRuntimeConfig();
+
+  if (!tmdbConfig.apiToken && !tmdbConfig.apiKey) {
     throw new Error("TMDB_API_TOKEN or TMDB_API_KEY is not configured.");
   }
 
@@ -45,16 +47,16 @@ async function tmdbFetch<T>(path: string, params?: URLSearchParams) {
     url.search = params.toString();
   }
 
-  if (!env.TMDB_API_TOKEN && env.TMDB_API_KEY) {
-    url.searchParams.set("api_key", env.TMDB_API_KEY);
+  if (!tmdbConfig.apiToken && tmdbConfig.apiKey) {
+    url.searchParams.set("api_key", tmdbConfig.apiKey);
   }
 
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      ...(env.TMDB_API_TOKEN
+      ...(tmdbConfig.apiToken
         ? {
-            Authorization: `Bearer ${env.TMDB_API_TOKEN}`,
+            Authorization: `Bearer ${tmdbConfig.apiToken}`,
           }
         : {}),
     },
@@ -76,8 +78,9 @@ function parseReleaseDate(value?: string) {
 
 export async function searchTmdbMovies(query: string) {
   const trimmed = query.trim();
+  const tmdbConfig = await getTmdbRuntimeConfig();
 
-  if (!trimmed || trimmed.length < 2 || !isTmdbConfigured) {
+  if (!trimmed || trimmed.length < 2 || (!tmdbConfig.apiToken && !tmdbConfig.apiKey)) {
     return [] as MovieSearchResult[];
   }
 
@@ -86,7 +89,7 @@ export async function searchTmdbMovies(query: string) {
     new URLSearchParams({
       query: trimmed,
       include_adult: "false",
-      language: "en-US",
+      language: tmdbConfig.language,
     }),
   );
 
@@ -103,10 +106,11 @@ export async function searchTmdbMovies(query: string) {
 }
 
 export async function getTmdbMovieDetails(tmdbId: number) {
+  const tmdbConfig = await getTmdbRuntimeConfig();
   const movie = await tmdbFetch<TmdbMovieDetails>(
     `/movie/${tmdbId}`,
     new URLSearchParams({
-      language: "en-US",
+      language: tmdbConfig.language,
     }),
   );
 

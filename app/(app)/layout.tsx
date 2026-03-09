@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireSession } from "@/server/session";
+import { getApplicationVersion } from "@/server/version";
 
 export default async function AuthenticatedLayout({
   children,
@@ -7,6 +8,7 @@ export default async function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   const session = await requireSession();
+  const appVersion = await getApplicationVersion();
 
   return (
     <AppShell
@@ -15,6 +17,7 @@ export default async function AuthenticatedLayout({
         email: session.user.email,
         role: session.user.role ?? "USER",
       }}
+      versionLabel={appVersion.label}
     >
       {children}
     </AppShell>

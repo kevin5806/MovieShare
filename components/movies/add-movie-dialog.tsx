@@ -47,37 +47,57 @@ export function AddMovieDialog({
     const trimmed = deferredQuery.trim();
 
     if (trimmed.length < 2) {
+      setResults([]);
+      setIsSearching(false);
       return;
     }
 
     const controller = new AbortController();
 
     async function runSearch() {
-      setIsSearching(true);
+      try {
+        setIsSearching(true);
 
-      const response = await fetch(`/api/tmdb/search?query=${encodeURIComponent(trimmed)}`, {
-        signal: controller.signal,
-      });
+        const response = await fetch(`/api/tmdb/search?query=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal,
+        });
 
-      const payload = (await response.json()) as {
-        results?: SearchResult[];
-        error?: string;
-      };
+        const payload = (await response.json()) as {
+          results?: SearchResult[];
+          error?: string;
+        };
 
-      setIsSearching(false);
+        if (!response.ok) {
+          toast.error(payload.error ?? "Unable to search TMDB.");
+          return;
+        }
 
-      if (!response.ok) {
-        toast.error(payload.error ?? "Unable to search TMDB.");
-        return;
+        setResults(payload.results ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        toast.error("Unable to search TMDB right now.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
       }
-
-      setResults(payload.results ?? []);
     }
 
     void runSearch();
 
     return () => controller.abort();
   }, [deferredQuery]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+      setIsSearching(false);
+    }
+  }, [open]);
 
   const visibleResults = deferredQuery.trim().length < 2 ? [] : results;
 
@@ -88,7 +108,13 @@ export function AddMovieDialog({
       formData.set("listSlug", listSlug);
       formData.set("tmdbId", String(result.tmdbId));
 
-      await addMovieToListAction(formData);
+      const response = await addMovieToListAction(formData);
+
+      if (!response.ok) {
+        toast.error(response.error);
+        return;
+      }
+
       toast.success(`${result.title} added to the list.`);
       setOpen(false);
       router.refresh();
@@ -98,18 +124,18 @@ export function AddMovieDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className={cn(buttonVariants())}>
-          <Plus className="size-4" />
-          Add movie from TMDB
+        <Plus className="size-4" />
+        Add movie from TMDB
       </DialogTrigger>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[85vh] max-w-4xl overflow-hidden p-0 sm:max-w-4xl">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>Add a movie</DialogTitle>
           <DialogDescription>
             Search TMDB and save only the metadata needed by your workspace.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="relative">
+        <div className="flex min-h-0 flex-col gap-4 px-6 pb-6">
+          <div className="relative shrink-0">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -119,7 +145,7 @@ export function AddMovieDialog({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="min-h-0 space-y-2 overflow-y-auto pr-1">
             {isSearching ? (
               <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/50 px-4 py-6 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
@@ -134,22 +160,29 @@ export function AddMovieDialog({
                   disabled={isPending}
                   className="flex w-full items-start gap-4 rounded-3xl border border-border/70 bg-card/85 p-4 text-left transition-colors hover:bg-accent/60 disabled:opacity-60"
                 >
-                  <div className="h-20 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                  <div className="aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-[18px] bg-muted">
                     {result.posterPath ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt={result.title}
                         src={tmdbImageUrl(result.posterPath, "w342") ?? undefined}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover object-center"
                       />
                     ) : null}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{result.title}</p>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="space-y-1">
+                      <p className="line-clamp-1 font-medium">{result.title}</p>
+                      {result.originalTitle && result.originalTitle !== result.title ? (
+                        <p className="line-clamp-1 text-xs text-muted-foreground">
+                          Original: {result.originalTitle}
+                        </p>
+                      ) : null}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {result.releaseDate || "Release date unavailable"}
                     </p>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                    <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
                       {result.overview || "No overview available."}
                     </p>
                   </div>

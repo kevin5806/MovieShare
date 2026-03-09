@@ -6,3 +6,18 @@ export const updateStreamingProviderSchema = z.object({
   isEnabled: z.coerce.boolean().default(false),
   isActive: z.coerce.boolean().default(false),
 });
+
+export const updateTmdbSettingsSchema = z.object({
+  tmdbApiToken: z.string().max(4096).default(""),
+  tmdbApiKey: z.string().max(512).default(""),
+  tmdbLanguage: z.string().min(2).max(20).default("en-US"),
+});
+
+export const updateEmailSettingsSchema = z.object({
+  smtpHost: z.string().max(255).default(""),
+  smtpPort: z.coerce.number().int().min(1).max(65535).default(587),
+  smtpSecure: z.coerce.boolean().default(false),
+  smtpUser: z.string().max(255).default(""),
+  smtpPassword: z.string().max(1024).default(""),
+  smtpFrom: z.string().max(255).default(""),
+});

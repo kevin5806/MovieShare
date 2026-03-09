@@ -34,18 +34,31 @@ export async function createListAction(formData: FormData) {
 }
 
 export async function addMovieToListAction(formData: FormData) {
-  const session = await requireSession();
+  try {
+    const session = await requireSession();
 
-  const parsed = addMovieToListSchema.parse({
-    listId: formData.get("listId"),
-    listSlug: formData.get("listSlug"),
-    tmdbId: formData.get("tmdbId"),
-    note: formData.get("note"),
-  });
+    const parsed = addMovieToListSchema.parse({
+      listId: formData.get("listId"),
+      listSlug: formData.get("listSlug"),
+      tmdbId: formData.get("tmdbId"),
+      note: formData.get("note"),
+    });
 
-  await addMovieToList(session.user.id, parsed);
+    await addMovieToList(session.user.id, parsed);
 
-  revalidatePath(`/lists/${parsed.listSlug}`);
+    revalidatePath(`/lists/${parsed.listSlug}`);
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("addMovieToListAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to add the movie right now.",
+    };
+  }
 }
 
 export async function saveMovieFeedbackAction(formData: FormData) {
