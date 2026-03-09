@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MovieList",
-    short_name: "MovieList",
+    name: "movielist",
+    short_name: "movielist",
     description: "Self-hosted collaborative movie lists for friends.",
     start_url: "/",
     display: "standalone",

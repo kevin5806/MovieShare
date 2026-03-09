@@ -42,7 +42,7 @@ export default function Home() {
                 Shared movie lists that feel organized before the night even starts.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                MovieList helps friends collect proposals, compare feedback, run lightweight
+                movielist helps friends collect proposals, compare feedback, run lightweight
                 selection modes and prepare future group watch sessions in one calm workspace.
               </p>
             </div>

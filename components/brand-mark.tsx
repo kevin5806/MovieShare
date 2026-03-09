@@ -9,7 +9,7 @@ export function BrandMark() {
         <UsersRound className="absolute -right-1 -bottom-1 size-3 rounded-full bg-background text-muted-foreground" />
       </span>
       <span className="flex flex-col leading-none">
-        <span>MovieList</span>
+        <span>movielist</span>
         <span className="text-[11px] font-medium text-muted-foreground">
           Collaborative movie rooms
         </span>

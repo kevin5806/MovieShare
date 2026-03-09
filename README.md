@@ -1,6 +1,6 @@
-# MovieList
+# movielist
 
-MovieList is a self-hosted collaborative movie list workspace built as a modular monolith on top of Next.js App Router.
+movielist is a self-hosted collaborative movie list workspace built as a modular monolith on top of Next.js App Router.
 
 ## Stack
 
@@ -86,9 +86,16 @@ Required variables:
 Optional but recommended:
 
 - `TMDB_API_TOKEN`
+- `TMDB_API_KEY`
 - `SEED_ADMIN_EMAIL`
 - `SEED_ADMIN_NAME`
 - `SMTP_*`
+
+TMDB auth note:
+
+- prefer `TMDB_API_TOKEN` (API Read Access Token)
+- `TMDB_API_KEY` is also supported as a fallback
+- if both are set, `TMDB_API_TOKEN` wins
 
 ## Local development
 

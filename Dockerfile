@@ -7,13 +7,14 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     BETTER_AUTH_URL=http://localhost:3000 \
     BETTER_AUTH_SECRET=change-this-to-a-random-32-char-secret \
     TMDB_API_TOKEN= \
+    TMDB_API_KEY= \
     SEED_ADMIN_EMAIL=admin@movielist.local \
-    SEED_ADMIN_NAME="MovieList Admin" \
+    SEED_ADMIN_NAME="movielist admin" \
     SMTP_HOST= \
     SMTP_PORT=587 \
     SMTP_USER= \
     SMTP_PASSWORD= \
-    SMTP_FROM="MovieList <noreply@movielist.local>"
+    SMTP_FROM="movielist <noreply@movielist.local>"
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma

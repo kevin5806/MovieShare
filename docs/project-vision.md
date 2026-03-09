@@ -1,8 +1,8 @@
-# MovieList Vision
+# movielist Vision
 
 ## Product direction
 
-MovieList is a self-hosted collaborative movie list application designed for small groups of friends.
+movielist is a self-hosted collaborative movie list application designed for small groups of friends.
 The product focus is:
 
 - shared curation instead of solo watchlists

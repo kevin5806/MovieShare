@@ -36,7 +36,7 @@ export type MovieSearchResult = {
 
 async function tmdbFetch<T>(path: string, params?: URLSearchParams) {
   if (!isTmdbConfigured) {
-    throw new Error("TMDB_API_TOKEN is not configured.");
+    throw new Error("TMDB_API_TOKEN or TMDB_API_KEY is not configured.");
   }
 
   const url = new URL(`https://api.themoviedb.org/3${path}`);
@@ -45,10 +45,18 @@ async function tmdbFetch<T>(path: string, params?: URLSearchParams) {
     url.search = params.toString();
   }
 
+  if (!env.TMDB_API_TOKEN && env.TMDB_API_KEY) {
+    url.searchParams.set("api_key", env.TMDB_API_KEY);
+  }
+
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${env.TMDB_API_TOKEN}`,
       Accept: "application/json",
+      ...(env.TMDB_API_TOKEN
+        ? {
+            Authorization: `Bearer ${env.TMDB_API_TOKEN}`,
+          }
+        : {}),
     },
     next: {
       revalidate: 60 * 60,
