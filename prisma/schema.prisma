@@ -1,0 +1,418 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+enum ListMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum ListInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+}
+
+enum MovieDataProvider {
+  TMDB
+}
+
+enum FeedbackSeenState {
+  UNSEEN
+  SEEN
+}
+
+enum FeedbackInterest {
+  NOT_SET
+  INTERESTED
+  NOT_INTERESTED
+}
+
+enum SelectionMode {
+  MANUAL
+  RANDOM
+  AUTOMATIC
+  GENRE
+  DURATION
+  MOOD
+}
+
+enum SelectionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum WatchSessionType {
+  SOLO
+  GROUP
+}
+
+enum WatchSessionStatus {
+  PENDING
+  LIVE
+  PAUSED
+  ENDED
+  ARCHIVED
+}
+
+enum PresenceState {
+  INVITED
+  JOINED
+  LEFT
+}
+
+enum PlaybackCheckpointSource {
+  MANUAL
+  AUTO_HEARTBEAT
+  SESSION_END
+}
+
+enum StreamingProviderKey {
+  VIXSRC
+}
+
+enum ActivityActorType {
+  USER
+  SYSTEM
+}
+
+model User {
+  id                    String              @id
+  name                  String
+  email                 String              @unique
+  emailVerified         Boolean             @default(false)
+  image                 String?
+  role                  UserRole            @default(USER)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  accounts              Account[]
+  sessions              Session[]
+  profile               Profile?
+  createdLists          MovieList[]         @relation("MovieListOwner")
+  listMemberships       MovieListMember[]
+  addedListItems        MovieListItem[]     @relation("MovieListItemAddedBy")
+  feedbacks             MovieFeedback[]
+  listInvitesSent       MovieListInvite[]   @relation("MovieListInviteSender")
+  selectionRuns         SelectionRun[]      @relation("SelectionRunInitiator")
+  startedWatchSessions  WatchSession[]      @relation("WatchSessionStarter")
+  watchSessionMembers   WatchSessionMember[]
+  checkpoints           PlaybackCheckpoint[]
+  activityLogs          ActivityLog[]       @relation("ActivityActorUser")
+  sentFriendInvites     FriendshipInvite[]  @relation("FriendInviteSender")
+  receivedFriendInvites FriendshipInvite[]  @relation("FriendInviteReceiver")
+  initiatedFriendships  Friendship[]        @relation("FriendshipInitiator")
+  acceptedFriendships   Friendship[]        @relation("FriendshipAcceptedBy")
+}
+
+model Profile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  displayName    String?
+  bio            String?
+  location       String?
+  favoriteGenres String[]
+  preferences    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FriendshipInvite {
+  id          String           @id @default(cuid())
+  senderId    String
+  receiverId  String
+  status      FriendshipStatus @default(PENDING)
+  message     String?
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+  sender      User             @relation("FriendInviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User             @relation("FriendInviteReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
+model Friendship {
+  id           String   @id @default(cuid())
+  initiatorId  String
+  acceptedById String
+  createdAt    DateTime @default(now())
+  initiator    User     @relation("FriendshipInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  acceptedBy   User     @relation("FriendshipAcceptedBy", fields: [acceptedById], references: [id], onDelete: Cascade)
+
+  @@unique([initiatorId, acceptedById])
+}
+
+model MovieList {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  name          String
+  description   String?
+  coverColor    String?
+  isArchived    Boolean          @default(false)
+  ownerId       String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  owner         User             @relation("MovieListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members       MovieListMember[]
+  invites       MovieListInvite[]
+  items         MovieListItem[]
+  selectionRuns SelectionRun[]
+  watchSessions WatchSession[]
+  activityLogs  ActivityLog[]
+}
+
+model MovieListMember {
+  id         String         @id @default(cuid())
+  listId     String
+  userId     String
+  role       ListMemberRole @default(MEMBER)
+  joinedAt   DateTime       @default(now())
+  lastSeenAt DateTime?
+  list       MovieList      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+}
+
+model MovieListInvite {
+  id           String           @id @default(cuid())
+  listId        String
+  senderId      String
+  email         String
+  token         String           @unique
+  status        ListInviteStatus @default(PENDING)
+  expiresAt     DateTime
+  invitedUserId String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  list          MovieList        @relation(fields: [listId], references: [id], onDelete: Cascade)
+  sender        User             @relation("MovieListInviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([listId, status])
+}
+
+model Movie {
+  id              String            @id @default(cuid())
+  tmdbId          Int               @unique
+  title           String
+  originalTitle   String?
+  posterPath      String?
+  backdropPath    String?
+  overview        String?
+  runtimeMinutes  Int?
+  genres          Json?
+  releaseDate     DateTime?
+  tmdbVoteAverage Float?
+  dataProvider    MovieDataProvider @default(TMDB)
+  lastSyncedAt    DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  listItems       MovieListItem[]
+  watchSessions   WatchSession[]
+  checkpoints     PlaybackCheckpoint[]
+}
+
+model MovieListItem {
+  id               String            @id @default(cuid())
+  listId           String
+  movieId          String
+  addedById        String
+  note             String?
+  sortOrder        Int               @default(0)
+  addedAt          DateTime          @default(now())
+  list             MovieList         @relation(fields: [listId], references: [id], onDelete: Cascade)
+  movie            Movie             @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  addedBy          User              @relation("MovieListItemAddedBy", fields: [addedById], references: [id], onDelete: Cascade)
+  feedbacks        MovieFeedback[]
+  selectionResults SelectionResult[]
+  watchSessions    WatchSession[]
+  checkpoints      PlaybackCheckpoint[]
+
+  @@unique([listId, movieId])
+  @@index([listId, addedAt])
+}
+
+model MovieFeedback {
+  id           String            @id @default(cuid())
+  listItemId   String
+  userId       String
+  seenState    FeedbackSeenState @default(UNSEEN)
+  interest     FeedbackInterest  @default(NOT_SET)
+  wouldRewatch Boolean           @default(false)
+  comment      String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  listItem     MovieListItem     @relation(fields: [listItemId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listItemId, userId])
+}
+
+model SelectionRun {
+  id            String          @id @default(cuid())
+  listId        String
+  initiatedById String
+  mode          SelectionMode
+  status        SelectionStatus @default(COMPLETED)
+  criteria      Json?
+  summary       String?
+  createdAt     DateTime        @default(now())
+  list          MovieList       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  initiatedBy   User            @relation("SelectionRunInitiator", fields: [initiatedById], references: [id], onDelete: Cascade)
+  results       SelectionResult[]
+}
+
+model SelectionResult {
+  id         String       @id @default(cuid())
+  runId      String
+  listItemId String
+  rank       Int
+  score      Float?
+  selected   Boolean      @default(false)
+  rationale  Json?
+  run        SelectionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  listItem   MovieListItem @relation(fields: [listItemId], references: [id], onDelete: Cascade)
+}
+
+model WatchSession {
+  id                   String             @id @default(cuid())
+  listId               String
+  listItemId           String
+  movieId              String
+  startedById          String
+  type                 WatchSessionType
+  status               WatchSessionStatus @default(PENDING)
+  streamingProvider    StreamingProviderKey?
+  streamingPlaybackUrl String?
+  resumeFromSeconds    Int                @default(0)
+  groupState           Json?
+  startedAt            DateTime?
+  endedAt              DateTime?
+  lastEventAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  list                 MovieList          @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listItem             MovieListItem      @relation(fields: [listItemId], references: [id], onDelete: Cascade)
+  movie                Movie              @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  startedBy            User               @relation("WatchSessionStarter", fields: [startedById], references: [id], onDelete: Cascade)
+  members              WatchSessionMember[]
+  checkpoints          PlaybackCheckpoint[]
+}
+
+model WatchSessionMember {
+  id                     String        @id @default(cuid())
+  watchSessionId         String
+  userId                 String
+  presence               PresenceState @default(INVITED)
+  isHost                 Boolean       @default(false)
+  currentPositionSeconds Int           @default(0)
+  joinedAt               DateTime?
+  leftAt                 DateTime?
+  lastHeartbeatAt        DateTime?
+  watchSession           WatchSession  @relation(fields: [watchSessionId], references: [id], onDelete: Cascade)
+  user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([watchSessionId, userId])
+}
+
+model PlaybackCheckpoint {
+  id              String                   @id @default(cuid())
+  watchSessionId  String?
+  listItemId      String
+  movieId         String
+  userId          String
+  positionSeconds Int
+  source          PlaybackCheckpointSource @default(MANUAL)
+  savedAt         DateTime                 @default(now())
+  watchSession    WatchSession?            @relation(fields: [watchSessionId], references: [id], onDelete: SetNull)
+  listItem        MovieListItem            @relation(fields: [listItemId], references: [id], onDelete: Cascade)
+  movie           Movie                    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StreamingProviderConfig {
+  id        String               @id @default(cuid())
+  provider  StreamingProviderKey @unique
+  label     String
+  isEnabled Boolean              @default(false)
+  isActive  Boolean              @default(false)
+  settings  Json?
+  notes     String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model ActivityLog {
+  id        String            @id @default(cuid())
+  listId    String?
+  actorId   String?
+  actorType ActivityActorType @default(USER)
+  event     String
+  payload   Json?
+  createdAt DateTime          @default(now())
+  list      MovieList?        @relation(fields: [listId], references: [id], onDelete: Cascade)
+  actorUser User?             @relation("ActivityActorUser", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([listId, createdAt])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String   @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}

@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+coverage
+movielist-temp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
