@@ -1,3 +1,5 @@
+"use client";
+
 import { Bell, LayoutDashboard, ListChecks, Radio, Settings2, UserRound } from "lucide-react";
 
 import { BrandMark } from "@/components/brand-mark";
