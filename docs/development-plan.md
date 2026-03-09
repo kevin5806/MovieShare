@@ -19,13 +19,15 @@
 - implement provider abstraction and persistence
 - improve watch session creation, member selection and checkpoint updates
 - introduce activity logging and friend invite flows
+- add list invite creation, acceptance links and owner controls
+- connect SMTP-backed invite delivery to runtime admin settings
 
 ## Phase 4
 
 - add realtime transport and event broker
 - live list updates, feedback updates and presence indicators
 - session heartbeat, resume synchronization and collaborative controls
-- notifications and email delivery flows
+- notifications center and delivery preferences
 
 ## Open Notes
 
@@ -34,3 +36,4 @@
 - selection logic should remain testable and deterministic for most modes
 - avoid premature generic abstractions outside real extension seams
 - prefer server components and server actions unless client interactivity is required
+- current missing production areas are realtime transport, richer selection heuristics and a real streaming adapter

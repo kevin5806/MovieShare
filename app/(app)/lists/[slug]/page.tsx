@@ -1,5 +1,6 @@
 import { UsersRound, WandSparkles } from "lucide-react";
 
+import { InviteMembersCard } from "@/components/lists/invite-members-card";
 import { AddMovieDialog } from "@/components/movies/add-movie-dialog";
 import { MovieCard } from "@/components/movies/movie-card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ export default async function ListPage({
   const session = await requireSession();
   const list = await getListDetails(slug, session.user.id);
   const latestSelection = list.selectionRuns[0];
+  const isOwner = list.ownerId === session.user.id;
 
   return (
     <div className="space-y-8">
@@ -60,41 +62,58 @@ export default async function ListPage({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/85">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-secondary">
-              <WandSparkles className="size-4" />
-            </div>
-            <div>
-              <CardTitle>Selection snapshot</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {latestSelection ? (
-              <>
-                <p className="text-sm leading-6 text-muted-foreground">{latestSelection.summary}</p>
-                {latestSelection.results.slice(0, 3).map((result) => (
-                  <div
-                    key={result.id}
-                    className="rounded-3xl border border-border/70 bg-background p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{result.listItem.movie.title}</p>
-                        <p className="text-sm text-muted-foreground">Rank #{result.rank}</p>
+        <div className="space-y-6">
+          <Card className="border-border/70 bg-card/85">
+            <CardHeader className="flex flex-row items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-secondary">
+                <WandSparkles className="size-4" />
+              </div>
+              <div>
+                <CardTitle>Selection snapshot</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {latestSelection ? (
+                <>
+                  <p className="text-sm leading-6 text-muted-foreground">{latestSelection.summary}</p>
+                  {latestSelection.results.slice(0, 3).map((result) => (
+                    <div
+                      key={result.id}
+                      className="rounded-3xl border border-border/70 bg-background p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{result.listItem.movie.title}</p>
+                          <p className="text-sm text-muted-foreground">Rank #{result.rank}</p>
+                        </div>
+                        {result.selected ? <Badge>Selected</Badge> : null}
                       </div>
-                      {result.selected ? <Badge>Selected</Badge> : null}
                     </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <p className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
-                No selection run yet. Open the selection page to rank candidates.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </>
+              ) : (
+                <p className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
+                  No selection run yet. Open the selection page to rank candidates.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {isOwner ? (
+            <InviteMembersCard
+              listId={list.id}
+              listSlug={list.slug}
+              invites={list.invites.map((invite) => ({
+                id: invite.id,
+                email: invite.email,
+                status: invite.status,
+                token: invite.token,
+                expiresAt: invite.expiresAt.toISOString(),
+                invitedUserId: invite.invitedUserId,
+              }))}
+            />
+          ) : null}
+        </div>
       </section>
     </div>
   );

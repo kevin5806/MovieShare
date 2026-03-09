@@ -147,6 +147,13 @@ export async function getWatchSession(sessionId: string, userId: string) {
         },
       },
       checkpoints: {
+        include: {
+          user: {
+            include: {
+              profile: true,
+            },
+          },
+        },
         orderBy: {
           savedAt: "desc",
         },
@@ -182,15 +189,44 @@ export async function savePlaybackCheckpoint(input: {
     throw new Error("Watch session not found.");
   }
 
-  const checkpoint = await db.playbackCheckpoint.create({
-    data: {
-      watchSessionId: session.id,
-      listItemId: session.listItemId,
-      movieId: session.movieId,
-      userId: input.userId,
-      positionSeconds: input.positionSeconds,
-      source: "MANUAL",
-    },
+  const checkpoint = await db.$transaction(async (tx) => {
+    const created = await tx.playbackCheckpoint.create({
+      data: {
+        watchSessionId: session.id,
+        listItemId: session.listItemId,
+        movieId: session.movieId,
+        userId: input.userId,
+        positionSeconds: input.positionSeconds,
+        source: "MANUAL",
+      },
+    });
+
+    await tx.watchSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        resumeFromSeconds: input.positionSeconds,
+        lastEventAt: new Date(),
+        status: "LIVE",
+      },
+    });
+
+    await tx.watchSessionMember.update({
+      where: {
+        watchSessionId_userId: {
+          watchSessionId: session.id,
+          userId: input.userId,
+        },
+      },
+      data: {
+        presence: "JOINED",
+        currentPositionSeconds: input.positionSeconds,
+        lastHeartbeatAt: new Date(),
+      },
+    });
+
+    return created;
   });
 
   await realtimeBroker.publish({

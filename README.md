@@ -25,7 +25,11 @@ movielist is a self-hosted collaborative movie list workspace built as a modular
 - system admin page for streaming providers
 - system admin panel for TMDB, email and streaming configuration
 - user profile page
+- list invite flow with shareable acceptance links
+- friend invite flow for existing movielist users
 - TMDB search and metadata caching
+- SMTP-backed email delivery for list and friend invites
+- manual playback checkpoint saving and resume-point updates
 - abstract streaming provider registry
 - realtime-ready event broker interface
 - project vision and development notes in `docs/`
@@ -72,6 +76,7 @@ Realtime sync is not fully implemented yet, but the codebase already contains:
 - playback checkpoints
 - activity logs
 - a broker contract in `server/realtime/broker.ts`
+- invite and social flows that can later emit realtime notifications
 
 This keeps the domain ready for future WebSocket or SSE integration.
 
@@ -214,6 +219,5 @@ Current TODOs are intentionally concentrated around:
 
 - realtime transport
 - richer selection heuristics
-- invite acceptance flows
-- email and notification delivery
+- in-app notifications center and delivery preferences
 - production-ready streaming provider integration

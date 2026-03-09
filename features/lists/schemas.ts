@@ -18,6 +18,22 @@ export const addMovieToListSchema = z.object({
   note: z.string().max(200).optional().default(""),
 });
 
+export const createListInviteSchema = z.object({
+  listId: z.string().min(1),
+  listSlug: z.string().min(1),
+  email: z.email(),
+});
+
+export const revokeListInviteSchema = z.object({
+  inviteId: z.string().min(1),
+  listSlug: z.string().min(1),
+});
+
+export const respondToListInviteSchema = z.object({
+  token: z.string().min(1),
+  action: z.enum(["accept", "decline"]),
+});
+
 export const saveFeedbackSchema = z.object({
   listItemId: z.string().min(1),
   listSlug: z.string().min(1),

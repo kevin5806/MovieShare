@@ -6,3 +6,13 @@ export const profileSchema = z.object({
   location: z.string().max(80).optional().default(""),
   favoriteGenres: z.string().max(240).optional().default(""),
 });
+
+export const friendInviteSchema = z.object({
+  email: z.email(),
+  message: z.string().max(240).optional().default(""),
+});
+
+export const respondToFriendInviteSchema = z.object({
+  inviteId: z.string().min(1),
+  action: z.enum(["accept", "decline"]),
+});

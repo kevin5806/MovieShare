@@ -28,6 +28,25 @@ export function formatRuntime(runtimeMinutes?: number | null) {
   return `${hours}h ${minutes}m`;
 }
 
+export function formatSeconds(input?: number | null) {
+  if (input == null) {
+    return "0:00";
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(input));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (!hours) {
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 export function formatReleaseDate(input?: Date | string | null) {
   if (!input) {
     return "Release date unavailable";

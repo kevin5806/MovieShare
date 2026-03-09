@@ -6,7 +6,10 @@ import { redirect } from "next/navigation";
 import { SelectionMode, WatchSessionType } from "@/generated/prisma/client";
 import {
   addMovieToListSchema,
+  createListInviteSchema,
   createListSchema,
+  respondToListInviteSchema,
+  revokeListInviteSchema,
   runSelectionSchema,
   saveFeedbackSchema,
   startWatchSessionSchema,
@@ -14,7 +17,10 @@ import {
 import { requireSession } from "@/server/session";
 import {
   addMovieToList,
+  createListInvite,
   createList,
+  respondToListInvite,
+  revokeListInvite,
   saveMovieFeedback,
 } from "@/server/services/list-service";
 import { runSelection } from "@/server/services/selection-service";
@@ -59,6 +65,81 @@ export async function addMovieToListAction(formData: FormData) {
       error: error instanceof Error ? error.message : "Unable to add the movie right now.",
     };
   }
+}
+
+export async function createListInviteAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = createListInviteSchema.parse({
+      listId: formData.get("listId"),
+      listSlug: formData.get("listSlug"),
+      email: formData.get("email"),
+    });
+
+    const result = await createListInvite(session.user.id, parsed);
+
+    revalidatePath(`/lists/${parsed.listSlug}`);
+
+    return {
+      ok: true as const,
+      delivery: result.delivery.status,
+    };
+  } catch (error) {
+    console.error("createListInviteAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to create the invite.",
+    };
+  }
+}
+
+export async function revokeListInviteAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = revokeListInviteSchema.parse({
+      inviteId: formData.get("inviteId"),
+      listSlug: formData.get("listSlug"),
+    });
+
+    await revokeListInvite(session.user.id, parsed.inviteId);
+
+    revalidatePath(`/lists/${parsed.listSlug}`);
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("revokeListInviteAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to revoke the invite.",
+    };
+  }
+}
+
+export async function respondToListInviteAction(formData: FormData) {
+  const session = await requireSession();
+
+  const parsed = respondToListInviteSchema.parse({
+    token: formData.get("token"),
+    action: formData.get("action"),
+  });
+
+  const result = await respondToListInvite({
+    token: parsed.token,
+    userId: session.user.id,
+    action: parsed.action,
+  });
+
+  if (parsed.action === "accept") {
+    redirect(`/lists/${result.listSlug}`);
+  }
+
+  redirect("/dashboard");
 }
 
 export async function saveMovieFeedbackAction(formData: FormData) {

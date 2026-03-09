@@ -1,4 +1,5 @@
 import { saveProfileAction } from "@/features/profile/actions";
+import { FriendshipPanel } from "@/components/profile/friendship-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,9 +65,39 @@ export default async function ProfilePage() {
                 {user?._count.watchSessionMembers ?? 0}
               </p>
             </div>
+            <div className="rounded-3xl border border-border/70 bg-background p-4">
+              <p className="text-sm text-muted-foreground">Friends</p>
+              <p className="mt-2 text-3xl font-semibold">{user?.friends.length ?? 0}</p>
+            </div>
           </CardContent>
         </Card>
       </section>
+
+      {user ? (
+        <FriendshipPanel
+          friends={user.friends.map((friend) => ({
+            id: friend.id,
+            name: friend.name,
+            displayName: friend.profile?.displayName,
+            email: friend.email,
+          }))}
+          incomingInvites={user.receivedFriendInvites.map((invite) => ({
+            id: invite.id,
+            senderName: invite.sender.name,
+            senderDisplayName: invite.sender.profile?.displayName,
+            senderEmail: invite.sender.email,
+            message: invite.message,
+            createdAt: invite.createdAt.toISOString(),
+          }))}
+          outgoingInvites={user.sentFriendInvites.map((invite) => ({
+            id: invite.id,
+            receiverName: invite.receiver.name,
+            receiverDisplayName: invite.receiver.profile?.displayName,
+            receiverEmail: invite.receiver.email,
+            createdAt: invite.createdAt.toISOString(),
+          }))}
+        />
+      ) : null}
     </div>
   );
 }

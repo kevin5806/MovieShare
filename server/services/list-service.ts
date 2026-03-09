@@ -2,11 +2,13 @@ import {
   FeedbackInterest,
   FeedbackSeenState,
   ListMemberRole,
+  ListInviteStatus,
   type Prisma,
 } from "@/generated/prisma/client";
 import { realtimeBroker } from "@/server/realtime/broker";
 import { db } from "@/server/db";
 import { logActivity } from "@/server/services/activity-log";
+import { sendListInviteEmail } from "@/server/services/email-service";
 import { cacheMovieFromTmdb } from "@/server/services/tmdb-service";
 import { slugify } from "@/lib/utils";
 
@@ -49,6 +51,14 @@ async function requireListAccessBySlug(slug: string, userId: string) {
         },
         orderBy: {
           joinedAt: "asc",
+        },
+      },
+      invites: {
+        include: {
+          sender: true,
+        },
+        orderBy: {
+          createdAt: "desc",
         },
       },
       items: {
@@ -217,6 +227,252 @@ export async function createList(userId: string, input: { name: string; descript
 
 export async function getListDetails(slug: string, userId: string) {
   return requireListAccessBySlug(slug, userId);
+}
+
+export async function createListInvite(
+  userId: string,
+  input: {
+    listId: string;
+    email: string;
+  },
+) {
+  const list = await db.movieList.findFirst({
+    where: {
+      id: input.listId,
+      members: {
+        some: {
+          userId,
+          role: ListMemberRole.OWNER,
+        },
+      },
+    },
+    include: {
+      owner: true,
+      members: true,
+    },
+  });
+
+  if (!list) {
+    throw new Error("Only the list owner can send invites.");
+  }
+
+  const normalizedEmail = input.email.trim().toLowerCase();
+
+  if (!normalizedEmail) {
+    throw new Error("Invite email is required.");
+  }
+
+  const invitedUser = await db.user.findUnique({
+    where: {
+      email: normalizedEmail,
+    },
+  });
+
+  if (invitedUser && list.members.some((member) => member.userId === invitedUser.id)) {
+    throw new Error("That user is already a member of this list.");
+  }
+
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+  const existingInvite = await db.movieListInvite.findFirst({
+    where: {
+      listId: input.listId,
+      email: normalizedEmail,
+      status: ListInviteStatus.PENDING,
+    },
+  });
+
+  const invite = existingInvite
+    ? await db.movieListInvite.update({
+        where: {
+          id: existingInvite.id,
+        },
+        data: {
+          senderId: userId,
+          token,
+          expiresAt,
+          invitedUserId: invitedUser?.id,
+          status: ListInviteStatus.PENDING,
+        },
+      })
+    : await db.movieListInvite.create({
+        data: {
+          listId: input.listId,
+          senderId: userId,
+          email: normalizedEmail,
+          token,
+          expiresAt,
+          invitedUserId: invitedUser?.id,
+        },
+      });
+
+  await logActivity({
+    listId: input.listId,
+    actorId: userId,
+    event: "list.invite.created",
+    payload: {
+      inviteId: invite.id,
+      email: normalizedEmail,
+    },
+  });
+
+  const delivery = await sendListInviteEmail({
+    to: normalizedEmail,
+    senderName: list.owner.name,
+    listName: list.name,
+    token: invite.token,
+  });
+
+  return {
+    invite,
+    delivery,
+  };
+}
+
+export async function revokeListInvite(userId: string, inviteId: string) {
+  const invite = await db.movieListInvite.findFirst({
+    where: {
+      id: inviteId,
+      list: {
+        members: {
+          some: {
+            userId,
+            role: ListMemberRole.OWNER,
+          },
+        },
+      },
+    },
+  });
+
+  if (!invite) {
+    throw new Error("Invite not found.");
+  }
+
+  await db.movieListInvite.update({
+    where: {
+      id: invite.id,
+    },
+    data: {
+      status: ListInviteStatus.REVOKED,
+    },
+  });
+
+  return invite;
+}
+
+export async function getListInviteByToken(token: string) {
+  return db.movieListInvite.findUnique({
+    where: {
+      token,
+    },
+    include: {
+      list: {
+        include: {
+          owner: true,
+          members: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
+      sender: true,
+    },
+  });
+}
+
+export async function respondToListInvite(input: {
+  token: string;
+  userId: string;
+  action: "accept" | "decline";
+}) {
+  const [invite, user] = await Promise.all([
+    getListInviteByToken(input.token),
+    db.user.findUnique({
+      where: {
+        id: input.userId,
+      },
+    }),
+  ]);
+
+  if (!invite || !user) {
+    throw new Error("Invite not found.");
+  }
+
+  if (invite.status !== ListInviteStatus.PENDING) {
+    throw new Error("This invite is no longer pending.");
+  }
+
+  if (invite.expiresAt < new Date()) {
+    throw new Error("This invite has expired.");
+  }
+
+  if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
+    throw new Error("This invite belongs to a different email address.");
+  }
+
+  const status =
+    input.action === "accept" ? ListInviteStatus.ACCEPTED : ListInviteStatus.DECLINED;
+
+  return db.$transaction(async (tx) => {
+    const updatedInvite = await tx.movieListInvite.update({
+      where: {
+        id: invite.id,
+      },
+      data: {
+        status,
+        invitedUserId: user.id,
+      },
+    });
+
+    if (input.action === "accept") {
+      await tx.movieListMember.upsert({
+        where: {
+          listId_userId: {
+            listId: invite.listId,
+            userId: user.id,
+          },
+        },
+        update: {},
+        create: {
+          listId: invite.listId,
+          userId: user.id,
+          role: ListMemberRole.MEMBER,
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          listId: invite.listId,
+          actorId: user.id,
+          event: "list.invite.accepted",
+          payload: {
+            inviteId: invite.id,
+            email: user.email,
+          },
+        },
+      });
+    }
+
+    if (input.action === "decline") {
+      await tx.activityLog.create({
+        data: {
+          listId: invite.listId,
+          actorId: user.id,
+          event: "list.invite.declined",
+          payload: {
+            inviteId: invite.id,
+            email: user.email,
+          },
+        },
+      });
+    }
+
+    return {
+      invite: updatedInvite,
+      listSlug: invite.list.slug,
+    };
+  });
 }
 
 export async function getListItemDetail(
