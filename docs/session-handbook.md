@@ -25,7 +25,7 @@ Last updated: March 9, 2026
 - realtime live refresh exists through the self-hosted SSE route and broker
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
-- a first notifications inbox exists for list invites, friend invites, live sessions and recent activity
+- the notifications inbox now has persistent read state, filterable feed actions, and shell badge counts driven by unread items
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
 - Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
@@ -44,7 +44,7 @@ Last updated: March 9, 2026
 - additional streaming slots can be added, but they must not displace or degrade an existing user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - admin/provider UI must not make unsupported compliance or production-readiness claims
-- notifications are still summary-first: there is no read state, delivery preference model, or push channel yet
+- notifications now have read state, but still lack delivery preference modeling or push channels
 - the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
 - responsive hardening is better in the shell, but still not complete across every complex page
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
@@ -113,3 +113,4 @@ Before finishing:
 - March 9, 2026: expanded sidebar navigation with dedicated `/lists` and `/watch` index pages so core areas are reachable without routing everything through the dashboard
 - March 9, 2026: fixed admin toggle form handling, generalized streaming-provider messaging in admin/watch UI, and added a configurable Plex provider slot
 - March 9, 2026: added CDN-backed mirroring for persisted TMDB movie artwork and wired list/detail pages to prefer local media URLs
+- March 9, 2026: completed the notifications inbox with persistent read state, unread counts in the shell, and per-item/bulk inbox actions

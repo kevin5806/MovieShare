@@ -118,6 +118,7 @@ model User {
   watchSessionMembers   WatchSessionMember[]
   checkpoints           PlaybackCheckpoint[]
   activityLogs          ActivityLog[]       @relation("ActivityActorUser")
+  notificationStates    NotificationState[]
   sentFriendInvites     FriendshipInvite[]  @relation("FriendInviteSender")
   receivedFriendInvites FriendshipInvite[]  @relation("FriendInviteReceiver")
   initiatedFriendships  Friendship[]        @relation("FriendshipInitiator")
@@ -399,6 +400,19 @@ model ActivityLog {
   actorUser User?             @relation("ActivityActorUser", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([listId, createdAt])
+}
+
+model NotificationState {
+  id              String   @id @default(cuid())
+  userId          String
+  notificationKey String
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationKey])
+  @@index([userId, readAt])
 }
 
 model Session {

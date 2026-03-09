@@ -29,6 +29,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - admin roadmap for future access methods
 - user profile page
 - notifications inbox page
+- persistent notification read state with bulk/single mark-as-read actions
 - list invite flow with shareable acceptance links
 - friend invite flow for existing movieshare users
 - TMDB search and metadata caching
@@ -93,7 +94,7 @@ Realtime sync is partially implemented:
 - a self-hosted SSE broker now powers live refresh for list, selection, movie-detail and watch-session views
 - watch session membership and presence state are persisted
 - playback checkpoints and activity logs already emit realtime events
-- a notifications inbox now surfaces invites, live sessions and recent shared activity
+- a notifications inbox now surfaces invites, live sessions and recent shared activity with persistent read state
 - invite and social flows are still persistence-first and can later emit richer notifications
 
 What is still missing:
@@ -101,7 +102,7 @@ What is still missing:
 - push-style in-app notifications
 - presence badges without a full page refresh
 - collaborative playback controls and heartbeats beyond manual checkpoints
-- per-notification read state and delivery preferences
+- delivery preferences and push channels
 
 ## PWA note
 
