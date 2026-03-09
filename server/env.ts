@@ -21,6 +21,9 @@ const envSchema = z.object({
   STORAGE_REGION: z.string().optional().default("us-east-1"),
   STORAGE_ACCESS_KEY: z.string().optional().default(""),
   STORAGE_SECRET_KEY: z.string().optional().default(""),
+  VIXSRC_BASE_URL: z.string().optional().default(""),
+  VIXSRC_LANG: z.string().optional().default(""),
+  PLEX_WATCH_URL_TEMPLATE: z.string().optional().default(""),
   STORAGE_FORCE_PATH_STYLE: z
     .enum(["true", "false"])
     .optional()

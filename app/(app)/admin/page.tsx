@@ -346,21 +346,19 @@ export default async function SystemAdminPage() {
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">Streaming providers</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            Gestisci i provider di streaming disponibili. Ogni slot puo essere
-            abilitato/disabilitato e marcato come preferito, con un solo provider attivo
-            alla volta. Il provider VixSrc e deployment-specific: genera embed URL diretti
-            come{" "}
-            <code className="font-mono text-xs">https://vixsrc.to/movie/{"{tmdbId}"}</code>{" "}
-            se <code className="font-mono text-xs">VIXSRC_BASE_URL</code> e configurata
-            nelle env. Maturity: deployment-specific | Compliance: richiede review legale
-            per il tuo deployment. Non implica tele-sharing sincronizzato.
+            Manage the available streaming adapters. Each slot can be enabled or disabled
+            and marked as preferred, with only one ready provider active at a time.
+            Playback availability depends on the adapter runtime and deployment
+            configuration, and remains separate from watch-session tracking.
           </p>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
           {adminState.streaming.configs.map((config) => {
-            const isVixsrc = config.provider === "VIXSRC";
             const provider = providerCatalog.get(config.provider);
+            const runtimeCopy = provider?.isReady
+              ? "This provider can be selected as the active playback adapter for new watch sessions."
+              : "This provider is visible in the catalog, but it still needs provider-specific runtime configuration before it can become active.";
 
             return (
               <Card key={config.id} className="border-border/70 bg-card/85">
@@ -379,17 +377,13 @@ export default async function SystemAdminPage() {
                 <CardContent className="space-y-4">
                   <StreamingProviderStatus provider={provider} />
                   <p className="text-sm leading-6 text-muted-foreground">
-                    {isVixsrc
-                      ? config.notes ||
-                        "Provider embed-based. Pronto se VIXSRC_BASE_URL e settata (es. https://vixsrc.to). Genera URL embed per film/TV. Richiede verifica compliance deployment-specific. Non usare per sorgenti non autorizzate."
-                      : config.notes ||
-                        "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
+                    {config.notes ||
+                      provider?.description ||
+                      "Provider slot configurable from the admin catalog without coupling the core domain to one source."}
                   </p>
                   <StreamingProviderNotes provider={provider} />
                   <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
-                    {isVixsrc
-                      ? "Abilitando questo provider, movieshare tentera di generare embed URL per le watch session. Playback dipende da configurazione env e stabilita della sorgente. Solo embed, no streaming diretto o sync. Review compliance obbligatoria prima di produzione."
-                      : "Enabling this slot only marks it as the preferred provider in the domain. Playback remains unavailable until a compliant deployment-specific adapter is wired."}
+                    {runtimeCopy}
                   </div>
                   <form action={updateStreamingProviderAction} className="space-y-4">
                     <input type="hidden" name="provider" value={config.provider} />

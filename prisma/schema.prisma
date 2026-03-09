@@ -88,6 +88,7 @@ enum PlaybackCheckpointSource {
 
 enum StreamingProviderKey {
   VIXSRC
+  PLEX
 }
 
 enum ActivityActorType {

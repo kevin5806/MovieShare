@@ -16,6 +16,7 @@ Last updated: March 9, 2026
 - keep installation and first-run experience simple on fresh machines
 - keep the new media storage stack stable so profile/list imagery stays easy to operate
 - improve production readiness without making unsupported compliance or deployment claims about streaming integrations
+- keep admin configuration controls working end-to-end, especially toggle-based forms
 
 ## Current state snapshot
 
@@ -30,6 +31,7 @@ Last updated: March 9, 2026
 - Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
 - MinIO-backed media storage plus the `media-cdn` service now power profile avatars and list-cover images
 - the admin panel now tracks future auth-method rollout intent and prerequisites
+- the admin panel now exposes multiple configurable streaming slots, including `vixsrc` and `plex`
 - reusable form/time primitives exist and should be extended before creating new UI variants
 - Docker runtime has been optimized with a much smaller multi-stage image and a working startup bootstrap
 - test baseline exists with Vitest and should keep expanding in risky server and action paths
@@ -38,6 +40,7 @@ Last updated: March 9, 2026
 
 - if the user has provided a deployment-specific streaming integration, do not remove it, downgrade it to placeholder state, or replace it unless explicitly asked
 - assistant work on streaming should focus on compatibility, reliability, typing, tests, UX wiring, and operability around the user-provided integration
+- additional streaming slots can be added, but they must not displace or degrade an existing user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications are still summary-first: there is no read state, delivery preference model, or push channel yet
@@ -106,3 +109,4 @@ Before finishing:
 - March 9, 2026: added a dedicated Docker dev flow with mounted source, cached dependencies, and Next.js hot reload to avoid repeated production builds
 - March 9, 2026: shipped progressive single-form access, future auth-method planning in admin, and self-hosted media storage plus media-cdn for avatars and list covers
 - March 9, 2026: expanded sidebar navigation with dedicated `/lists` and `/watch` index pages so core areas are reachable without routing everything through the dashboard
+- March 9, 2026: fixed admin toggle form handling, generalized streaming-provider messaging in admin/watch UI, and added a configurable Plex provider slot

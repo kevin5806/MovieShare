@@ -21,8 +21,8 @@ export async function updateStreamingProviderAction(formData: FormData) {
 
   const parsed = updateStreamingProviderSchema.parse({
     provider: formData.get("provider"),
-    isEnabled: formData.get("isEnabled") === "on",
-    isActive: formData.get("isActive") === "on",
+    isEnabled: formData.get("isEnabled"),
+    isActive: formData.get("isActive"),
   });
 
   await updateStreamingProviderConfig(parsed);
@@ -52,7 +52,7 @@ export async function updateEmailSettingsAction(formData: FormData) {
   const parsed = updateEmailSettingsSchema.parse({
     smtpHost: formData.get("smtpHost")?.toString() ?? "",
     smtpPort: formData.get("smtpPort")?.toString() ?? "587",
-    smtpSecure: formData.get("smtpSecure") === "on",
+    smtpSecure: formData.get("smtpSecure"),
     smtpUser: formData.get("smtpUser")?.toString() ?? "",
     smtpPassword: formData.get("smtpPassword")?.toString() ?? "",
     smtpFrom: formData.get("smtpFrom")?.toString() ?? "",
@@ -68,10 +68,10 @@ export async function updateAccessMethodSettingsAction(formData: FormData) {
   await requireAdminSession();
 
   const parsed = updateAccessMethodSettingsSchema.parse({
-    authEmailCodeEnabled: formData.get("authEmailCodeEnabled") === "on",
-    authMagicLinkEnabled: formData.get("authMagicLinkEnabled") === "on",
-    authPasskeyEnabled: formData.get("authPasskeyEnabled") === "on",
-    authTwoFactorEnabled: formData.get("authTwoFactorEnabled") === "on",
+    authEmailCodeEnabled: formData.get("authEmailCodeEnabled"),
+    authMagicLinkEnabled: formData.get("authMagicLinkEnabled"),
+    authPasskeyEnabled: formData.get("authPasskeyEnabled"),
+    authTwoFactorEnabled: formData.get("authTwoFactorEnabled"),
   });
 
   await updateAccessMethodSettings(parsed);

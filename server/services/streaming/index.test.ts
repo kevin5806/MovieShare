@@ -25,8 +25,8 @@ vi.mock("@/server/db", () => ({
 
 import {
   getStreamingAdminState,
-  updateStreamingProviderConfig,
   resolvePlaybackSource,
+  updateStreamingProviderConfig,
 } from "@/server/services/streaming";
 import vixsrcProvider from "@/server/services/streaming/providers/vixsrc";
 
@@ -38,92 +38,102 @@ describe("streaming service", () => {
     vi.unstubAllEnvs();
   });
 
-  describe("VIXSRC Provider (deployment-specific)", () => {
-    it("è marked as ready dopo integrazione", () => {
-      expect(vixsrcProvider.isReady).toBe(true);
-      expect(vixsrcProvider.maturity).toBe("deployment-specific");
-      expect(vixsrcProvider.compliance).toBe("deployment-review");
-    });
+  it("keeps VixSrc available as a ready deployment-specific provider", () => {
+    expect(vixsrcProvider.isReady).toBe(true);
+    expect(vixsrcProvider.maturity).toBe("deployment-specific");
+    expect(vixsrcProvider.compliance).toBe("deployment-review");
+  });
 
-    it("permette di diventare active se isReady", async () => {
-      mocks.db.streamingProviderConfig.findMany.mockResolvedValue([
-        {
-          id: "vixsrc-1",
-          provider: StreamingProviderKey.VIXSRC,
-          label: "VixSrc",
-          isEnabled: true,
-          isActive: true,
-        },
-      ]);
-
-      const state = await getStreamingAdminState();
-
-      expect(state.activeConfig).not.toBeNull();
-      expect(state.activeConfig?.provider).toBe(StreamingProviderKey.VIXSRC);
-      expect(state.providers).toContainEqual(
-        expect.objectContaining({
-          id: "VIXSRC",
-          isReady: true,
-        }),
-      );
-    });
-
-    it("resolvePlaybackSource ritorna embed quando env VIXSRC_BASE_URL è settata", async () => {
-      vi.stubEnv("VIXSRC_BASE_URL", "https://vixsrc.to");
-
-      const result = await resolvePlaybackSource({
+  it("returns both configured provider slots in the admin catalog", async () => {
+    mocks.db.streamingProviderConfig.findMany.mockResolvedValue([
+      {
+        id: "vixsrc-1",
         provider: StreamingProviderKey.VIXSRC,
-        tmdbId: 27205,
-        watchSessionId: "test-session",
-      });
-
-      expect(result.kind).toBe("embed");
-
-      // Type narrowing: dopo questo check TS sa che result è { kind: "embed"; url: string; ... }
-      if (result.kind !== "embed") {
-        throw new Error("Test fallito: kind non è embed");
-      }
-
-      expect(result.url).toMatch(/https:\/\/vixsrc\.to\/movie\/27205/);
-      expect(result.url).toContain("?lang=");
-      expect(result.message).toContain("Embed pronto");
-    });
-
-    it("resolvePlaybackSource ritorna unavailable quando manca VIXSRC_BASE_URL", async () => {
-      vi.stubEnv("VIXSRC_BASE_URL", undefined);
-
-      const result = await resolvePlaybackSource({
-        provider: StreamingProviderKey.VIXSRC,
-        tmdbId: 27205,
-        watchSessionId: "test-session",
-      });
-
-      expect(result.kind).toBe("unavailable");
-
-      // Type narrowing opzionale qui (non strettamente necessario perché non accediamo a .url)
-      if (result.kind !== "unavailable") {
-        throw new Error("Test fallito: kind non è unavailable");
-      }
-
-      expect(result.message).toContain("Configurazione mancante");
-      expect(result.message).toContain("VIXSRC_BASE_URL");
-    });
-
-    it("updateStreamingProviderConfig permette active solo se isReady", async () => {
-      await updateStreamingProviderConfig({
-        provider: StreamingProviderKey.VIXSRC,
+        label: "VixSrc",
         isEnabled: true,
         isActive: true,
-      });
+        createdAt: new Date(),
+      },
+      {
+        id: "plex-1",
+        provider: StreamingProviderKey.PLEX,
+        label: "Plex",
+        isEnabled: false,
+        isActive: false,
+        createdAt: new Date(),
+      },
+    ]);
 
-      expect(mocks.tx.streamingProviderConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: {
-            isEnabled: true,
-            isActive: true,
-          },
-        }),
-      );
+    const state = await getStreamingAdminState();
+
+    expect(mocks.db.streamingProviderConfig.upsert).toHaveBeenCalledTimes(2);
+    expect(state.activeConfig?.provider).toBe(StreamingProviderKey.VIXSRC);
+    expect(state.providers).toContainEqual(
+      expect.objectContaining({
+        id: StreamingProviderKey.VIXSRC,
+        isReady: true,
+      }),
+    );
+    expect(state.providers).toContainEqual(
+      expect.objectContaining({
+        id: StreamingProviderKey.PLEX,
+      }),
+    );
+  });
+
+  it("resolves a VixSrc playback URL when the runtime env is configured", async () => {
+    vi.stubEnv("VIXSRC_BASE_URL", "https://vixsrc.to");
+
+    const result = await resolvePlaybackSource({
+      provider: StreamingProviderKey.VIXSRC,
+      tmdbId: 27205,
+      watchSessionId: "test-session",
     });
+
+    expect(result.kind).toBe("embed");
+
+    if (result.kind !== "embed") {
+      throw new Error("Expected an embed playback source.");
+    }
+
+    expect(result.url).toMatch(/https:\/\/vixsrc\.to\/movie\/27205/);
+    expect(result.url).toContain("?lang=");
+  });
+
+  it("resolves a Plex playback URL from the configured template", async () => {
+    vi.stubEnv(
+      "PLEX_WATCH_URL_TEMPLATE",
+      "https://plex.example.com/watch/{tmdbId}?session={watchSessionId}",
+    );
+
+    const result = await resolvePlaybackSource({
+      provider: StreamingProviderKey.PLEX,
+      tmdbId: 603,
+      watchSessionId: "session-42",
+    });
+
+    expect(result).toEqual({
+      kind: "embed",
+      url: "https://plex.example.com/watch/603?session=session-42",
+      message:
+        "Playback URL resolved from the configured Plex watch template for this deployment.",
+    });
+  });
+
+  it("keeps Plex inactive until its runtime template is configured", async () => {
+    await updateStreamingProviderConfig({
+      provider: StreamingProviderKey.PLEX,
+      isEnabled: true,
+      isActive: true,
+    });
+
+    expect(mocks.tx.streamingProviderConfig.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          isEnabled: true,
+          isActive: false,
+        },
+      }),
+    );
   });
 });

@@ -1,33 +1,57 @@
 import { StreamingProviderKey } from "@/generated/prisma/client";
 import { db } from "@/server/db";
-import vixsrc from "@/server/services/streaming/providers/vixsrc";  // ← cambiato nome import per coerenza
+import plexProvider from "@/server/services/streaming/providers/plex";
+import vixsrcProvider from "@/server/services/streaming/providers/vixsrc";
 
 const providers = {
-  [StreamingProviderKey.VIXSRC]: vixsrc,
+  [StreamingProviderKey.VIXSRC]: vixsrcProvider,
+  [StreamingProviderKey.PLEX]: plexProvider,
 };
 
 function getProviderAdapter(provider: StreamingProviderKey) {
   return providers[provider];
 }
 
+const providerSeedDefaults = {
+  [StreamingProviderKey.VIXSRC]: {
+    label: "VixSrc",
+    isEnabled: false,
+    isActive: false,
+    notes:
+      "Deployment-specific embed adapter. Configure its runtime variables before enabling it in production.",
+  },
+  [StreamingProviderKey.PLEX]: {
+    label: "Plex",
+    isEnabled: false,
+    isActive: false,
+    notes:
+      "Deployment-specific Plex slot. Set PLEX_WATCH_URL_TEMPLATE with a {tmdbId} placeholder if you want movieshare to hand off playback URLs to Plex.",
+  },
+} satisfies Record<
+  StreamingProviderKey,
+  {
+    label: string;
+    isEnabled: boolean;
+    isActive: boolean;
+    notes: string;
+  }
+>;
+
 export async function ensureStreamingProviderConfigSeeded() {
-  await db.streamingProviderConfig.upsert({
-    where: {
-      provider: StreamingProviderKey.VIXSRC,
-    },
-    update: {},  // non aggiorna nulla se già esiste → così puoi modificare manualmente via admin
-    create: {
-      provider: StreamingProviderKey.VIXSRC,
-      label: "VixSrc",
-      isEnabled: false,   // ← default disabilitato fino a review
-      isActive: false,    // ← default non attivo
-      notes:
-        "Provider embed-based deployment-specific. Genera URL tipo https://vixsrc.to/movie/{tmdbId} " +
-        "o /tv/{tmdbId}/{s}/{e}. Richiede env var VIXSRC_BASE_URL (es. https://vixsrc.to). " +
-        "Maturity: deployment-specific | Compliance: deployment-review. " +
-        "Abilita solo se hai verificato legalità e stabilità della sorgente per il tuo deployment.",
-    },
-  });
+  await Promise.all(
+    Object.entries(providerSeedDefaults).map(([provider, defaults]) =>
+      db.streamingProviderConfig.upsert({
+        where: {
+          provider: provider as StreamingProviderKey,
+        },
+        update: {},
+        create: {
+          provider: provider as StreamingProviderKey,
+          ...defaults,
+        },
+      }),
+    ),
+  );
 }
 
 export async function getStreamingAdminState() {
@@ -42,7 +66,7 @@ export async function getStreamingAdminState() {
   return {
     configs,
     activeConfig:
-      configs.find((config) => config.isActive && getProviderAdapter(config.provider).isReady) ??
+      configs.find((config) => config.isActive && getProviderAdapter(config.provider)?.isReady) ??
       null,
     providers: Object.values(providers),
   };
@@ -54,12 +78,12 @@ export async function updateStreamingProviderConfig(input: {
   isActive: boolean;
 }) {
   await ensureStreamingProviderConfigSeeded();
+
   const provider = getProviderAdapter(input.provider);
-  const canBeActive = input.isEnabled && input.isActive && provider.isReady;
+  const canBeActive = input.isEnabled && input.isActive && Boolean(provider?.isReady);
 
   await db.$transaction(async (tx) => {
     if (canBeActive) {
-      // Disattiva tutti gli altri provider attivi (solo uno alla volta)
       await tx.streamingProviderConfig.updateMany({
         where: {
           provider: {
@@ -94,7 +118,7 @@ export async function getActiveStreamingProviderConfig() {
     },
   });
 
-  if (!config || !getProviderAdapter(config.provider).isReady) {
+  if (!config || !getProviderAdapter(config.provider)?.isReady) {
     return null;
   }
 
@@ -107,8 +131,10 @@ export async function resolvePlaybackSource(input: {
   watchSessionId: string;
 }) {
   const adapter = getProviderAdapter(input.provider);
+
   if (!adapter) {
-    throw new Error(`Provider adapter non trovato per ${input.provider}`);
+    throw new Error(`Provider adapter not found for ${input.provider}`);
   }
+
   return adapter.getPlaybackSource(input);
 }

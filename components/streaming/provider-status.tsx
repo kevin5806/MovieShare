@@ -12,7 +12,13 @@ export function StreamingProviderStatus({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Badge variant="secondary">{provider.isReady ? "Ready" : "Not integrated"}</Badge>
+      <Badge variant="secondary">
+        {provider.isReady
+          ? "Ready"
+          : provider.maturity === "deployment-specific"
+            ? "Needs runtime config"
+            : "Not integrated"}
+      </Badge>
       <Badge variant="secondary">
         {provider.maturity === "placeholder" ? "Placeholder slot" : "Deployment-specific"}
       </Badge>

@@ -67,7 +67,7 @@ The repository already includes:
 - a `StreamingProvider` abstraction
 - persisted provider configuration in Prisma
 - an admin page for enable/disable and active-provider selection
-- an initial `vixsrc` provider slot
+- configurable `vixsrc` and `plex` provider slots
 
 Current implementation detail:
 
@@ -150,6 +150,8 @@ Optional but recommended:
 - `SMTP_*`
 - `MINIO_ROOT_*`
 - `STORAGE_*`
+- `VIXSRC_*`
+- `PLEX_WATCH_URL_TEMPLATE`
 
 TMDB auth note:
 
@@ -345,7 +347,7 @@ npm run user:promote-admin -- you@example.com
 - set a strong `BETTER_AUTH_SECRET` and keep the default placeholder out of production
 - use an `https://` `BETTER_AUTH_URL` outside localhost
 - prefer deploying from a tagged registry image on production hosts instead of rebuilding from source
-- keep placeholder streaming adapters disabled until a compliant provider is implemented
+- keep deployment-specific streaming adapters disabled until their runtime config and review are complete
 - prefer SMTP and TMDB credentials from the admin panel only after securing the initial admin account
 
 ## Data model highlights

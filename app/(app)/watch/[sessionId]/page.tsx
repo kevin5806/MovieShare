@@ -2,12 +2,28 @@ import { PlayCircle, UsersRound } from "lucide-react";
 
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { DateTimeText } from "@/components/time/date-time";
-import { CheckpointCard } from "@/components/watch/checkpoint-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckpointCard } from "@/components/watch/checkpoint-card";
 import { formatSeconds } from "@/lib/utils";
 import { requireSession } from "@/server/session";
 import { getWatchSession } from "@/server/services/watch-service";
+
+function formatProviderLabel(provider: string | null) {
+  if (!provider) {
+    return "tracking-only";
+  }
+
+  if (provider === "VIXSRC") {
+    return "VixSrc";
+  }
+
+  if (provider === "PLEX") {
+    return "Plex";
+  }
+
+  return provider.replaceAll("_", " ");
+}
 
 export default async function WatchSessionPage({
   params,
@@ -26,15 +42,12 @@ export default async function WatchSessionPage({
   const startedBy =
     watchSession.startedBy.profile?.displayName || watchSession.startedBy.name;
   const joinedMembers = watchSession.members.filter((member) => member.presence === "JOINED");
-
-  const isVixsrc = watchSession.streamingProvider === "VIXSRC";
-  const providerLabel = watchSession.streamingPlaybackUrl
-    ? isVixsrc ? "VixSrc Embed" : watchSession.streamingProvider || "embedded"
-    : isVixsrc
-      ? "VixSrc (config mancante)"
-      : watchSession.streamingProvider
-        ? `${watchSession.streamingProvider} scaffolded`
-        : "tracking-only";
+  const providerLabel = formatProviderLabel(watchSession.streamingProvider);
+  const playbackProviderLabel = watchSession.streamingPlaybackUrl
+    ? `${providerLabel} playback`
+    : watchSession.streamingProvider
+      ? `${providerLabel} configured`
+      : providerLabel;
 
   return (
     <div className="space-y-8">
@@ -91,15 +104,14 @@ export default async function WatchSessionPage({
         <Card className="border-border/70 bg-card/85">
           <CardContent className="space-y-2 p-5">
             <p className="text-sm text-muted-foreground">Playback provider</p>
-            <p className="text-lg font-semibold">{providerLabel}</p>
+            <p className="text-lg font-semibold">{playbackProviderLabel}</p>
             <p className="text-sm text-muted-foreground">
               {watchSession.streamingPlaybackUrl
                 ? "Embedded source available"
-                : isVixsrc
-                  ? "Configura VIXSRC_BASE_URL nelle env per abilitare embed"
-                  : watchSession.streamingProvider
-                    ? "Provider slot exists but playback is not integrated"
-                    : "Tracking-only session"}
+                : playbackInfo?.message ||
+                  (watchSession.streamingProvider
+                    ? "Provider slot exists, but playback is not available for this session."
+                    : "Tracking-only session")}
             </p>
           </CardContent>
         </Card>
@@ -130,13 +142,8 @@ export default async function WatchSessionPage({
                   />
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span>Provider: {providerLabel}</span>
+                  <span>Provider: {playbackProviderLabel}</span>
                   <span>Resume point: {formatSeconds(watchSession.resumeFromSeconds)}</span>
-                  {isVixsrc && (
-                    <span className="text-yellow-600 dark:text-yellow-400">
-                      Deployment-specific – verifica compliance legale per il tuo uso
-                    </span>
-                  )}
                 </div>
               </div>
             ) : (
@@ -144,11 +151,8 @@ export default async function WatchSessionPage({
                 <div>
                   <p className="font-medium">No embedded streaming source available</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {isVixsrc
-                      ? playbackInfo?.message ||
-                        "VixSrc non configurato correttamente. Imposta VIXSRC_BASE_URL (es. https://vixsrc.to) nelle env vars e riavvia. Richiede review compliance deployment-specific."
-                      : playbackInfo?.message ||
-                        "No compliant playback provider is configured for this deployment."}
+                    {playbackInfo?.message ||
+                      "No playback provider is currently available for this deployment."}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-card/80 p-4 text-sm text-muted-foreground">
