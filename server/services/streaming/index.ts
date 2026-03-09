@@ -18,7 +18,7 @@ export async function ensureStreamingProviderConfigSeeded() {
       isEnabled: false,
       isActive: false,
       notes:
-        "In futuro sara possibile aggiungere ulteriori provider di streaming configurabili.",
+        "Placeholder provider slot only. This build does not generate an embedded playback URL.",
     },
   });
 }

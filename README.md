@@ -68,6 +68,16 @@ Current implementation detail:
 - the `vixsrc` adapter is intentionally scaffolded as unavailable and does not return a working playback URL
 - the watch-session domain and admin UI are ready, but you should replace the provider adapter with a compliant streaming implementation for real deployments
 
+## Watch session note
+
+Watch sessions in movielist are currently tracking-first:
+
+- they record who started a movie
+- they record which members joined the same session
+- they store checkpoints and resume positions
+
+They do not currently provide synced tele-sharing or realtime group playback control.
+
 ## Realtime note
 
 Realtime sync is not fully implemented yet, but the codebase already contains:
@@ -220,4 +230,6 @@ Current TODOs are intentionally concentrated around:
 - realtime transport
 - richer selection heuristics
 - in-app notifications center and delivery preferences
+- full PWA polish and installable app experience
+- full responsive hardening across mobile, tablet and desktop
 - production-ready streaming provider integration

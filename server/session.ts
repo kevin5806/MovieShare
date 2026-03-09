@@ -10,6 +10,16 @@ export async function getSession() {
   });
 }
 
+export async function redirectIfAuthenticated(destination = "/dashboard") {
+  const session = await getSession();
+
+  if (session) {
+    redirect(destination);
+  }
+
+  return session;
+}
+
 export async function requireSession() {
   const session = await getSession();
 

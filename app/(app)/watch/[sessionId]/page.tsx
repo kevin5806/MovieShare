@@ -20,6 +20,15 @@ export default async function WatchSessionPage({
     watchSession.groupState && typeof watchSession.groupState === "object"
       ? (watchSession.groupState as { kind?: string; message?: string })
       : null;
+  const startedAt = watchSession.startedAt ?? watchSession.createdAt;
+  const startedBy =
+    watchSession.startedBy.profile?.displayName || watchSession.startedBy.name;
+  const joinedMembers = watchSession.members.filter((member) => member.presence === "JOINED");
+  const providerLabel = watchSession.streamingPlaybackUrl
+    ? watchSession.streamingProvider || "embedded"
+    : watchSession.streamingProvider
+      ? `${watchSession.streamingProvider} placeholder`
+      : "tracking-only";
 
   return (
     <div className="space-y-8">
@@ -35,9 +44,52 @@ export default async function WatchSessionPage({
           {watchSession.listItem.movie.title}
         </h1>
         <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-          Watch sessions store membership, progress, resume checkpoints and provider state so
-          realtime sync can be layered in later without redesigning the domain.
+          This area tracks who started the title, who joined the same session and where each
+          member stopped. It is not a realtime teleparty or synced screen-sharing flow.
         </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-border/70 bg-card/85">
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm text-muted-foreground">Tracking mode</p>
+            <p className="text-lg font-semibold">
+              {watchSession.type === "GROUP" ? "Group tracking" : "Solo tracking"}
+            </p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Group sessions track members under the same title, without synced playback.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/70 bg-card/85">
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm text-muted-foreground">Started by</p>
+            <p className="text-lg font-semibold">{startedBy}</p>
+            <p className="text-sm text-muted-foreground">
+              {startedAt.toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/70 bg-card/85">
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm text-muted-foreground">Members joined</p>
+            <p className="text-lg font-semibold">
+              {joinedMembers.length}/{watchSession.members.length}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Presence and checkpoints remain shareable across the list.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/70 bg-card/85">
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm text-muted-foreground">Playback provider</p>
+            <p className="text-lg font-semibold">{providerLabel}</p>
+            <p className="text-sm text-muted-foreground">
+              {watchSession.streamingPlaybackUrl ? "Embedded source available" : "Tracking-only session"}
+            </p>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
@@ -47,7 +99,7 @@ export default async function WatchSessionPage({
               <PlayCircle className="size-4" />
             </div>
             <div>
-              <CardTitle>Playback area</CardTitle>
+              <CardTitle>Playback source</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -62,17 +114,23 @@ export default async function WatchSessionPage({
                   />
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span>Provider {watchSession.streamingProvider || "unassigned"}</span>
+                  <span>Provider {providerLabel}</span>
                   <span>Resume point {formatSeconds(watchSession.resumeFromSeconds)}</span>
                 </div>
               </div>
             ) : (
-              <div className="rounded-[28px] border border-dashed border-border bg-background p-8">
-                <p className="font-medium">Streaming currently unavailable</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {playbackInfo?.message ||
-                    "No active streaming provider is configured for this deployment yet."}
-                </p>
+              <div className="space-y-4 rounded-[28px] border border-dashed border-border bg-background p-8">
+                <div>
+                  <p className="font-medium">No embedded streaming source available</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {playbackInfo?.message ||
+                      "No active playback provider is configured for this deployment."}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-border/70 bg-card/80 p-4 text-sm text-muted-foreground">
+                  Use this session as a shared tracking space: each member can play the movie
+                  in their own setup and save checkpoints here to keep the group informed.
+                </div>
               </div>
             )}
           </CardContent>

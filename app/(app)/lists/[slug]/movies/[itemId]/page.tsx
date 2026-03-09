@@ -140,25 +140,34 @@ export default async function MovieDetailPage({
 
             <Card className="border-border/70 bg-card/85">
               <CardHeader>
-                <CardTitle>Start watching</CardTitle>
+                <CardTitle>Create watch tracking session</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <p className="text-sm leading-6 text-muted-foreground">
+                  This creates a shared tracking session, not a synced teleparty. Use it to
+                  record who started the movie, who joined the same session and which
+                  checkpoints were saved over time.
+                </p>
                 <form action={startWatchSessionAction} className="space-y-4">
                   <input type="hidden" name="listItemId" value={item.id} />
                   <input type="hidden" name="listSlug" value={slug} />
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Session type</label>
+                    <label className="text-sm font-medium">Tracking mode</label>
                     <select
                       name="type"
                       defaultValue={WatchSessionType.SOLO}
                       className="flex h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm"
                     >
-                      <option value={WatchSessionType.SOLO}>Solo</option>
-                      <option value={WatchSessionType.GROUP}>Group</option>
+                      <option value={WatchSessionType.SOLO}>Solo tracking</option>
+                      <option value={WatchSessionType.GROUP}>Group tracking</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Optional group members</p>
+                    <p className="text-sm font-medium">Optional members to include</p>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Relevant for group tracking. Members are attached to the same session,
+                      but playback still happens in each person&apos;s own player.
+                    </p>
                     <div className="space-y-2">
                       {item.list.members
                         .filter((member) => member.userId !== session.user.id)
@@ -174,7 +183,7 @@ export default async function MovieDetailPage({
                     </div>
                   </div>
                   <Button type="submit" className="w-full">
-                    Create watch session
+                    Create tracking session
                   </Button>
                 </form>
               </CardContent>
@@ -190,7 +199,10 @@ export default async function MovieDetailPage({
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {item.feedbacks.length ? (
             item.feedbacks.map((feedback) => (
-              <div key={feedback.id} className="rounded-3xl border border-border/70 bg-background p-4">
+              <div
+                key={feedback.id}
+                className="rounded-3xl border border-border/70 bg-background p-4"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium">
                     {feedback.user.profile?.displayName || feedback.user.name}
@@ -198,7 +210,7 @@ export default async function MovieDetailPage({
                   <Badge variant="secondary">{feedback.interest}</Badge>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {feedback.seenState} · {feedback.wouldRewatch ? "Would rewatch" : "No rewatch"}
+                  {feedback.seenState} | {feedback.wouldRewatch ? "Would rewatch" : "No rewatch"}
                 </p>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
                   {feedback.comment || "No comment added."}

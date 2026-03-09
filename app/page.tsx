@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button-styles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { redirectIfAuthenticated } from "@/server/session";
 
 const showcaseMovies = [
   { title: "Arrival", meta: "Added by Kevin", icon: Film },
@@ -13,7 +14,9 @@ const showcaseMovies = [
   { title: "Decision to Leave", meta: "Top pick in mood mode", icon: Layers3 },
 ];
 
-export default function Home() {
+export default async function Home() {
+  await redirectIfAuthenticated();
+
   return (
     <div className="min-h-screen">
       <main className="mx-auto max-w-7xl px-6 py-8">
@@ -61,7 +64,7 @@ export default function Home() {
               {[
                 ["Lists that stay social", "Every movie keeps the proposer, feedback and selection context together."],
                 ["Selection without chaos", "Manual, random and heuristic modes are ready now, richer logic can grow later."],
-                ["Watch sessions ready", "Checkpoint and presence models are already prepared for future sync."],
+                ["Watch sessions ready", "Checkpoint and presence models already support shared watch tracking and future sync."],
               ].map(([title, description]) => (
                 <Card key={title} className="border-border/70 bg-card/80 shadow-sm">
                   <CardHeader className="pb-2">

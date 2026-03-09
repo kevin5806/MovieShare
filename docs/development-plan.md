@@ -1,5 +1,24 @@
 # Development Plan
 
+## Status Snapshot
+
+Last updated: March 9, 2026
+
+- Phase 1: completed
+- Phase 2: completed
+- Phase 3: completed
+- Phase 4: planned
+
+## Current Baseline Shipped
+
+- modular monolith on Next.js App Router with TypeScript, Tailwind, shadcn/ui, Prisma, PostgreSQL and Better Auth
+- landing, authentication, dashboard, list, movie detail, selection, watch session, profile and admin pages
+- TMDB-backed movie search with local caching of essential metadata
+- collaborative lists with members, owner controls, list invites and friend invites
+- watch sessions with group membership, resume state and manual playback checkpoints
+- streaming provider abstraction with admin-managed runtime configuration
+- Docker Compose self-hosting setup and living project documentation
+
 ## Phase 1
 
 - bootstrap Next.js 16, Tailwind, shadcn/ui, Prisma, Better Auth
@@ -28,6 +47,8 @@
 - live list updates, feedback updates and presence indicators
 - session heartbeat, resume synchronization and collaborative controls
 - notifications center and delivery preferences
+- complete responsive QA and layout refinement for mobile, tablet and desktop
+- evolve the app into a stronger PWA with installability and offline-aware shell behavior
 
 ## Open Notes
 
@@ -36,4 +57,4 @@
 - selection logic should remain testable and deterministic for most modes
 - avoid premature generic abstractions outside real extension seams
 - prefer server components and server actions unless client interactivity is required
-- current missing production areas are realtime transport, richer selection heuristics and a real streaming adapter
+- current missing production areas are realtime transport, richer selection heuristics, full PWA polish, full responsive hardening and a real streaming adapter

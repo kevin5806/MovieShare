@@ -56,14 +56,14 @@ export function CheckpointCard({
   return (
     <Card className="border-border/70 bg-card/85">
       <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle>Resume checkpoints</CardTitle>
+        <CardTitle>Viewing checkpoints</CardTitle>
         <Badge variant="secondary">{formatSeconds(resumeFromSeconds)}</Badge>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            Save the current playback position manually to keep the session resume point in
-            sync.
+            Save your current position manually so the session keeps a shared trace of where
+            members stopped watching.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Input

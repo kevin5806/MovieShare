@@ -8,7 +8,7 @@ The product focus is:
 - shared curation instead of solo watchlists
 - clear social context on every movie proposal
 - lightweight decision support to pick the next movie
-- a future-ready foundation for synchronized group watching
+- a future-ready foundation for tracked group watching, with optional realtime sync later
 
 ## Experience goals
 
@@ -16,6 +16,8 @@ The product focus is:
 - information density inspired by Notion without feeling sterile
 - fast navigation between dashboard, lists, movies, selection and watch sessions
 - visible collaborative state: members, feedback, activity, progress and future presence
+- fully responsive experience across mobile, tablet and desktop
+- installable PWA experience with a polished app-like feel for self-hosted users
 
 ## Architecture principles
 
@@ -36,6 +38,7 @@ The product focus is:
 - multiple selection modes with simple initial logic
 - watch session lifecycle with checkpoints and group membership
 - system-level streaming provider configuration
+- tracking of who started a title and where they stopped, even without embedded playback
 
 ### Next
 
@@ -44,6 +47,8 @@ The product focus is:
 - richer selection heuristics by mood, availability and group preferences
 - notifications and digest emails
 - provider catalog and availability by country/provider
+- production-grade responsive refinement across all authenticated flows
+- stronger PWA capabilities such as install prompts, offline-aware shell and mobile polish
 
 ## Realtime vision
 

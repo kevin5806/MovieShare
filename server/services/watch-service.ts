@@ -44,6 +44,7 @@ export async function createWatchSession(input: {
   );
 
   const activeProvider = await getActiveStreamingProviderConfig();
+  const startedAt = new Date();
 
   const session = await db.watchSession.create({
     data: {
@@ -52,8 +53,15 @@ export async function createWatchSession(input: {
       movieId: listItem.movieId,
       startedById: input.userId,
       type: input.type,
-      status: "PENDING",
+      status: "LIVE",
       streamingProvider: activeProvider?.provider,
+      startedAt,
+      lastEventAt: startedAt,
+      groupState: {
+        kind: "unavailable",
+        message:
+          "This session is active for watch tracking. Playback stays in each member's own player unless a deployment-specific provider adapter is configured.",
+      },
       members: {
         create: [
           {
@@ -131,6 +139,11 @@ export async function getWatchSession(sessionId: string, userId: string) {
     },
     include: {
       list: true,
+      startedBy: {
+        include: {
+          profile: true,
+        },
+      },
       listItem: {
         include: {
           movie: true,

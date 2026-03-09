@@ -3,8 +3,11 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { redirectIfAuthenticated } from "@/server/session";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  await redirectIfAuthenticated();
+
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-16">
       <div className="grid w-full max-w-5xl gap-10 lg:grid-cols-[1fr_420px]">

@@ -10,7 +10,7 @@ export const vixsrcProvider: StreamingProviderAdapter = {
     return {
       kind: "unavailable",
       message:
-        "The vixsrc provider slot is scaffolded, but playback remains disabled until a compliant provider adapter is configured for deployment.",
+        "The vixsrc slot is only a placeholder in this build. movielist can still track watch sessions and checkpoints, but it does not embed playback from this provider.",
     };
   },
 };

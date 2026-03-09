@@ -1,15 +1,18 @@
 import { z } from "zod";
 
+const optionalFormText = (max: number) =>
+  z.preprocess((value) => (value == null ? "" : value), z.string().max(max));
+
 export const profileSchema = z.object({
-  displayName: z.string().max(60).optional().default(""),
-  bio: z.string().max(320).optional().default(""),
-  location: z.string().max(80).optional().default(""),
-  favoriteGenres: z.string().max(240).optional().default(""),
+  displayName: optionalFormText(60).optional().default(""),
+  bio: optionalFormText(320).optional().default(""),
+  location: optionalFormText(80).optional().default(""),
+  favoriteGenres: optionalFormText(240).optional().default(""),
 });
 
 export const friendInviteSchema = z.object({
   email: z.email(),
-  message: z.string().max(240).optional().default(""),
+  message: optionalFormText(240).optional().default(""),
 });
 
 export const respondToFriendInviteSchema = z.object({

@@ -109,6 +109,10 @@ export default async function SystemAdminPage() {
               </span>
             </div>
             <p className="pt-2">
+              The current watch flow is tracking-first: it records session starts, members
+              and checkpoints. It does not imply synced tele-sharing.
+            </p>
+            <p>
               In futuro sara possibile aggiungere ulteriori provider di streaming
               configurabili.
             </p>
@@ -232,7 +236,9 @@ export default async function SystemAdminPage() {
           <h2 className="text-2xl font-semibold tracking-tight">Streaming providers</h2>
           <p className="text-sm leading-6 text-muted-foreground">
             The current catalog is intentionally small. The active provider can be managed
-            here without coupling the main domain to a single implementation.
+            here without coupling the main domain to a single implementation. The current
+            `vixsrc` slot is only a placeholder and does not generate a working playback URL
+            in this build.
           </p>
         </div>
 
@@ -256,15 +262,19 @@ export default async function SystemAdminPage() {
                   {config.notes ||
                     "Provider slot scaffolded. Adapter can be replaced later without touching the core domain."}
                 </p>
+                <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+                  Enabling this slot only marks it as the preferred provider in the domain.
+                  Playback remains unavailable until a deployment-specific adapter is wired.
+                </div>
                 <form action={updateStreamingProviderAction} className="space-y-4">
                   <input type="hidden" name="provider" value={config.provider} />
                   <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm">
                     <input type="checkbox" name="isEnabled" defaultChecked={config.isEnabled} />
-                    Enable streaming support for this provider
+                    Enable this provider slot
                   </label>
                   <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm">
                     <input type="checkbox" name="isActive" defaultChecked={config.isActive} />
-                    Mark as active provider
+                    Mark as preferred provider
                   </label>
                   <Button type="submit" className="w-full">
                     Save provider settings
