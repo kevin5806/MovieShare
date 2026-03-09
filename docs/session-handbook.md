@@ -14,7 +14,7 @@ Last updated: March 9, 2026
 - keep the UI moving toward reusable primitives instead of page-specific logic
 - continue Phase 4 hardening: responsive cleanup, stronger presence/notifications, and better PWA polish
 - keep installation and first-run experience simple on fresh machines
-- improve production readiness without pretending unfinished streaming features are complete
+- improve production readiness without making unsupported compliance or deployment claims about streaming integrations
 
 ## Current state snapshot
 
@@ -26,9 +26,10 @@ Last updated: March 9, 2026
 
 ## Known important constraints
 
-- `vixsrc` is still a placeholder provider, not a real playback integration
+- if the user has provided a deployment-specific streaming integration, do not remove it, downgrade it to placeholder state, or replace it unless explicitly asked
+- assistant work on streaming should focus on compatibility, reliability, typing, tests, UX wiring, and operability around the user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
-- admin/provider UI must not imply that placeholder adapters are production-ready
+- admin/provider UI must not make unsupported compliance or production-readiness claims
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
 
 ## Working checklist for future sessions
@@ -60,7 +61,8 @@ Before finishing:
 - Reusable components first: prefer shared controls in `components/forms`, `components/time`, `components/ui`, and `components/realtime`.
 - Keep boundaries clear: UI in `components`, orchestration in `features`, business logic in `server/services`.
 - Streaming abstraction must stay swappable: provider-specific code belongs only under `server/services/streaming`.
-- No fake completeness: if playback is placeholder-only, UI and docs must say so clearly.
+- Do not remove or downgrade user-provided streaming integrations: if the user has wired a provider, preserve it and only improve or extend it unless explicitly told otherwise.
+- No fake completeness: if a provider is truly placeholder-only, UI and docs must say so clearly, but do not relabel a user-provided integration as placeholder.
 - Server-first rendering: prefer server components and actions; when client rendering is required, make hydration-safe choices.
 - Security before convenience: protect search/admin/realtime endpoints, validate env in production, and keep secrets out of defaults.
 - Installation must stay easy: preserve `npm run setup`, reliable Docker startup, and clear README steps.
@@ -71,7 +73,7 @@ Before finishing:
 - finish responsive and UI/UX cleanup, especially in complex collaborative pages
 - implement richer presence and notifications without relying only on full refresh
 - expand tests around server actions and list/watch flows
-- decide whether to implement a real streaming adapter or keep the product explicitly tracking-only for now
+- improve the existing user-provided streaming integration through safer typing, tests, UI wiring, and operational tooling
 
 ## Update log
 
@@ -79,3 +81,4 @@ Before finishing:
 - March 9, 2026: clarified provider maturity/compliance metadata so `vixsrc` stays visibly scaffold-only across service, admin UI, and watch-session messaging
 - March 9, 2026: aligned the deployment-specific streaming provider type shape with the admin UI contract so custom provider metadata can compile cleanly
 - March 9, 2026: moved the admin-promotion CLI to a runtime-safe Node script so it works inside the production Docker container
+- March 9, 2026: added a persistent rule that user-provided streaming integrations must not be removed, downgraded to placeholder, or replaced by the assistant
