@@ -23,6 +23,7 @@ Last updated: March 9, 2026
 - the access flow is now progressive: users start from one form and only see onboarding fields if the email is new
 - realtime live refresh exists through the self-hosted SSE route and broker
 - the app shell now exposes working notification and account actions instead of dead navbar controls
+- the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
 - a first notifications inbox exists for list invites, friend invites, live sessions and recent activity
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
@@ -42,6 +43,7 @@ Last updated: March 9, 2026
 - notifications are still summary-first: there is no read state, delivery preference model, or push channel yet
 - the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
 - responsive hardening is better in the shell, but still not complete across every complex page
+- navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
 
 ## Working checklist for future sessions
@@ -86,6 +88,7 @@ Before finishing:
 ## Suggested next priorities
 
 - finish responsive and UI/UX cleanup, especially in complex collaborative pages beyond the shell
+- expand navigation depth only when the destination has a real page behind it; avoid dead sidebar links
 - implement richer presence and notifications without relying only on full refresh or summary cards alone
 - expand tests around server actions and list/watch flows
 - improve the existing user-provided streaming integration through safer typing, tests, UI wiring, and operational tooling
@@ -102,3 +105,4 @@ Before finishing:
 - March 9, 2026: added registry-first deployment support with GitHub Actions image publishing and a production compose file that pulls prebuilt images
 - March 9, 2026: added a dedicated Docker dev flow with mounted source, cached dependencies, and Next.js hot reload to avoid repeated production builds
 - March 9, 2026: shipped progressive single-form access, future auth-method planning in admin, and self-hosted media storage plus media-cdn for avatars and list covers
+- March 9, 2026: expanded sidebar navigation with dedicated `/lists` and `/watch` index pages so core areas are reachable without routing everything through the dashboard

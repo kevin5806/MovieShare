@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, LayoutDashboard, ListChecks, Radio, Settings2, UserRound } from "lucide-react";
+import {
+  Bell,
+  Clapperboard,
+  LayoutDashboard,
+  ListChecks,
+  Radio,
+  Settings2,
+  UserRound,
+} from "lucide-react";
 
 import { BrandMark } from "@/components/brand-mark";
-import { SidebarNav } from "@/components/layout/sidebar-nav";
+import {
+  type SidebarNavSection,
+  SidebarNav,
+} from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/navigation/user-menu";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { Badge } from "@/components/ui/badge";
@@ -34,10 +45,10 @@ type AppShellProps = {
 };
 
 function SidebarContent({
-  items,
+  sections,
   versionLabel,
 }: {
-  items: Array<{ href: string; label: string; icon: typeof LayoutDashboard }>;
+  sections: SidebarNavSection[];
   versionLabel: string;
 }) {
   return (
@@ -58,7 +69,7 @@ function SidebarContent({
             <Badge variant="secondary">Postgres</Badge>
           </div>
         </div>
-        <SidebarNav items={items} />
+        <SidebarNav sections={sections} />
       </div>
       <div className="mt-auto p-5">
         <div className="space-y-3 rounded-3xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
@@ -73,14 +84,37 @@ function SidebarContent({
 }
 
 export function AppShell({ children, user, notificationCount, versionLabel }: AppShellProps) {
-  const items = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/profile", label: "Profile", icon: UserRound },
+  const sections: SidebarNavSection[] = [
+    {
+      title: "Workspace",
+      items: [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/lists", label: "Lists", icon: ListChecks },
+        { href: "/watch", label: "Watch Sessions", icon: Clapperboard },
+      ],
+    },
+    {
+      title: "Updates",
+      items: [
+        {
+          href: "/notifications",
+          label: "Notifications",
+          icon: Bell,
+          badge: notificationCount ? (notificationCount > 9 ? "9+" : `${notificationCount}`) : null,
+        },
+      ],
+    },
+    {
+      title: "Account",
+      items: [{ href: "/profile", label: "Profile", icon: UserRound }],
+    },
   ];
 
   if (user.role === "ADMIN") {
-    items.push({ href: "/admin", label: "System", icon: Settings2 });
+    sections.push({
+      title: "Admin",
+      items: [{ href: "/admin", label: "System", icon: Settings2 }],
+    });
   }
 
   return (
@@ -88,7 +122,7 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 px-3 py-3 sm:px-4 md:px-6 lg:flex-row lg:gap-6">
         <aside className="hidden w-[280px] shrink-0 rounded-[32px] border border-border/70 bg-sidebar/85 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur lg:block">
           <ScrollArea className="h-[calc(100vh-2rem)]">
-            <SidebarContent items={items} versionLabel={versionLabel} />
+            <SidebarContent sections={sections} versionLabel={versionLabel} />
           </ScrollArea>
         </aside>
 
@@ -106,7 +140,7 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
                     <SheetTitle>Navigation</SheetTitle>
                     <SheetDescription>Application navigation</SheetDescription>
                   </SheetHeader>
-                  <SidebarContent items={items} versionLabel={versionLabel} />
+                  <SidebarContent sections={sections} versionLabel={versionLabel} />
                 </SheetContent>
               </Sheet>
               <div className="min-w-0">

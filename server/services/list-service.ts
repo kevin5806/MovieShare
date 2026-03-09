@@ -205,6 +205,66 @@ export async function getDashboardData(userId: string) {
   };
 }
 
+export async function getListsOverview(userId: string) {
+  const memberships = await db.movieListMember.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      list: {
+        include: {
+          owner: {
+            include: {
+              profile: true,
+            },
+          },
+          _count: {
+            select: {
+              items: true,
+              members: true,
+            },
+          },
+          selectionRuns: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 1,
+          },
+          watchSessions: {
+            where: {
+              status: "LIVE",
+            },
+            orderBy: {
+              updatedAt: "desc",
+            },
+            take: 1,
+          },
+        },
+      },
+    },
+    orderBy: [
+      {
+        role: "asc",
+      },
+      {
+        joinedAt: "desc",
+      },
+    ],
+  });
+
+  return {
+    memberships,
+    counts: {
+      total: memberships.length,
+      owned: memberships.filter((membership) => membership.role === ListMemberRole.OWNER).length,
+      memberOnly: memberships.filter((membership) => membership.role !== ListMemberRole.OWNER)
+        .length,
+      liveSessions: memberships.filter((membership) => membership.list.watchSessions.length > 0)
+        .length,
+    },
+  };
+}
+
 export async function createList(
   userId: string,
   input: { name: string; description?: string },

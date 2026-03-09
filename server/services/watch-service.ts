@@ -182,6 +182,63 @@ export async function getWatchSession(sessionId: string, userId: string) {
   return session;
 }
 
+export async function getWatchSessionsOverview(userId: string) {
+  const sessions = await db.watchSession.findMany({
+    where: {
+      members: {
+        some: {
+          userId,
+        },
+      },
+    },
+    include: {
+      list: true,
+      listItem: {
+        include: {
+          movie: true,
+        },
+      },
+      startedBy: {
+        include: {
+          profile: true,
+        },
+      },
+      members: {
+        where: {
+          presence: "JOINED",
+        },
+      },
+      checkpoints: {
+        where: {
+          userId,
+        },
+        orderBy: {
+          savedAt: "desc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take: 12,
+  });
+
+  const liveSessions = sessions.filter((session) => session.status === "LIVE");
+  const recentSessions = sessions.filter((session) => session.status !== "LIVE");
+
+  return {
+    liveSessions,
+    recentSessions,
+    counts: {
+      total: sessions.length,
+      live: liveSessions.length,
+      history: recentSessions.length,
+      withEmbeds: sessions.filter((session) => Boolean(session.streamingPlaybackUrl)).length,
+    },
+  };
+}
+
 export async function savePlaybackCheckpoint(input: {
   sessionId: string;
   userId: string;

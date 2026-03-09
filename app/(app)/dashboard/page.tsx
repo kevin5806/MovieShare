@@ -1,8 +1,7 @@
 import { Activity, Sparkles } from "lucide-react";
-import Link from "next/link";
 
 import { CreateListForm } from "@/components/lists/create-list-form";
-import { MediaImage } from "@/components/media/media-image";
+import { ListMembershipCard } from "@/components/lists/list-membership-card";
 import { RelativeTime } from "@/components/time/relative-time";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,39 +64,10 @@ export default async function DashboardPage() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             {data.lists.length ? (
               data.lists.map((membership) => (
-                <Link
+                <ListMembershipCard
                   key={membership.id}
-                  href={`/lists/${membership.list.slug}`}
-                  className="overflow-hidden rounded-3xl border border-border/70 bg-background transition-colors hover:bg-accent/50"
-                >
-                  <div className="relative min-h-28 border-b border-border/70 bg-muted/30">
-                    {membership.list.coverImageUrl ? (
-                      <MediaImage
-                        src={membership.list.coverImageUrl}
-                        alt={membership.list.name}
-                        fill
-                        sizes="(min-width: 1280px) 24rem, (min-width: 768px) 50vw, 100vw"
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                    ) : null}
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.06),rgba(248,250,252,0.9))]" />
-                    <div className="relative flex h-full items-start justify-end p-4">
-                      <Badge>{membership.role}</Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-4 p-5">
-                    <div>
-                      <p className="font-semibold">{membership.list.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {membership.list.description || "No description yet."}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{membership.list._count.items} movies</span>
-                      <span>{membership.list._count.members} members</span>
-                    </div>
-                  </div>
-                </Link>
+                  membership={membership}
+                />
               ))
             ) : (
               <div className="rounded-3xl border border-dashed border-border bg-background p-8 text-sm text-muted-foreground">
