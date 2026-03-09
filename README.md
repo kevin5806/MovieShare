@@ -32,7 +32,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - manual playback checkpoint saving and resume-point updates
 - abstract streaming provider registry
 - realtime-ready event broker interface
-- project vision and development notes in `docs/`
+- project vision, development notes and session handbook in `docs/`
 
 ## Architecture
 
@@ -249,6 +249,7 @@ The Prisma schema currently covers:
 
 - see [docs/project-vision.md](./docs/project-vision.md)
 - see [docs/development-plan.md](./docs/development-plan.md)
+- see [docs/session-handbook.md](./docs/session-handbook.md)
 
 Current TODOs are intentionally concentrated around:
 
