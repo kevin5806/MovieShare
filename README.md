@@ -211,6 +211,42 @@ The compose setup will:
 - start the app on `http://localhost:3000`
 - expose a container healthcheck once the app is actually serving traffic
 
+## Registry-first production deploy
+
+You do not need to build from source on the production host.
+
+This repository now includes:
+
+- `.github/workflows/publish-image.yml` to publish prebuilt images from GitHub Actions
+- `docker-compose.registry.yml` to deploy from a prebuilt image
+- `.env.production.example` as the production env baseline
+
+Publishing behavior:
+
+- automatic publish only on semver tags like `v1.2.3`
+- manual publish through GitHub Actions `workflow_dispatch`
+- no automatic push for normal development builds
+
+Recommended default registry:
+
+- use GitHub Container Registry (`ghcr.io`) if the repository already lives on GitHub
+
+Optional secondary registry:
+
+- Docker Hub can also be used by setting `DOCKERHUB_NAMESPACE`, `DOCKERHUB_USERNAME`, and `DOCKERHUB_TOKEN` in GitHub
+
+Production deploy from a published image:
+
+```bash
+cp .env.production.example .env.production
+docker compose --env-file .env.production -f docker-compose.registry.yml pull
+docker compose --env-file .env.production -f docker-compose.registry.yml up -d
+```
+
+Detailed notes:
+
+- see [docs/container-registry.md](./docs/container-registry.md)
+
 ## First admin user
 
 1. Register normally from the UI.
@@ -250,6 +286,7 @@ npm run user:promote-admin -- you@example.com
 - use `Node.js 22.x`
 - set a strong `BETTER_AUTH_SECRET` and keep the default placeholder out of production
 - use an `https://` `BETTER_AUTH_URL` outside localhost
+- prefer deploying from a tagged registry image on production hosts instead of rebuilding from source
 - keep placeholder streaming adapters disabled until a compliant provider is implemented
 - prefer SMTP and TMDB credentials from the admin panel only after securing the initial admin account
 
