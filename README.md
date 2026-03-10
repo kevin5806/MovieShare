@@ -41,6 +41,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - install prompt and offline fallback baseline for PWA-style usage
 - self-hosted media storage and public image delivery for avatars and list covers
 - project vision, development notes and session handbook in `docs/`
+- integration playbook and streaming-provider guide in `docs/`
 
 ## Architecture
 
@@ -376,6 +377,8 @@ The Prisma schema currently covers:
 - see [docs/project-vision.md](./docs/project-vision.md)
 - see [docs/development-plan.md](./docs/development-plan.md)
 - see [docs/session-handbook.md](./docs/session-handbook.md)
+- see [docs/integration-playbook.md](./docs/integration-playbook.md)
+- see [docs/streaming-provider-guide.md](./docs/streaming-provider-guide.md)
 
 Current TODOs are intentionally concentrated around:
 

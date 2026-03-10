@@ -2,7 +2,7 @@
 
 ## Status Snapshot
 
-Last updated: March 9, 2026
+Last updated: March 10, 2026
 
 - Phase 1: completed
 - Phase 2: completed
@@ -27,6 +27,7 @@ Last updated: March 9, 2026
 - dedicated Docker development path with mounted source and hot reload instead of production rebuilds
 - initial reusable form controls for select, switch, checkbox lists and server-safe time rendering
 - Docker Compose self-hosting setup and living project documentation
+- contributor documentation for adding external integrations and streaming providers
 
 ## Phase 1
 
@@ -81,3 +82,4 @@ Last updated: March 9, 2026
 - prefer server components and server actions unless client interactivity is required
 - current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter
 - current missing production areas also include live passkey/email-code/2FA wiring on top of the new admin roadmap state
+- future integrations should follow the new `docs/integration-playbook.md` and `docs/streaming-provider-guide.md` documents instead of inventing new seams ad hoc

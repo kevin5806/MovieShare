@@ -1,6 +1,6 @@
 # Session Handbook
 
-Last updated: March 9, 2026
+Last updated: March 10, 2026
 
 ## How to use this file
 
@@ -36,6 +36,7 @@ Last updated: March 9, 2026
 - reusable form/time primitives exist and should be extended before creating new UI variants
 - Docker runtime has been optimized with a much smaller multi-stage image and a working startup bootstrap
 - test baseline exists with Vitest and should keep expanding in risky server and action paths
+- integration documentation now includes a general playbook plus a focused streaming-provider guide for future contributors
 
 ## Known important constraints
 
@@ -56,6 +57,7 @@ Before changing code:
 
 - read this file
 - read `docs/development-plan.md` if priorities may have shifted
+- read `docs/integration-playbook.md` when the task introduces or changes an external integration seam
 - inspect `git status`
 - inspect the affected module instead of guessing from memory
 
@@ -114,3 +116,4 @@ Before finishing:
 - March 9, 2026: fixed admin toggle form handling, generalized streaming-provider messaging in admin/watch UI, and added a configurable Plex provider slot
 - March 9, 2026: added CDN-backed mirroring for persisted TMDB movie artwork and wired list/detail pages to prefer local media URLs
 - March 9, 2026: completed the notifications inbox with persistent read state, unread counts in the shell, and per-item/bulk inbox actions
+- March 10, 2026: added reusable integration documentation for future contributors in `docs/integration-playbook.md` and `docs/streaming-provider-guide.md`
