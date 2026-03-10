@@ -181,6 +181,42 @@ The application should come up on the port configured by `APP_PORT`, default `30
 docker compose --env-file .env.production -f docker-compose.registry.yml exec app npm run user:promote-admin -- you@example.com
 ```
 
+## Portainer and Linux deploy troubleshooting
+
+If you deploy from the Portainer web editor and your compose file contains:
+
+```yaml
+- ./infra/nginx/media-cdn.conf:/etc/nginx/nginx.conf:ro
+```
+
+remember that Docker expects the source path on the host to already exist as a file.
+
+Typical failure:
+
+- Portainer stores the stack under `/data/compose/<stack-id>/`
+- the relative source path does not exist there
+- Docker creates a directory placeholder instead of finding a file
+- the container then fails because a directory is being mounted onto `/etc/nginx/nginx.conf`
+
+Safer options:
+
+- deploy the stack from a Git repository so `infra/nginx/media-cdn.conf` is checked out next to the compose file
+- or copy the compose project to a real directory on the host such as `/opt/movieshare/`
+- or change the mount to an absolute host file path
+
+Example:
+
+```yaml
+volumes:
+  - /opt/movieshare/infra/nginx/media-cdn.conf:/etc/nginx/nginx.conf:ro
+  - media-cdn-cache:/var/cache/nginx
+```
+
+Also note:
+
+- if you use the built-in MinIO root user as the S3 credential for the app, `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` must match `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`
+- if you want different storage credentials, create a dedicated MinIO user first; otherwise the app will fail to read/write media even after the containers start
+
 ## Docker Hub optional publish
 
 The workflow also pushes to Docker Hub when all of the following are configured in GitHub:
