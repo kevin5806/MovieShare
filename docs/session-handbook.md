@@ -23,6 +23,7 @@ Last updated: March 10, 2026
 - authentication now uses a single access flow on `/login`, with `/register` kept as a compatibility redirect
 - the access flow is now progressive: users start from one form and only see onboarding fields if the email is new
 - realtime live refresh exists through the self-hosted SSE route and broker
+- watch playback pages can now ingest iframe `PLAYER_EVENT` messages and persist automatic progress updates without forcing a full-page refresh
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
 - the notifications inbox now has persistent read state, filterable feed actions, and shell badge counts driven by unread items
@@ -44,6 +45,7 @@ Last updated: March 10, 2026
 - assistant work on streaming should focus on compatibility, reliability, typing, tests, UX wiring, and operability around the user-provided integration
 - additional streaming slots can be added, but they must not displace or degrade an existing user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
+- iframe-driven watch tracking now persists server-side state, but other viewers still do not see second-by-second position changes unless future realtime fan-out is added
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have read state, but still lack delivery preference modeling or push channels
 - the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
@@ -117,3 +119,4 @@ Before finishing:
 - March 9, 2026: added CDN-backed mirroring for persisted TMDB movie artwork and wired list/detail pages to prefer local media URLs
 - March 9, 2026: completed the notifications inbox with persistent read state, unread counts in the shell, and per-item/bulk inbox actions
 - March 10, 2026: added reusable integration documentation for future contributors in `docs/integration-playbook.md` and `docs/streaming-provider-guide.md`
+- March 10, 2026: added iframe-driven watch tracking persistence through `/api/watch/events`, automatic heartbeat/end checkpoints, and a client embed listener that avoids refresh-driven playback resets

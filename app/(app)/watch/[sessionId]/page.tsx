@@ -5,6 +5,7 @@ import { DateTimeText } from "@/components/time/date-time";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckpointCard } from "@/components/watch/checkpoint-card";
+import { PlaybackEmbed } from "@/components/watch/playback-embed";
 import { formatSeconds } from "@/lib/utils";
 import { requireSession } from "@/server/session";
 import { getWatchSession } from "@/server/services/watch-service";
@@ -129,23 +130,15 @@ export default async function WatchSessionPage({
           </CardHeader>
           <CardContent>
             {watchSession.streamingPlaybackUrl ? (
-              <div className="space-y-4">
-                <div className="overflow-hidden rounded-[28px] border border-border/70 bg-black">
-                  <iframe
-                    src={watchSession.streamingPlaybackUrl}
-                    title={watchSession.listItem.movie.title}
-                    className="aspect-video w-full"
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span>Provider: {playbackProviderLabel}</span>
-                  <span>Resume point: {formatSeconds(watchSession.resumeFromSeconds)}</span>
-                </div>
-              </div>
+              <PlaybackEmbed
+                sessionId={watchSession.id}
+                playbackUrl={watchSession.streamingPlaybackUrl}
+                title={watchSession.listItem.movie.title}
+                providerLabel={playbackProviderLabel}
+                expectedVideoId={watchSession.listItem.movie.tmdbId}
+                initialCurrentPositionSeconds={currentMember?.currentPositionSeconds ?? 0}
+                initialResumeFromSeconds={watchSession.resumeFromSeconds}
+              />
             ) : (
               <div className="space-y-4 rounded-[28px] border border-dashed border-border bg-background p-8">
                 <div>
