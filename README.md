@@ -318,6 +318,27 @@ docker compose --env-file .env.production -f docker-compose.registry.yml pull
 docker compose --env-file .env.production -f docker-compose.registry.yml up -d
 ```
 
+Making the GHCR package public:
+
+1. Open the `movieshare` container package in GitHub Packages.
+2. Open `Package settings`.
+3. In `Danger Zone`, change visibility to `Public`.
+4. If visibility controls are unavailable because the package inherits repository permissions, remove inherited permissions first.
+
+Installing the production package published by GitHub Actions:
+
+1. Wait for `Publish container image` to finish for your release tag or manual run.
+2. Copy `.env.production.example` to `.env.production`.
+3. Set `MOVIESHARE_IMAGE=ghcr.io/<owner>/movieshare:<tag>`.
+4. Fill the required production env values.
+5. If the package is private, log in with a GitHub token that has `read:packages`.
+6. Run:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.registry.yml pull
+docker compose --env-file .env.production -f docker-compose.registry.yml up -d
+```
+
 Detailed notes:
 
 - keep `infra/nginx/media-cdn.conf` next to `docker-compose.registry.yml` in the deployment bundle

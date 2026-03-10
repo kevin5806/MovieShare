@@ -30,6 +30,7 @@ Last updated: March 10, 2026
 - the notifications inbox now has persistent read state, filterable feed actions, and shell badge counts driven by unread items
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
+- deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
 - MinIO-backed media storage plus the `media-cdn` service now power profile avatars and list-cover images
 - persisted movie posters and backdrops can now be mirrored into the same media storage/CDN layer instead of always loading from TMDB at runtime
@@ -128,3 +129,4 @@ Before finishing:
 - March 10, 2026: relaxed the iframe event listener to trust the first valid player origin and accept stringified numeric payloads, while tightening poster layouts so movie artwork fills its frame consistently
 - March 10, 2026: aligned admin-configurable services with env/bootstrap parity by adding env support for TMDB language, SMTP secure/port handling, access-method planning toggles, and streaming slot activation defaults
 - March 10, 2026: removed the watch-page iframe `sandbox` attribute so the current playback provider can use its native client-side behavior and event flow
+- March 10, 2026: documented the GHCR package-publication flow and added a production install tutorial for images published by GitHub Actions

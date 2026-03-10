@@ -59,6 +59,128 @@ docker compose --env-file .env.production -f docker-compose.registry.yml pull
 docker compose --env-file .env.production -f docker-compose.registry.yml up -d
 ```
 
+## Make the GHCR package public
+
+GitHub Container Registry packages are private on first publish.
+
+To make `ghcr.io/<owner>/movieshare` public:
+
+1. Open GitHub and go to the package page:
+   - personal account: `https://github.com/users/<owner>/packages/container/package/movieshare`
+   - organization: `https://github.com/orgs/<org>/packages/container/package/movieshare`
+2. Open `Package settings`.
+3. If the package currently inherits permissions from the repository and the visibility controls are not available, remove inherited permissions first.
+4. In `Danger Zone`, click `Change visibility`.
+5. Select `Public`.
+6. Type the package name and confirm.
+
+Important:
+
+- once a GitHub package becomes public, it cannot be made private again
+- public GHCR container images can be pulled anonymously
+- if you keep the package private, production hosts must authenticate before `docker pull`
+
+Useful GitHub docs:
+
+- https://docs.github.com/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility
+- https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages
+- https://docs.github.com/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+
+## Production install tutorial from the GitHub Actions image
+
+This is the recommended flow once `.github/workflows/publish-image.yml` has already produced
+an image such as `ghcr.io/<owner>/movieshare:1.0.0`.
+
+### 1. Publish the image
+
+Use one of these flows:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Or run `Publish container image` manually from GitHub Actions with version `1.0.0`.
+
+### 2. Confirm the package exists
+
+After the workflow succeeds, you should have tags such as:
+
+- `ghcr.io/<owner>/movieshare:1.0.0`
+- `ghcr.io/<owner>/movieshare:1.0`
+- `ghcr.io/<owner>/movieshare:1`
+- `ghcr.io/<owner>/movieshare:latest`
+
+### 3. Prepare the deployment bundle
+
+Keep these files together on the production host:
+
+- `docker-compose.registry.yml`
+- `.env.production.example`
+- `infra/nginx/media-cdn.conf`
+
+Then create the real env file:
+
+```bash
+cp .env.production.example .env.production
+```
+
+### 4. Set the published image tag
+
+Edit `.env.production` and set:
+
+```env
+MOVIESHARE_IMAGE=ghcr.io/<owner>/movieshare:1.0.0
+```
+
+Also fill at least:
+
+- `POSTGRES_PASSWORD`
+- `DATABASE_URL`
+- `BETTER_AUTH_URL`
+- `NEXT_PUBLIC_BETTER_AUTH_URL`
+- `BETTER_AUTH_SECRET`
+- `MINIO_ROOT_PASSWORD`
+- `STORAGE_SECRET_KEY`
+
+Optional integrations can stay empty if you do not need them immediately.
+
+### 5. Authenticate only if the package is private
+
+If the package is public, skip this step.
+
+If the package is private, create a GitHub personal access token with at least
+`read:packages`, then log in:
+
+```bash
+echo "$GHCR_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+### 6. Pull and start the stack
+
+```bash
+docker compose --env-file .env.production -f docker-compose.registry.yml pull
+docker compose --env-file .env.production -f docker-compose.registry.yml up -d
+```
+
+### 7. Verify the deployment
+
+```bash
+docker compose --env-file .env.production -f docker-compose.registry.yml ps
+docker compose --env-file .env.production -f docker-compose.registry.yml logs -f app
+```
+
+The application should come up on the port configured by `APP_PORT`, default `3000`.
+
+### 8. Create the first admin
+
+1. Register a normal user from the UI.
+2. Promote that user inside the running container:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.registry.yml exec app npm run user:promote-admin -- you@example.com
+```
+
 ## Docker Hub optional publish
 
 The workflow also pushes to Docker Hub when all of the following are configured in GitHub:
