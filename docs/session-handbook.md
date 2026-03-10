@@ -33,6 +33,7 @@ Last updated: March 10, 2026
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
 - deployment notes now also call out that `minio-init` should wait on `mc ready`, not only `mc alias set`, to avoid early bucket-bootstrap failures on Linux/Portainer stacks
+- a persisted light/dark theme preference now exists, with account-menu toggling and dark-safe shell/background gradients
 - Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
 - MinIO-backed media storage plus the `media-cdn` service now power profile avatars and list-cover images
 - persisted movie posters and backdrops can now be mirrored into the same media storage/CDN layer instead of always loading from TMDB at runtime
@@ -136,3 +137,5 @@ Before finishing:
 - March 10, 2026: documented the GHCR package-publication flow and added a production install tutorial for images published by GitHub Actions
 - March 10, 2026: documented the Portainer/Linux bind-mount caveat for `media-cdn` and the need to align MinIO app credentials with the active MinIO user
 - March 10, 2026: documented that `minio-init` should use `mc ready` before bucket/policy commands to avoid early-init failures in Linux and Portainer deployments
+- March 10, 2026: added account-level light/dark theme toggling, persisted browser preference, and dark-mode shell/background gradients
+- March 10, 2026: changed manual image-publish workflow default so `publish_latest` is enabled by default for public latest-tag builds

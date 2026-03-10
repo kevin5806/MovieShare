@@ -102,7 +102,7 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(226,232,240,0.45),_transparent_32%),linear-gradient(180deg,_rgba(248,250,252,0.92),_rgba(248,250,252,1))]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(226,232,240,0.45),_transparent_32%),linear-gradient(180deg,_rgba(248,250,252,0.92),_rgba(248,250,252,1))] dark:bg-[radial-gradient(circle_at_top_left,_rgba(51,65,85,0.26),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(15,23,42,1))]">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 px-3 py-3 sm:px-4 md:px-6 lg:flex-row lg:gap-6">
         <aside className="hidden w-[280px] shrink-0 rounded-[32px] border border-border/70 bg-sidebar/85 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur lg:block">
           <ScrollArea className="h-[calc(100vh-2rem)]">
