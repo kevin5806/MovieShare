@@ -216,6 +216,7 @@ Also note:
 
 - if you use the built-in MinIO root user as the S3 credential for the app, `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` must match `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`
 - if you want different storage credentials, create a dedicated MinIO user first; otherwise the app will fail to read/write media even after the containers start
+- for the `minio-init` helper, prefer `mc ready <alias>` after `mc alias set`; `alias set` alone does not guarantee the server is ready for bucket creation and public-policy commands, and this can surface as early `exit 2` failures in stack deploys
 
 ## Docker Hub optional publish
 

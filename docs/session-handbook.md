@@ -32,6 +32,7 @@ Last updated: March 10, 2026
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
+- deployment notes now also call out that `minio-init` should wait on `mc ready`, not only `mc alias set`, to avoid early bucket-bootstrap failures on Linux/Portainer stacks
 - Docker development now has a separate hot-reload path that avoids production rebuilds for normal iteration
 - MinIO-backed media storage plus the `media-cdn` service now power profile avatars and list-cover images
 - persisted movie posters and backdrops can now be mirrored into the same media storage/CDN layer instead of always loading from TMDB at runtime
@@ -101,6 +102,7 @@ Before finishing:
 - Development should prefer `npm run dev` or the dedicated `app-dev` compose service over rebuilding the production image.
 - Container-exposed operational scripts must run without dev-only toolchains such as `tsx`.
 - When deploying through Portainer or a source-free host, do not assume relative bind-mounted files exist; ensure `infra/nginx/media-cdn.conf` is present on disk or use an absolute host path/Git-backed stack.
+- When bootstrapping MinIO buckets in Compose, wait for `mc ready` before running `mc mb` or anonymous-policy commands; `mc alias set` alone is not a sufficient readiness gate.
 
 ## Suggested next priorities
 
@@ -133,3 +135,4 @@ Before finishing:
 - March 10, 2026: removed the watch-page iframe `sandbox` attribute so the current playback provider can use its native client-side behavior and event flow
 - March 10, 2026: documented the GHCR package-publication flow and added a production install tutorial for images published by GitHub Actions
 - March 10, 2026: documented the Portainer/Linux bind-mount caveat for `media-cdn` and the need to align MinIO app credentials with the active MinIO user
+- March 10, 2026: documented that `minio-init` should use `mc ready` before bucket/policy commands to avoid early-init failures in Linux and Portainer deployments
