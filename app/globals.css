@@ -132,6 +132,13 @@
       linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(248, 250, 252, 1));
   }
 
+
+  .dark body {
+    background-image:
+      radial-gradient(circle at top left, rgba(51, 65, 85, 0.28), transparent 32%),
+      linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(2, 6, 23, 1));
+  }
+
   ::selection {
     background: color-mix(in oklab, var(--primary) 20%, white);
   }

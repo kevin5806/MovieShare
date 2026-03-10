@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bell, LogOut, Shield, UserCircle2 } from "lucide-react";
+import { Bell, LogOut, Moon, Shield, Sun, UserCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useTheme } from "@/components/providers/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-styles";
@@ -30,6 +31,7 @@ type UserMenuProps = {
 export function UserMenu({ name, email, role, image }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
 
   async function handleSignOut() {
     const result = await authClient.signOut();
@@ -67,6 +69,19 @@ export function UserMenu({ name, email, role, image }: UserMenuProps) {
           </div>
 
           <nav className="grid gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="justify-start"
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? (
+                <Sun className="mr-2 size-4" />
+              ) : (
+                <Moon className="mr-2 size-4" />
+              )}
+              {theme === "dark" ? "Tema chiaro" : "Tema scuro"}
+            </Button>
             <Link
               href="/profile"
               onClick={() => setOpen(false)}
