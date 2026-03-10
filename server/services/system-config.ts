@@ -4,6 +4,8 @@ import { getMediaStorageRuntimeConfig } from "@/server/services/media-storage";
 import { getStreamingAdminState } from "@/server/services/streaming";
 
 const SYSTEM_CONFIG_SCOPE = "default";
+const DEFAULT_TMDB_LANGUAGE = "en-US";
+const DEFAULT_SMTP_PORT = 587;
 
 export type ConfigSource = "database" | "environment" | "missing";
 export type TmdbAuthMode = "api-read-token" | "api-key" | "not-configured";
@@ -20,8 +22,43 @@ function normalizeOptionalString(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function isSystemConfigPristine(config: Awaited<ReturnType<typeof getSystemConfig>>) {
+  return config.createdAt.getTime() === config.updatedAt.getTime();
+}
+
+function getAccessMethodEffectiveSettings(config: Awaited<ReturnType<typeof getSystemConfig>>) {
+  const environmentHasBootstrapValues =
+    env.AUTH_EMAIL_CODE_ENABLED ||
+    env.AUTH_MAGIC_LINK_ENABLED ||
+    env.AUTH_PASSKEY_ENABLED ||
+    env.AUTH_TWO_FACTOR_ENABLED;
+  const databaseHasValues =
+    config.authEmailCodeEnabled ||
+    config.authMagicLinkEnabled ||
+    config.authPasskeyEnabled ||
+    config.authTwoFactorEnabled;
+
+  if (!databaseHasValues && environmentHasBootstrapValues && isSystemConfigPristine(config)) {
+    return {
+      authEmailCodeEnabled: env.AUTH_EMAIL_CODE_ENABLED,
+      authMagicLinkEnabled: env.AUTH_MAGIC_LINK_ENABLED,
+      authPasskeyEnabled: env.AUTH_PASSKEY_ENABLED,
+      authTwoFactorEnabled: env.AUTH_TWO_FACTOR_ENABLED,
+      source: "environment" as const,
+    };
+  }
+
+  return {
+    authEmailCodeEnabled: config.authEmailCodeEnabled,
+    authMagicLinkEnabled: config.authMagicLinkEnabled,
+    authPasskeyEnabled: config.authPasskeyEnabled,
+    authTwoFactorEnabled: config.authTwoFactorEnabled,
+    source: databaseHasValues ? ("database" as const) : ("missing" as const),
+  };
+}
+
 function buildAccessMethodsAdminState(input: {
-  config: Awaited<ReturnType<typeof getSystemConfig>>;
+  accessMethodSettings: ReturnType<typeof getAccessMethodEffectiveSettings>;
   emailConfigured: boolean;
 }) {
   const emailDependentAvailability: AccessMethodAvailability = input.emailConfigured
@@ -41,8 +78,9 @@ function buildAccessMethodsAdminState(input: {
       key: "EMAIL_CODE" as const,
       label: "Email code",
       description: "Useful for low-friction sign-in and lightweight account recovery.",
-      isEnabled: input.config.authEmailCodeEnabled,
+      isEnabled: input.accessMethodSettings.authEmailCodeEnabled,
       availability: emailDependentAvailability,
+      source: input.accessMethodSettings.source,
       requirement: input.emailConfigured
         ? "SMTP is configured, so rollout can be wired on top of the current auth stack."
         : "Requires working SMTP delivery before it can be turned into a real sign-in method.",
@@ -51,8 +89,9 @@ function buildAccessMethodsAdminState(input: {
       key: "MAGIC_LINK" as const,
       label: "Magic link",
       description: "Email-link based access for users who do not want a password.",
-      isEnabled: input.config.authMagicLinkEnabled,
+      isEnabled: input.accessMethodSettings.authMagicLinkEnabled,
       availability: emailDependentAvailability,
+      source: input.accessMethodSettings.source,
       requirement: input.emailConfigured
         ? "SMTP is configured, so link delivery can be added without changing the domain model."
         : "Requires working SMTP delivery before link-based access is viable.",
@@ -61,8 +100,9 @@ function buildAccessMethodsAdminState(input: {
       key: "PASSKEY" as const,
       label: "Passkeys",
       description: "Best future option for passwordless access on modern browsers and devices.",
-      isEnabled: input.config.authPasskeyEnabled,
+      isEnabled: input.accessMethodSettings.authPasskeyEnabled,
       availability: "config-only" as const,
+      source: input.accessMethodSettings.source,
       requirement:
         "Requires HTTPS, RP configuration and explicit Better Auth passkey wiring before rollout.",
     },
@@ -70,8 +110,9 @@ function buildAccessMethodsAdminState(input: {
       key: "TWO_FACTOR" as const,
       label: "Two-factor authentication",
       description: "Additional step for protecting sensitive or admin accounts.",
-      isEnabled: input.config.authTwoFactorEnabled,
+      isEnabled: input.accessMethodSettings.authTwoFactorEnabled,
       availability: emailDependentAvailability,
+      source: input.accessMethodSettings.source,
       requirement: input.emailConfigured
         ? "SMTP exists, so OTP-based 2FA can be layered on top of the current login flow."
         : "Needs a delivery channel such as email OTP or TOTP onboarding before activation.",
@@ -87,14 +128,14 @@ export async function ensureSystemConfigSeeded() {
     update: {},
     create: {
       scope: SYSTEM_CONFIG_SCOPE,
-      tmdbLanguage: "en-US",
-      smtpPort: 587,
-      smtpSecure: false,
+      tmdbLanguage: env.TMDB_LANGUAGE || DEFAULT_TMDB_LANGUAGE,
+      smtpPort: env.SMTP_PORT,
+      smtpSecure: env.SMTP_SECURE,
       authEmailPasswordEnabled: true,
-      authEmailCodeEnabled: false,
-      authMagicLinkEnabled: false,
-      authPasskeyEnabled: false,
-      authTwoFactorEnabled: false,
+      authEmailCodeEnabled: env.AUTH_EMAIL_CODE_ENABLED,
+      authMagicLinkEnabled: env.AUTH_MAGIC_LINK_ENABLED,
+      authPasskeyEnabled: env.AUTH_PASSKEY_ENABLED,
+      authTwoFactorEnabled: env.AUTH_TWO_FACTOR_ENABLED,
     },
   });
 }
@@ -106,15 +147,27 @@ export async function getSystemConfig() {
 export async function getTmdbRuntimeConfig() {
   const config = await getSystemConfig();
 
-  const apiToken = normalizeOptionalString(config.tmdbApiToken) ?? env.TMDB_API_TOKEN;
-  const apiKey = normalizeOptionalString(config.tmdbApiKey) ?? env.TMDB_API_KEY;
-  const language = normalizeOptionalString(config.tmdbLanguage) ?? "en-US";
+  const databaseApiToken = normalizeOptionalString(config.tmdbApiToken);
+  const databaseApiKey = normalizeOptionalString(config.tmdbApiKey);
+  const databaseLanguage = normalizeOptionalString(config.tmdbLanguage) ?? DEFAULT_TMDB_LANGUAGE;
+  const usesEnvironmentFallback =
+    !databaseApiToken &&
+    !databaseApiKey &&
+    databaseLanguage === DEFAULT_TMDB_LANGUAGE &&
+    Boolean(env.TMDB_API_TOKEN || env.TMDB_API_KEY || env.TMDB_LANGUAGE);
+  const apiToken = databaseApiToken ?? env.TMDB_API_TOKEN;
+  const apiKey = databaseApiKey ?? env.TMDB_API_KEY;
+  const language = usesEnvironmentFallback ? env.TMDB_LANGUAGE || DEFAULT_TMDB_LANGUAGE : databaseLanguage;
   const source: ConfigSource =
-    apiToken || apiKey
-      ? normalizeOptionalString(config.tmdbApiToken) || normalizeOptionalString(config.tmdbApiKey)
+    databaseApiToken || databaseApiKey || !usesEnvironmentFallback
+      ? databaseApiToken || databaseApiKey || databaseLanguage !== DEFAULT_TMDB_LANGUAGE
         ? "database"
-        : "environment"
-      : "missing";
+        : apiToken || apiKey || language
+          ? "environment"
+          : "missing"
+      : apiToken || apiKey || language
+        ? "environment"
+        : "missing";
   const authMode: TmdbAuthMode = apiToken
     ? "api-read-token"
     : apiKey
@@ -133,20 +186,37 @@ export async function getTmdbRuntimeConfig() {
 export async function getEmailRuntimeConfig() {
   const config = await getSystemConfig();
 
-  const host = normalizeOptionalString(config.smtpHost) ?? env.SMTP_HOST;
-  const port = config.smtpPort || env.SMTP_PORT;
-  const secure = config.smtpSecure || port === 465;
-  const user = normalizeOptionalString(config.smtpUser) ?? env.SMTP_USER;
-  const password = normalizeOptionalString(config.smtpPassword) ?? env.SMTP_PASSWORD;
-  const from = normalizeOptionalString(config.smtpFrom) ?? env.SMTP_FROM;
+  const databaseHost = normalizeOptionalString(config.smtpHost);
+  const databaseUser = normalizeOptionalString(config.smtpUser);
+  const databasePassword = normalizeOptionalString(config.smtpPassword);
+  const databaseFrom = normalizeOptionalString(config.smtpFrom);
+  const usesEnvironmentFallback =
+    !databaseHost &&
+    !databaseUser &&
+    !databasePassword &&
+    !databaseFrom &&
+    config.smtpPort === DEFAULT_SMTP_PORT &&
+    config.smtpSecure === false;
+  const host = databaseHost ?? env.SMTP_HOST;
+  const port = usesEnvironmentFallback ? env.SMTP_PORT : config.smtpPort || env.SMTP_PORT;
+  const secure = usesEnvironmentFallback
+    ? env.SMTP_SECURE || port === 465
+    : config.smtpSecure || port === 465;
+  const user = databaseUser ?? env.SMTP_USER;
+  const password = databasePassword ?? env.SMTP_PASSWORD;
+  const from = databaseFrom ?? env.SMTP_FROM;
   const source: ConfigSource =
-    host || user || password || from
-      ? normalizeOptionalString(config.smtpHost) ||
-        normalizeOptionalString(config.smtpUser) ||
-        normalizeOptionalString(config.smtpPassword) ||
-        normalizeOptionalString(config.smtpFrom)
-        ? "database"
-        : "environment"
+    host || user || password || from || port || secure
+      ? usesEnvironmentFallback
+        ? "environment"
+        : databaseHost ||
+            databaseUser ||
+            databasePassword ||
+            databaseFrom ||
+            config.smtpPort !== DEFAULT_SMTP_PORT ||
+            config.smtpSecure
+          ? "database"
+          : "environment"
       : "missing";
 
   return {
@@ -169,14 +239,16 @@ export async function getSystemAdminState() {
     getStreamingAdminState(),
   ]);
   const storage = getMediaStorageRuntimeConfig();
+  const accessMethodSettings = getAccessMethodEffectiveSettings(config);
 
   return {
     config,
     tmdb,
     email,
     storage,
+    accessMethodSettings,
     accessMethods: buildAccessMethodsAdminState({
-      config,
+      accessMethodSettings,
       emailConfigured: email.isConfigured,
     }),
     streaming,

@@ -151,6 +151,10 @@ export default async function SystemAdminPage() {
                 }
               </span>
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Access plan source</span>
+              <SourceBadge source={adminState.accessMethodSettings.source} />
+            </div>
             <p className="pt-2">
               The current watch flow is tracking-first: it records session starts, members
               and checkpoints. It does not imply synced tele-sharing.
@@ -171,7 +175,8 @@ export default async function SystemAdminPage() {
           <CardContent className="flex h-full flex-col">
             <p className="min-h-[72px] text-sm leading-6 text-muted-foreground">
               Prefer the API Read Access Token. If both values are present, the bearer token
-              wins over the API key fallback.
+              wins over the API key fallback. `TMDB_LANGUAGE` can also bootstrap the
+              default locale outside the panel.
             </p>
             <form action={updateTmdbSettingsAction} className="mt-4 flex flex-1 flex-col gap-4">
               <Field>
@@ -220,7 +225,8 @@ export default async function SystemAdminPage() {
           <CardContent className="flex h-full flex-col">
             <p className="min-h-[72px] text-sm leading-6 text-muted-foreground">
               These SMTP settings are stored for future invite emails, notifications and
-              digest workflows. Empty values keep the environment fallback active.
+              digest workflows. Empty values keep the environment fallback active, including
+              `SMTP_PORT` and `SMTP_SECURE` when the admin section remains untouched.
             </p>
             <form action={updateEmailSettingsAction} className="mt-4 flex flex-1 flex-col gap-4">
               <Field>
@@ -297,7 +303,8 @@ export default async function SystemAdminPage() {
             <p className="text-sm leading-6 text-muted-foreground">
               Store rollout intent for additional access methods here. Only email and
               password is live today and remains read-only here; the toggles below keep the admin plan and
-              prerequisites visible until their runtime wiring lands.
+              prerequisites visible until their runtime wiring lands. `AUTH_*` env vars can
+              bootstrap these toggles on first setup, and the panel can then override them.
             </p>
             <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Email and password</p>
@@ -311,25 +318,25 @@ export default async function SystemAdminPage() {
                 name="authEmailCodeEnabled"
                 label="Email code"
                 description="Plan a one-time-code flow for low-friction sign-in."
-                defaultChecked={adminState.config.authEmailCodeEnabled}
+                defaultChecked={adminState.accessMethodSettings.authEmailCodeEnabled}
               />
               <SwitchField
                 name="authMagicLinkEnabled"
                 label="Magic link"
                 description="Plan passwordless access through emailed links."
-                defaultChecked={adminState.config.authMagicLinkEnabled}
+                defaultChecked={adminState.accessMethodSettings.authMagicLinkEnabled}
               />
               <SwitchField
                 name="authPasskeyEnabled"
                 label="Passkeys"
                 description="Plan WebAuthn/passkey support for modern devices."
-                defaultChecked={adminState.config.authPasskeyEnabled}
+                defaultChecked={adminState.accessMethodSettings.authPasskeyEnabled}
               />
               <SwitchField
                 name="authTwoFactorEnabled"
                 label="Two-factor auth"
                 description="Plan an extra verification step for sensitive accounts."
-                defaultChecked={adminState.config.authTwoFactorEnabled}
+                defaultChecked={adminState.accessMethodSettings.authTwoFactorEnabled}
               />
               <Button type="submit" className="w-full">
                 Save access method plan
@@ -383,6 +390,7 @@ export default async function SystemAdminPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    <SourceBadge source={config.source} />
                     <Badge variant="secondary">{config.isEnabled ? "Enabled" : "Disabled"}</Badge>
                     {config.isActive ? <Badge>Active</Badge> : null}
                   </div>
@@ -396,7 +404,8 @@ export default async function SystemAdminPage() {
                   </p>
                   <StreamingProviderNotes provider={provider} />
                   <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
-                    {runtimeCopy}
+                    {runtimeCopy} `STREAMING_*` env vars can also bootstrap slot state before
+                    the admin panel takes over.
                   </div>
                   <form action={updateStreamingProviderAction} className="space-y-4">
                     <input type="hidden" name="provider" value={config.provider} />

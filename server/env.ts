@@ -2,19 +2,33 @@ import "dotenv/config";
 
 import { z } from "zod";
 
+import { StreamingProviderKey } from "@/generated/prisma/client";
+
+const envBoolean = z
+  .enum(["true", "false"])
+  .optional()
+  .default("false")
+  .transform((value) => value === "true");
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   BETTER_AUTH_URL: z.string().url(),
   BETTER_AUTH_SECRET: z.string().min(16),
   TMDB_API_TOKEN: z.string().optional().default(""),
   TMDB_API_KEY: z.string().optional().default(""),
+  TMDB_LANGUAGE: z.string().optional().default("en-US"),
   SEED_ADMIN_EMAIL: z.string().email().optional().default("admin@movieshare.local"),
   SEED_ADMIN_NAME: z.string().optional().default("movieshare admin"),
   SMTP_HOST: z.string().optional().default(""),
   SMTP_PORT: z.coerce.number().optional().default(587),
+  SMTP_SECURE: envBoolean,
   SMTP_USER: z.string().optional().default(""),
   SMTP_PASSWORD: z.string().optional().default(""),
   SMTP_FROM: z.string().optional().default("movieshare <noreply@movieshare.local>"),
+  AUTH_EMAIL_CODE_ENABLED: envBoolean,
+  AUTH_MAGIC_LINK_ENABLED: envBoolean,
+  AUTH_PASSKEY_ENABLED: envBoolean,
+  AUTH_TWO_FACTOR_ENABLED: envBoolean,
   STORAGE_ENDPOINT: z.string().optional().default(""),
   STORAGE_PUBLIC_BASE_URL: z.string().optional().default(""),
   STORAGE_BUCKET: z.string().optional().default(""),
@@ -24,6 +38,13 @@ const envSchema = z.object({
   VIXSRC_BASE_URL: z.string().optional().default(""),
   VIXSRC_LANG: z.string().optional().default(""),
   PLEX_WATCH_URL_TEMPLATE: z.string().optional().default(""),
+  STREAMING_VIXSRC_ENABLED: envBoolean,
+  STREAMING_PLEX_ENABLED: envBoolean,
+  STREAMING_ACTIVE_PROVIDER: z
+    .union([z.nativeEnum(StreamingProviderKey), z.literal("")])
+    .optional()
+    .default("")
+    .transform((value) => (value === "" ? null : value)),
   STORAGE_FORCE_PATH_STYLE: z
     .enum(["true", "false"])
     .optional()

@@ -8,6 +8,7 @@ type AccessMethodCardProps = {
     description: string;
     isEnabled: boolean;
     availability: "live" | "config-only" | "blocked";
+    source?: "database" | "environment" | "missing";
     requirement: string;
   };
 };
@@ -40,6 +41,9 @@ export function AccessMethodCard({ method }: AccessMethodCardProps) {
         <div className="flex flex-wrap gap-2">
           <Badge variant={availability.variant}>{availability.label}</Badge>
           <Badge variant="secondary">{method.isEnabled ? "Planned" : "Off"}</Badge>
+          {method.source === "environment" ? (
+            <Badge variant="secondary">Env bootstrap</Badge>
+          ) : null}
         </div>
       </CardHeader>
       <CardContent>

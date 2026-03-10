@@ -134,6 +134,8 @@ Runtime behavior:
 
 - database values entered from the admin panel take precedence
 - if a field is empty in the admin panel, movieshare falls back to environment variables when available
+- non-empty toggles and provider-slot booleans also support env bootstrap on first setup through
+  `AUTH_*`, `STREAMING_*`, `TMDB_LANGUAGE`, `SMTP_PORT`, and `SMTP_SECURE`
 
 ## Environment
 
@@ -149,13 +151,16 @@ Optional but recommended:
 
 - `TMDB_API_TOKEN`
 - `TMDB_API_KEY`
+- `TMDB_LANGUAGE`
 - `SEED_ADMIN_EMAIL`
 - `SEED_ADMIN_NAME`
 - `SMTP_*`
+- `AUTH_*`
 - `MINIO_ROOT_*`
 - `STORAGE_*`
 - `VIXSRC_*`
 - `PLEX_WATCH_URL_TEMPLATE`
+- `STREAMING_*`
 
 Media note:
 
@@ -166,6 +171,13 @@ TMDB auth note:
 - prefer `TMDB_API_TOKEN` (API Read Access Token)
 - `TMDB_API_KEY` is also supported as a fallback
 - if both are set, `TMDB_API_TOKEN` wins
+
+Admin/runtime config note:
+
+- TMDB token, API key and language can come from `.env` or `/admin`
+- SMTP host, port, secure mode, credentials and sender can come from `.env` or `/admin`
+- future access-method toggles can be bootstrapped from `.env` and then overridden in `/admin`
+- streaming slot enablement and preferred provider can be bootstrapped from `.env` and then overridden in `/admin`
 
 ## Local development
 

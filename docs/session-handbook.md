@@ -35,6 +35,7 @@ Last updated: March 10, 2026
 - persisted movie posters and backdrops can now be mirrored into the same media storage/CDN layer instead of always loading from TMDB at runtime
 - the admin panel now tracks future auth-method rollout intent and prerequisites
 - the admin panel now exposes multiple configurable streaming slots, including `vixsrc` and `plex`
+- admin-configurable TMDB, SMTP, access-method planning, and streaming-slot state now all have an env/bootstrap path in addition to the admin panel
 - reusable form/time primitives exist and should be extended before creating new UI variants
 - Docker runtime has been optimized with a much smaller multi-stage image and a working startup bootstrap
 - test baseline exists with Vitest and should keep expanding in risky server and action paths
@@ -50,6 +51,7 @@ Last updated: March 10, 2026
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have read state, but still lack delivery preference modeling or push channels
 - the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
+- text settings still use direct `DB -> env` fallback, while boolean slot/toggle settings use env bootstrap and then persistent admin overrides
 - responsive hardening is better in the shell, but still not complete across every complex page
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
@@ -122,3 +124,4 @@ Before finishing:
 - March 10, 2026: added reusable integration documentation for future contributors in `docs/integration-playbook.md` and `docs/streaming-provider-guide.md`
 - March 10, 2026: added iframe-driven watch tracking persistence through `/api/watch/events`, automatic heartbeat/end checkpoints, and a client embed listener that avoids refresh-driven playback resets
 - March 10, 2026: relaxed the iframe event listener to trust the first valid player origin and accept stringified numeric payloads, while tightening poster layouts so movie artwork fills its frame consistently
+- March 10, 2026: aligned admin-configurable services with env/bootstrap parity by adding env support for TMDB language, SMTP secure/port handling, access-method planning toggles, and streaming slot activation defaults

@@ -13,13 +13,19 @@ const mocks = vi.hoisted(() => ({
     BETTER_AUTH_SECRET: "test-secret-with-enough-length",
     TMDB_API_TOKEN: "env-token",
     TMDB_API_KEY: "env-api-key",
+    TMDB_LANGUAGE: "it-IT",
     SEED_ADMIN_EMAIL: "admin@movieshare.local",
     SEED_ADMIN_NAME: "movieshare admin",
     SMTP_HOST: "smtp.env.local",
     SMTP_PORT: 465,
+    SMTP_SECURE: true,
     SMTP_USER: "env-user",
     SMTP_PASSWORD: "env-password",
     SMTP_FROM: "movieshare <env@example.com>",
+    AUTH_EMAIL_CODE_ENABLED: true,
+    AUTH_MAGIC_LINK_ENABLED: false,
+    AUTH_PASSKEY_ENABLED: true,
+    AUTH_TWO_FACTOR_ENABLED: false,
     STORAGE_ENDPOINT: "http://minio:9000",
     STORAGE_PUBLIC_BASE_URL: "http://localhost:8080/media/movieshare-media",
     STORAGE_BUCKET: "movieshare-media",
@@ -27,6 +33,9 @@ const mocks = vi.hoisted(() => ({
     STORAGE_ACCESS_KEY: "movieshare",
     STORAGE_SECRET_KEY: "movieshare-secret",
     STORAGE_FORCE_PATH_STYLE: true,
+    STREAMING_VIXSRC_ENABLED: false,
+    STREAMING_PLEX_ENABLED: false,
+    STREAMING_ACTIVE_PROVIDER: null,
   },
   getStreamingAdminState: vi.fn(),
 }));
@@ -63,6 +72,8 @@ describe("system-config service", () => {
       tmdbApiToken: "  db-token  ",
       tmdbApiKey: "",
       tmdbLanguage: "  it-IT  ",
+      createdAt: new Date("2026-03-10T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-10T10:05:00.000Z"),
     });
 
     await expect(getTmdbRuntimeConfig()).resolves.toMatchObject({
@@ -77,11 +88,13 @@ describe("system-config service", () => {
   it("falls back to environment email settings and infers secure SMTP for port 465", async () => {
     mocks.db.systemConfig.upsert.mockResolvedValue({
       smtpHost: " ",
-      smtpPort: 465,
+      smtpPort: 587,
       smtpSecure: false,
       smtpUser: null,
       smtpPassword: "",
       smtpFrom: null,
+      createdAt: new Date("2026-03-10T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-10T10:00:00.000Z"),
     });
 
     await expect(getEmailRuntimeConfig()).resolves.toMatchObject({
@@ -110,6 +123,8 @@ describe("system-config service", () => {
       authMagicLinkEnabled: false,
       authPasskeyEnabled: false,
       authTwoFactorEnabled: true,
+      createdAt: new Date("2026-03-10T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-10T10:05:00.000Z"),
     });
 
     await expect(getSystemAdminState()).resolves.toMatchObject({
@@ -130,10 +145,60 @@ describe("system-config service", () => {
           isEnabled: true,
         }),
       ]),
+      accessMethodSettings: {
+        authEmailCodeEnabled: true,
+        authMagicLinkEnabled: false,
+        authPasskeyEnabled: false,
+        authTwoFactorEnabled: true,
+        source: "database",
+      },
       streaming: {
         configs: [],
         activeConfig: null,
       },
+    });
+  });
+
+  it("uses environment bootstrap values for access methods on a pristine config row", async () => {
+    mocks.db.systemConfig.upsert.mockResolvedValue({
+      tmdbApiToken: null,
+      tmdbApiKey: null,
+      tmdbLanguage: "en-US",
+      smtpHost: null,
+      smtpPort: 587,
+      smtpSecure: false,
+      smtpUser: null,
+      smtpPassword: null,
+      smtpFrom: null,
+      authEmailPasswordEnabled: true,
+      authEmailCodeEnabled: false,
+      authMagicLinkEnabled: false,
+      authPasskeyEnabled: false,
+      authTwoFactorEnabled: false,
+      createdAt: new Date("2026-03-10T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-10T10:00:00.000Z"),
+    });
+
+    await expect(getSystemAdminState()).resolves.toMatchObject({
+      accessMethodSettings: {
+        authEmailCodeEnabled: true,
+        authMagicLinkEnabled: false,
+        authPasskeyEnabled: true,
+        authTwoFactorEnabled: false,
+        source: "environment",
+      },
+      accessMethods: expect.arrayContaining([
+        expect.objectContaining({
+          key: "EMAIL_CODE",
+          isEnabled: true,
+          source: "environment",
+        }),
+        expect.objectContaining({
+          key: "PASSKEY",
+          isEnabled: true,
+          source: "environment",
+        }),
+      ]),
     });
   });
 });

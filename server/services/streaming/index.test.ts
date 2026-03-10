@@ -17,10 +17,22 @@ const mocks = vi.hoisted(() => ({
       update: vi.fn(),
     },
   },
+  env: {
+    VIXSRC_BASE_URL: "",
+    VIXSRC_LANG: "it",
+    PLEX_WATCH_URL_TEMPLATE: "",
+    STREAMING_VIXSRC_ENABLED: false,
+    STREAMING_PLEX_ENABLED: false,
+    STREAMING_ACTIVE_PROVIDER: null as StreamingProviderKey | null,
+  },
 }));
 
 vi.mock("@/server/db", () => ({
   db: mocks.db,
+}));
+
+vi.mock("@/server/env", () => ({
+  env: mocks.env,
 }));
 
 import {
@@ -35,7 +47,13 @@ describe("streaming service", () => {
     vi.resetAllMocks();
     mocks.db.streamingProviderConfig.upsert.mockResolvedValue({});
     mocks.db.$transaction.mockImplementation(async (callback) => callback(mocks.tx));
-    vi.unstubAllEnvs();
+    mocks.env.VIXSRC_BASE_URL = "";
+    mocks.env.VIXSRC_LANG = "it";
+    mocks.env.PLEX_WATCH_URL_TEMPLATE = "";
+    mocks.env.STREAMING_VIXSRC_ENABLED = false;
+    mocks.env.STREAMING_PLEX_ENABLED = false;
+    mocks.env.STREAMING_ACTIVE_PROVIDER = null;
+    delete process.env.PLEX_WATCH_URL_TEMPLATE;
   });
 
   it("keeps VixSrc available as a ready deployment-specific provider", () => {
@@ -82,7 +100,7 @@ describe("streaming service", () => {
   });
 
   it("resolves a VixSrc playback URL when the runtime env is configured", async () => {
-    vi.stubEnv("VIXSRC_BASE_URL", "https://vixsrc.to");
+    mocks.env.VIXSRC_BASE_URL = "https://vixsrc.to";
 
     const result = await resolvePlaybackSource({
       provider: StreamingProviderKey.VIXSRC,
@@ -101,10 +119,8 @@ describe("streaming service", () => {
   });
 
   it("resolves a Plex playback URL from the configured template", async () => {
-    vi.stubEnv(
-      "PLEX_WATCH_URL_TEMPLATE",
-      "https://plex.example.com/watch/{tmdbId}?session={watchSessionId}",
-    );
+    process.env.PLEX_WATCH_URL_TEMPLATE =
+      "https://plex.example.com/watch/{tmdbId}?session={watchSessionId}";
 
     const result = await resolvePlaybackSource({
       provider: StreamingProviderKey.PLEX,
@@ -133,6 +149,50 @@ describe("streaming service", () => {
           isEnabled: true,
           isActive: false,
         },
+      }),
+    );
+  });
+
+  it("uses environment defaults for untouched provider slot records", async () => {
+    mocks.env.STREAMING_VIXSRC_ENABLED = true;
+    mocks.env.STREAMING_ACTIVE_PROVIDER = StreamingProviderKey.VIXSRC;
+    mocks.db.streamingProviderConfig.findMany.mockResolvedValue([
+      {
+        id: "vixsrc-1",
+        provider: StreamingProviderKey.VIXSRC,
+        label: "VixSrc",
+        isEnabled: false,
+        isActive: false,
+        createdAt: new Date("2026-03-10T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-10T10:00:00.000Z"),
+      },
+      {
+        id: "plex-1",
+        provider: StreamingProviderKey.PLEX,
+        label: "Plex",
+        isEnabled: false,
+        isActive: false,
+        createdAt: new Date("2026-03-10T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-10T10:00:00.000Z"),
+      },
+    ]);
+
+    const state = await getStreamingAdminState();
+
+    expect(state.configs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: StreamingProviderKey.VIXSRC,
+          isEnabled: true,
+          isActive: true,
+          source: "environment",
+        }),
+      ]),
+    );
+    expect(state.activeConfig).toEqual(
+      expect.objectContaining({
+        provider: StreamingProviderKey.VIXSRC,
+        source: "environment",
       }),
     );
   });
