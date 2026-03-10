@@ -37,6 +37,21 @@ type PlaybackEmbedProps = {
 const TIMEUPDATE_MIN_SECONDS = 15;
 const TIMEUPDATE_MIN_INTERVAL_MS = 12_000;
 
+function coerceNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 function normalizeNumber(value: number) {
   if (!Number.isFinite(value) || value < 0) {
     return 0;
@@ -68,6 +83,9 @@ function parsePlayerEnvelope(data: unknown): PlayerEventEnvelope | null {
   }
 
   const playerData = candidate.data as Partial<PlayerEventEnvelope["data"]>;
+  const currentTime = coerceNumber(playerData.currentTime);
+  const duration = coerceNumber(playerData.duration);
+  const videoId = coerceNumber(playerData.video_id);
 
   if (
     (playerData.event !== "play" &&
@@ -75,9 +93,9 @@ function parsePlayerEnvelope(data: unknown): PlayerEventEnvelope | null {
       playerData.event !== "seeked" &&
       playerData.event !== "ended" &&
       playerData.event !== "timeupdate") ||
-    typeof playerData.currentTime !== "number" ||
-    typeof playerData.duration !== "number" ||
-    typeof playerData.video_id !== "number"
+    currentTime === null ||
+    duration === null ||
+    videoId === null
   ) {
     return null;
   }
@@ -86,9 +104,9 @@ function parsePlayerEnvelope(data: unknown): PlayerEventEnvelope | null {
     type: "PLAYER_EVENT",
     data: {
       event: playerData.event,
-      currentTime: playerData.currentTime,
-      duration: playerData.duration,
-      video_id: playerData.video_id,
+      currentTime,
+      duration,
+      video_id: videoId,
     },
   };
 }
@@ -109,8 +127,14 @@ export function PlaybackEmbed({
   const [lastEvent, setLastEvent] = useState<PlayerEventName | null>(null);
   const [syncState, setSyncState] = useState<"idle" | "synced" | "error">("idle");
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [iframeState, setIframeState] = useState<"loading" | "ready">("loading");
+  const [messageCount, setMessageCount] = useState(0);
+  const [acceptedOrigin, setAcceptedOrigin] = useState<string | null>(null);
+  const [configuredOrigin, setConfiguredOrigin] = useState<string | null>(null);
 
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const allowedOriginRef = useRef<string | null>(null);
+  const trustedOriginRef = useRef<string | null>(null);
   const queueRef = useRef<QueuedPlaybackEvent | null>(null);
   const isSendingRef = useRef(false);
   const lastSentPositionRef = useRef(
@@ -121,9 +145,17 @@ export function PlaybackEmbed({
   useEffect(() => {
     try {
       allowedOriginRef.current = new URL(playbackUrl).origin;
+      setConfiguredOrigin(allowedOriginRef.current);
     } catch {
       allowedOriginRef.current = null;
+      setConfiguredOrigin(null);
     }
+
+    trustedOriginRef.current = null;
+    setAcceptedOrigin(null);
+    setMessageCount(0);
+    setLastEvent(null);
+    setIframeState("loading");
   }, [playbackUrl]);
 
   const flushQueue = useEffectEvent(async () => {
@@ -180,22 +212,38 @@ export function PlaybackEmbed({
   });
 
   const handleWindowMessage = useEffectEvent((event: MessageEvent) => {
-    const allowedOrigin = allowedOriginRef.current;
-
-    if (!allowedOrigin || event.origin !== allowedOrigin) {
-      return;
-    }
-
     const envelope = parsePlayerEnvelope(event.data);
 
     if (!envelope || envelope.data.video_id !== expectedVideoId) {
       return;
     }
 
+    const configuredOrigin = allowedOriginRef.current;
+    const trustedOrigin = trustedOriginRef.current;
+    const iframeWindow = iframeRef.current?.contentWindow;
+    const isDirectIframeMessage = Boolean(iframeWindow && event.source === iframeWindow);
+    const isConfiguredOrigin = Boolean(configuredOrigin && event.origin === configuredOrigin);
+    const isTrustedOrigin = Boolean(trustedOrigin && event.origin === trustedOrigin);
+    const canTrustNewOrigin =
+      !trustedOrigin &&
+      Boolean(event.origin) &&
+      event.origin !== "null" &&
+      event.origin !== window.location.origin;
+
+    if (!isDirectIframeMessage && !isConfiguredOrigin && !isTrustedOrigin && !canTrustNewOrigin) {
+      return;
+    }
+
+    if (!isTrustedOrigin && event.origin && event.origin !== "null") {
+      trustedOriginRef.current = event.origin;
+      setAcceptedOrigin(event.origin);
+    }
+
     const currentTime = normalizeNumber(envelope.data.currentTime);
     const duration = normalizeNumber(envelope.data.duration);
     const eventName = envelope.data.event;
 
+    setMessageCount((count) => count + 1);
     setTrackedTimeSeconds(currentTime);
     setDurationSeconds(duration);
     setLastEvent(eventName);
@@ -233,12 +281,16 @@ export function PlaybackEmbed({
     <div className="space-y-4">
       <div className="overflow-hidden rounded-[28px] border border-border/70 bg-black">
         <iframe
+          ref={iframeRef}
           src={playbackUrl}
           title={title}
           className="aspect-video w-full"
           allowFullScreen
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+          onLoad={() => setIframeState("ready")}
         />
       </div>
       <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
@@ -252,7 +304,14 @@ export function PlaybackEmbed({
           {syncState === "error" ? "Tracking sync error" : "Automatic tracking active"}
         </Badge>
         <span>
+          Iframe: {iframeState === "ready" ? "loaded" : "loading"}
+        </span>
+        <span>
           Last player event: {lastEvent ? lastEvent : "waiting for iframe events"}
+        </span>
+        <span>Events received: {messageCount}</span>
+        <span>
+          Source: {acceptedOrigin ?? configuredOrigin ?? "awaiting first valid event"}
         </span>
         {lastSyncedAt ? <span>Last sync: {new Date(lastSyncedAt).toLocaleTimeString()}</span> : null}
       </div>

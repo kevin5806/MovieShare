@@ -37,15 +37,15 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
   const commentsCount = item.feedbacks.filter((feedback) => feedback.comment).length;
 
   return (
-    <Link href={`/lists/${listSlug}/movies/${item.id}`}>
-      <Card className="overflow-hidden border-border/70 bg-card/85 shadow-sm transition-transform hover:-translate-y-0.5">
-        <div className="relative aspect-[2/3] bg-muted">
+    <Link href={`/lists/${listSlug}/movies/${item.id}`} className="block h-full">
+      <Card className="flex h-full flex-col overflow-hidden border-border/70 bg-card/85 shadow-sm transition-transform hover:-translate-y-0.5">
+        <div className="relative aspect-[2/3] overflow-hidden bg-muted">
           {getMoviePosterUrl(item.movie) ? (
             <MediaImage
               src={getMoviePosterUrl(item.movie) ?? ""}
               alt={item.movie.title}
               fill
-              className="object-cover"
+              className="absolute inset-0 h-full w-full object-cover object-center"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -53,7 +53,7 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
             </div>
           )}
         </div>
-        <CardContent className="space-y-4 p-4">
+        <CardContent className="flex flex-1 flex-col space-y-4 p-4">
           <div className="space-y-2">
             <p className="line-clamp-1 font-semibold">{item.movie.title}</p>
             <div className="flex flex-wrap gap-2">
@@ -61,7 +61,7 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
               <Badge variant="secondary">{formatReleaseDate(item.movie.releaseDate)}</Badge>
             </div>
           </div>
-          <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+          <p className="line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground">
             {item.movie.overview || "No overview available."}
           </p>
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

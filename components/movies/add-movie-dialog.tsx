@@ -158,19 +158,23 @@ export function AddMovieDialog({
                   type="button"
                   onClick={() => handleAddMovie(result)}
                   disabled={isPending}
-                  className="flex w-full items-start gap-4 rounded-3xl border border-border/70 bg-card/85 p-4 text-left transition-colors hover:bg-accent/60 disabled:opacity-60"
+                  className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)] items-stretch gap-4 rounded-3xl border border-border/70 bg-card/85 p-4 text-left transition-colors hover:bg-accent/60 disabled:opacity-60"
                 >
-                  <div className="aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-[18px] bg-muted">
+                  <div className="relative min-h-32 overflow-hidden rounded-[18px] bg-muted">
                     {result.posterPath ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt={result.title}
                         src={tmdbImageUrl(result.posterPath, "w342") ?? undefined}
-                        className="h-full w-full object-cover object-center"
+                        className="absolute inset-0 h-full w-full object-cover object-center"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                        No poster
+                      </div>
+                    )}
                   </div>
-                  <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex min-w-0 flex-col justify-center space-y-2">
                     <div className="space-y-1">
                       <p className="line-clamp-1 font-medium">{result.title}</p>
                       {result.originalTitle && result.originalTitle !== result.title ? (
