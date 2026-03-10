@@ -18,7 +18,6 @@ import {
 } from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/navigation/user-menu";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button-styles";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -55,25 +54,10 @@ function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="space-y-5 p-5">
         <BrandMark />
-        <div className="rounded-3xl border border-border/70 bg-card/80 p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
-            Realtime-ready
-          </p>
-          <p className="mt-2 text-sm leading-6 text-foreground">
-            Lists, invites, watch sessions and notifications share the same modular
-            shell.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Badge variant="secondary">TMDB</Badge>
-            <Badge variant="secondary">Better Auth</Badge>
-            <Badge variant="secondary">Postgres</Badge>
-          </div>
-        </div>
         <SidebarNav sections={sections} />
       </div>
       <div className="mt-auto p-5">
         <div className="space-y-3 rounded-3xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
-          <p>Notifications now have a dedicated inbox. Presence and richer live sync still need work.</p>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
             {versionLabel}
           </p>

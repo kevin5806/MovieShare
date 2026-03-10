@@ -25,7 +25,10 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     STORAGE_REGION=us-east-1 \
     STORAGE_ACCESS_KEY= \
     STORAGE_SECRET_KEY= \
-    STORAGE_FORCE_PATH_STYLE=true
+    STORAGE_FORCE_PATH_STYLE=true \
+    VIXSRC_BASE_URL= \
+    VIXSRC_LANG=it \
+    PLEX_WATCH_URL_TEMPLATE=
 
 FROM base AS deps
 
@@ -41,6 +44,7 @@ ENV BUILD_STANDALONE=1
 
 COPY . .
 
+RUN npm run db:generate
 RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 FROM base AS prisma-tools

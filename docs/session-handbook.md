@@ -48,6 +48,7 @@ Last updated: March 10, 2026
 - additional streaming slots can be added, but they must not displace or degrade an existing user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - iframe-driven watch tracking now persists server-side state, but other viewers still do not see second-by-second position changes unless future realtime fan-out is added
+- the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have read state, but still lack delivery preference modeling or push channels
 - the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
@@ -89,6 +90,7 @@ Before finishing:
 - Keep boundaries clear: UI in `components`, orchestration in `features`, business logic in `server/services`.
 - Streaming abstraction must stay swappable: provider-specific code belongs only under `server/services/streaming`.
 - Do not remove or downgrade user-provided streaming integrations: if the user has wired a provider, preserve it and only improve or extend it unless explicitly told otherwise.
+- Do not reintroduce the HTML `sandbox` attribute on the watch playback iframe unless the user explicitly asks for it and the active provider has been verified to keep playback and client-side events working correctly.
 - No fake completeness: if a provider is truly placeholder-only, UI and docs must say so clearly, but do not relabel a user-provided integration as placeholder.
 - Server-first rendering: prefer server components and actions; when client rendering is required, make hydration-safe choices.
 - Security before convenience: protect search/admin/realtime endpoints, validate env in production, and keep secrets out of defaults.
@@ -125,3 +127,4 @@ Before finishing:
 - March 10, 2026: added iframe-driven watch tracking persistence through `/api/watch/events`, automatic heartbeat/end checkpoints, and a client embed listener that avoids refresh-driven playback resets
 - March 10, 2026: relaxed the iframe event listener to trust the first valid player origin and accept stringified numeric payloads, while tightening poster layouts so movie artwork fills its frame consistently
 - March 10, 2026: aligned admin-configurable services with env/bootstrap parity by adding env support for TMDB language, SMTP secure/port handling, access-method planning toggles, and streaming slot activation defaults
+- March 10, 2026: removed the watch-page iframe `sandbox` attribute so the current playback provider can use its native client-side behavior and event flow

@@ -94,6 +94,9 @@ services:
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-${MINIO_ROOT_USER:-movieshare}}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in your production env file}}
       STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
+      VIXSRC_BASE_URL: ${VIXSRC_BASE_URL:-}
+      VIXSRC_LANG: ${VIXSRC_LANG:-en}
+      PLEX_WATCH_URL_TEMPLATE: ${PLEX_WATCH_URL_TEMPLATE:-}
     ports:
       - "${APP_PORT:-3000}:3000"
     command: node scripts/container-start.mjs

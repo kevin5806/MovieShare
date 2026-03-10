@@ -1,4 +1,5 @@
-import { StreamingProvider, getPlaybackSourceParams, PlaybackSource } from '../types';
+import { env } from "@/server/env";
+import { StreamingProvider, getPlaybackSourceParams, PlaybackSource } from "../types";
 
 const VIXSRC_PROVIDER: StreamingProvider = {
   id: 'VIXSRC',
@@ -17,11 +18,11 @@ const VIXSRC_PROVIDER: StreamingProvider = {
   async getPlaybackSource(params: getPlaybackSourceParams): Promise<PlaybackSource> {
     const { tmdbId } = params; // watchSessionId non usato qui, ma disponibile se serve fetchare session data
 
-    const baseUrl = process.env.VIXSRC_BASE_URL;
+    const baseUrl = env.VIXSRC_BASE_URL.trim();
     if (!baseUrl) {
       return {
-        kind: 'unavailable',
-        message: 'Configurazione mancante: imposta VIXSRC_BASE_URL nelle env vars.',
+        kind: "unavailable",
+        message: "Configurazione mancante: imposta VIXSRC_BASE_URL nelle env vars.",
       };
     }
 
@@ -34,9 +35,9 @@ const VIXSRC_PROVIDER: StreamingProvider = {
     }
 
     return {
-      kind: 'embed',
+      kind: "embed",
       url: playbackUrl,
-      message: 'Embed pronto; customizza via query params se necessario (es. ?lang=it).',
+      message: "Embed pronto; customizza via query params se necessario (es. ?lang=it).",
     };
   },
 };
@@ -48,8 +49,8 @@ function buildPlaybackUrl(tmdbId: number, baseUrl: string): string | null {
     const url = new URL(path, baseUrl);
 
     // Aggiungi customizzazioni opzionali (es. da env o config)
-    const lang = process.env.VIXSRC_LANG || 'it';
-    url.searchParams.append('lang', lang);
+    const lang = env.VIXSRC_LANG.trim() || "it";
+    url.searchParams.append("lang", lang);
 
     // Esempi di altri params: uncomment se serve
     // url.searchParams.append('primaryColor', 'B20710');
@@ -57,7 +58,7 @@ function buildPlaybackUrl(tmdbId: number, baseUrl: string): string | null {
 
     return url.toString();
   } catch (error) {
-    console.error('Errore in buildPlaybackUrl:', error);
+    console.error("Errore in buildPlaybackUrl:", error);
     return null;
   }
 }

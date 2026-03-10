@@ -1,5 +1,6 @@
 .git
 .next
+generated
 node_modules
 coverage
 movielist-temp

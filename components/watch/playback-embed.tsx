@@ -289,7 +289,6 @@ export function PlaybackEmbed({
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
           onLoad={() => setIframeState("ready")}
         />
       </div>
