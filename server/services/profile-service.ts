@@ -93,6 +93,51 @@ export async function getProfileOverview(userId: string) {
   };
 }
 
+export async function getUserAccessOverview(input: {
+  userId: string;
+  currentSessionId?: string | null;
+}) {
+  const now = new Date();
+  const sessions = await db.session.findMany({
+    where: {
+      userId: input.userId,
+    },
+    orderBy: [
+      {
+        updatedAt: "desc",
+      },
+      {
+        createdAt: "desc",
+      },
+    ],
+    take: 12,
+  });
+
+  const recentAccesses = sessions.map((session) => ({
+    ...session,
+    isCurrent: input.currentSessionId ? session.id === input.currentSessionId : false,
+    isActive: session.expiresAt > now,
+  }));
+
+  return {
+    activeSessionCount: recentAccesses.filter((session) => session.isActive).length,
+    recentAccesses,
+    activeSessions: recentAccesses.filter((session) => session.isActive),
+  };
+}
+
+export async function getUserSessionById(input: {
+  userId: string;
+  sessionId: string;
+}) {
+  return db.session.findFirst({
+    where: {
+      id: input.sessionId,
+      userId: input.userId,
+    },
+  });
+}
+
 export async function upsertProfile(
   userId: string,
   input: {

@@ -1,6 +1,7 @@
 import { saveProfileAction } from "@/features/profile/actions";
 import { NotificationPreferenceEditor } from "@/components/notifications/notification-preference-editor";
 import { PushSubscriptionCard } from "@/components/notifications/push-subscription-card";
+import { AccessSessionsCard } from "@/components/profile/access-sessions-card";
 import { FriendshipPanel } from "@/components/profile/friendship-panel";
 import { SecuritySettingsCard } from "@/components/profile/security-settings-card";
 import { ImageUploadField } from "@/components/media/image-upload-field";
@@ -11,15 +12,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { requireSession } from "@/server/session";
 import { getNotificationSettingsOverview } from "@/server/services/notification-preference-service";
-import { getProfileOverview } from "@/server/services/profile-service";
+import { getProfileOverview, getUserAccessOverview } from "@/server/services/profile-service";
 import { getPublicAuthState } from "@/server/services/system-config";
 
 export default async function ProfilePage() {
   const session = await requireSession();
-  const [user, notificationSettings, authState] = await Promise.all([
+  const [user, notificationSettings, authState, accessOverview] = await Promise.all([
     getProfileOverview(session.user.id),
     getNotificationSettingsOverview(session.user.id),
     getPublicAuthState(),
+    getUserAccessOverview({
+      userId: session.user.id,
+      currentSessionId: session.session.id,
+    }),
   ]);
   const passkeyMethod =
     authState.securityMethods.find((method) => method.key === "PASSKEY") ?? null;
@@ -107,6 +112,10 @@ export default async function ProfilePage() {
               <p className="text-sm text-muted-foreground">Friends</p>
               <p className="mt-2 text-3xl font-semibold">{user?.friends.length ?? 0}</p>
             </div>
+            <div className="rounded-3xl border border-border/70 bg-background p-4">
+              <p className="text-sm text-muted-foreground">Active devices</p>
+              <p className="mt-2 text-3xl font-semibold">{accessOverview.activeSessionCount}</p>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -154,6 +163,20 @@ export default async function ProfilePage() {
           />
         </section>
       ) : null}
+
+      <AccessSessionsCard
+        activeSessionCount={accessOverview.activeSessionCount}
+        sessions={accessOverview.recentAccesses.map((session) => ({
+          id: session.id,
+          createdAt: session.createdAt.toISOString(),
+          updatedAt: session.updatedAt.toISOString(),
+          expiresAt: session.expiresAt.toISOString(),
+          ipAddress: session.ipAddress,
+          userAgent: session.userAgent,
+          isCurrent: session.isCurrent,
+          isActive: session.isActive,
+        }))}
+      />
 
       <Card className="border-border/70 bg-card/85">
         <CardHeader>

@@ -1,6 +1,8 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 export async function createList(page: Page, input: { name: string; description: string }) {
+  await page.goto("/lists");
+  await expect(page.getByRole("heading", { name: /^Lists$/ })).toBeVisible();
   await page.getByLabel("List name").fill(input.name);
   await page.getByLabel("List description").fill(input.description);
   await page.getByRole("button", { name: /create collaborative list/i }).click();

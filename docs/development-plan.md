@@ -17,6 +17,7 @@ Last updated: March 11, 2026
 - single progressive access form that branches into onboarding only when the email is new
 - admin-configurable email code, magic link and passkey access on the shared login screen
 - profile-level passkey and authenticator settings for eligible accounts
+- profile-level active session management and recent access history
 - TMDB-backed movie search with local caching of essential metadata
 - collaborative lists with owner/manager/member roles, invite management and movie removal controls
 - owner-side list deletion
@@ -89,6 +90,7 @@ Last updated: March 11, 2026
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods
 - completed: first real auth-method rollout for email code, magic link, passkeys and profile 2FA controls
+- completed: profile session/access management with cross-device sign-out coverage
 - completed: per-user watch progress model with grouped room propagation for shared in-room sessions
 - in progress: responsive hardening, streaming UX cleanup and richer presence behavior
 - pending: presence indicators without full refresh, richer collaborative playback controls, stronger PWA shell and broader notification automation
@@ -103,5 +105,6 @@ Last updated: March 11, 2026
 - current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter
 - current missing production areas also include broader push automation, digests and background/offline polish beyond the baseline service-worker implementation
 - current missing production areas also include deeper auth hardening, especially broader 2FA enforcement outside the password flow
+- current missing production areas also include broader account-security ergonomics beyond the new session manager, especially richer device naming and stronger second-factor coverage across every auth method
 - current missing production areas also include richer live presence for watch sessions; the progress model is in place, but second-by-second co-presence updates are still summary-driven rather than fully realtime
 - future integrations should follow the new `docs/integration-playbook.md` and `docs/streaming-provider-guide.md` documents instead of inventing new seams ad hoc

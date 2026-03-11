@@ -26,6 +26,7 @@ Last updated: March 11, 2026
 - the access flow is now progressive: users start from one form and only see onboarding fields if the email is new
 - email code, magic link and passkey access are now wired through Better Auth and exposed from the same login surface when enabled by admin/runtime state
 - profile security settings now let users manage passkeys and authenticator-based two-factor protection when the deployment and account are eligible
+- profile now also exposes active session management and recent access history, so users can review browser/device activity and sign out other devices without leaving the account area
 - the profile page and security section are stable again after hydration-safe push subscription handling, so passkey listing and two-factor controls render correctly in the shipped UI
 - magic-link verification now uses a Prisma-compatible `Verification.identifier` unique key, so opening a valid sign-in link no longer fails with the Better Auth adapter lookup error seen earlier
 - realtime live refresh exists through the self-hosted SSE route and broker
@@ -78,6 +79,7 @@ Last updated: March 11, 2026
 - notifications now have modeled defaults and per-user overrides, but delivery is still invite/activity-first rather than a full automation system
 - two-factor currently protects password sign-ins; passwordless email-code and magic-link flows are live, but they do not yet trigger the same second-step challenge automatically
 - text settings still use direct `DB -> env` fallback, while boolean slot/toggle settings use env bootstrap and then persistent admin overrides
+- server-side route protection now reads sessions with `disableCookieCache: true`, because revoked Better Auth sessions must stop working immediately across browsers instead of surviving in cached cookie payloads
 - responsive hardening is better in the shell, but still not complete across every complex page
 - the authenticated shell now keeps viewport scroll locked and expects the right-hand content card to be the scroll container
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
@@ -125,6 +127,7 @@ Before finishing:
 - No fake completeness: if a provider is truly placeholder-only, UI and docs must say so clearly, but do not relabel a user-provided integration as placeholder.
 - Server-first rendering: prefer server components and actions; when client rendering is required, make hydration-safe choices.
 - Security before convenience: protect search/admin/realtime endpoints, validate env in production, and keep secrets out of defaults.
+- Session revocation must be real-time from the user's perspective: protected app routes should prefer a fresh Better Auth session lookup over cached cookie session payloads.
 - Installation must stay easy: preserve `npm run setup`, reliable Docker startup, and clear README steps.
 - Production install should prefer tagged registry images over rebuilding from source on the target host.
 - Development should prefer `npm run dev` or the dedicated `app-dev` compose service over rebuilding the production image.
@@ -173,3 +176,4 @@ Before finishing:
 - March 11, 2026: finished the first real auth-method rollout with email codes, magic links, passkeys, profile security controls, clearer push setup guidance, owner-side list deletion, internal shell-only scrolling, and a broader copy/form polish pass
 - March 11, 2026: stabilized the profile security page, fixed Better Auth magic-link verification against Prisma, moved list management to a dedicated settings page, persisted list ordering preferences, and upgraded watch tracking to maintain per-user movie progress across partial group sessions
 - March 11, 2026: added admin-configurable VAPID key storage with env fallback, fixed the server-component `buttonVariants` import regression on list pages, and refreshed the Playwright suite to match the live UI while filtering known third-party iframe console noise
+- March 11, 2026: added profile-level active session management and recent access history, verified cross-device session revocation with Playwright, and switched protected-session reads to bypass Better Auth cookie cache so revoked sessions are rejected immediately

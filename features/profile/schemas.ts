@@ -18,3 +18,7 @@ export const respondToFriendInviteSchema = z.object({
   inviteId: z.string().min(1),
   action: z.enum(["accept", "decline"]),
 });
+
+export const revokeProfileSessionSchema = z.object({
+  sessionId: z.string().min(1),
+});

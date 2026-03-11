@@ -1,14 +1,19 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import {
   friendInviteSchema,
   profileSchema,
+  revokeProfileSessionSchema,
   respondToFriendInviteSchema,
 } from "@/features/profile/schemas";
 import { updateUserNotificationPreferencesSchema } from "@/features/notifications/preferences-schema";
 import { getOptionalFile } from "@/lib/form-files";
+import { auth } from "@/server/auth";
 import { requireSession } from "@/server/session";
 import {
   deleteManagedImageByUrl,
@@ -16,6 +21,7 @@ import {
 } from "@/server/services/media-storage";
 import { updateUserNotificationPreferences } from "@/server/services/notification-preference-service";
 import {
+  getUserSessionById,
   respondToFriendInvite,
   sendFriendInvite,
   upsertProfile,
@@ -145,6 +151,83 @@ export async function updateUserNotificationPreferencesAction(formData: FormData
       ok: false as const,
       error:
         error instanceof Error ? error.message : "Unable to update notification preferences.",
+    };
+  }
+}
+
+export async function revokeProfileSessionAction(formData: FormData) {
+  try {
+    const currentSession = await requireSession();
+    const parsed = revokeProfileSessionSchema.parse({
+      sessionId: formData.get("sessionId"),
+    });
+    const targetSession = await getUserSessionById({
+      userId: currentSession.user.id,
+      sessionId: parsed.sessionId,
+    });
+
+    if (!targetSession) {
+      return {
+        ok: false as const,
+        error: "Session not found.",
+      };
+    }
+
+    const requestHeaders = await headers();
+
+    if (currentSession.session.id === targetSession.id) {
+      await auth.api.signOut({
+        headers: requestHeaders,
+      });
+      redirect("/login");
+    }
+
+    await auth.api.revokeSession({
+      headers: requestHeaders,
+      body: {
+        token: targetSession.token,
+      },
+    });
+
+    revalidatePath("/profile");
+
+    return {
+      ok: true as const,
+      revokedCurrentSession: false,
+    };
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    console.error("revokeProfileSessionAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to end this session.",
+    };
+  }
+}
+
+export async function revokeOtherProfileSessionsAction() {
+  try {
+    await requireSession();
+
+    await auth.api.revokeOtherSessions({
+      headers: await headers(),
+    });
+
+    revalidatePath("/profile");
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("revokeOtherProfileSessionsAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to sign out the other devices.",
     };
   }
 }
