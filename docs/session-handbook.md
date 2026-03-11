@@ -46,6 +46,7 @@ Last updated: March 11, 2026
 - `npm run typecheck` now goes through `scripts/typecheck.mjs` because Next 16 typegen is intermittently leaving missing `.next/types` stub files on this project
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
+- the dashboard is now status-first and no longer embeds list creation directly; new lists should be created from the dedicated `/lists` area so the overview stays compact
 - the notifications inbox now has persistent read state, filterable feed actions, and shell badge counts driven by unread items
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
