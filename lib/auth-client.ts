@@ -1,7 +1,13 @@
 "use client";
 
 import { createAuthClient } from "better-auth/react";
-import { inferAdditionalFields } from "better-auth/client/plugins";
+import {
+  emailOTPClient,
+  inferAdditionalFields,
+  magicLinkClient,
+  twoFactorClient,
+} from "better-auth/client/plugins";
+import { passkeyClient } from "@better-auth/passkey/client";
 
 function getAuthOrigin() {
   if (typeof window !== "undefined") {
@@ -19,10 +25,19 @@ export const authClient = createAuthClient({
   baseURL: getAuthOrigin(),
   basePath: "/api/auth",
   plugins: [
+    emailOTPClient(),
+    magicLinkClient(),
+    twoFactorClient(),
+    passkeyClient(),
     inferAdditionalFields({
       user: {
         role: {
           type: "string",
+          required: false,
+          input: false,
+        },
+        twoFactorEnabled: {
+          type: "boolean",
           required: false,
           input: false,
         },

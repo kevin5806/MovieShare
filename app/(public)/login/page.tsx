@@ -2,6 +2,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { redirectIfAuthenticated } from "@/server/session";
+import { getPublicAuthState } from "@/server/services/system-config";
 
 export default async function LoginPage({
   searchParams,
@@ -11,6 +12,7 @@ export default async function LoginPage({
   await redirectIfAuthenticated();
   const params = await searchParams;
   const defaultEmail = typeof params.email === "string" ? params.email : "";
+  const authState = await getPublicAuthState();
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-16">
@@ -22,11 +24,11 @@ export default async function LoginPage({
               Access movieshare
             </p>
             <h1 className="max-w-xl text-5xl font-semibold tracking-tight">
-              One access form, whether you are returning or joining for the first time.
+              Welcome back, or start fresh without leaving this page.
             </h1>
             <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-              Start with your email and password. If the address is new, movieshare asks
-              only for your name and finishes the account setup in the same place.
+              Choose the sign-in method that feels simplest on this device. If the address
+              is new, movieshare collects only the missing basics and keeps the flow short.
             </p>
           </div>
         </section>
@@ -36,7 +38,7 @@ export default async function LoginPage({
             <CardTitle>Continue</CardTitle>
           </CardHeader>
           <CardContent>
-            <AuthForm defaultEmail={defaultEmail} />
+            <AuthForm defaultEmail={defaultEmail} methods={authState.methods} />
           </CardContent>
         </Card>
       </div>

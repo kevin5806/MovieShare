@@ -1,4 +1,4 @@
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Upload } from "lucide-react";
 
 import { Field, FieldDescription, FieldLabel } from "@/components/forms/field";
 import { SwitchField } from "@/components/forms/switch-field";
@@ -31,6 +31,7 @@ export function ImageUploadField({
   removeLabel = "Remove current image",
 }: ImageUploadFieldProps) {
   const hasPreview = Boolean(previewUrl);
+  const acceptedFormats = "JPG, PNG or WebP up to 5 MB.";
 
   return (
     <Field className="space-y-3">
@@ -49,7 +50,7 @@ export function ImageUploadField({
             <p className="font-medium text-foreground">
               {hasPreview ? "Current profile image" : "No profile image yet"}
             </p>
-            <p>JPG, PNG or WebP up to 5 MB.</p>
+            <p>{acceptedFormats}</p>
           </div>
         </div>
       ) : (
@@ -73,7 +74,7 @@ export function ImageUploadField({
               <p className="font-medium text-foreground">
                 {hasPreview ? "Current cover image" : placeholderLabel}
               </p>
-              <p className="text-muted-foreground">JPG, PNG or WebP up to 5 MB.</p>
+              <p className="text-muted-foreground">{acceptedFormats}</p>
             </div>
           </div>
           {!hasPreview ? (
@@ -84,7 +85,28 @@ export function ImageUploadField({
         </div>
       )}
 
-      <Input id={name} name={name} type="file" accept="image/jpeg,image/png,image/webp" />
+      <label
+        htmlFor={name}
+        className="flex cursor-pointer items-center justify-between gap-3 rounded-[24px] border border-border/70 bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/35"
+      >
+        <div className="space-y-1">
+          <p className="font-medium text-foreground">
+            {variant === "avatar" ? "Choose a profile image" : "Choose a cover image"}
+          </p>
+          <p className="text-muted-foreground">{acceptedFormats}</p>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-foreground">
+          <Upload className="size-3.5" />
+          Browse
+        </span>
+      </label>
+      <Input
+        id={name}
+        name={name}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+      />
 
       {removeName && hasPreview ? (
         <SwitchField

@@ -15,8 +15,11 @@ Last updated: March 11, 2026
 - landing, authentication, dashboard, list, movie detail, selection, watch session, profile and admin pages
 - notifications inbox page for invites, live sessions and recent activity
 - single progressive access form that branches into onboarding only when the email is new
+- admin-configurable email code, magic link and passkey access on the shared login screen
+- profile-level passkey and authenticator settings for eligible accounts
 - TMDB-backed movie search with local caching of essential metadata
 - collaborative lists with owner/manager/member roles, invite management and movie removal controls
+- owner-side list deletion
 - layered list invites for app users, restricted email links and public links
 - admin notification defaults plus per-user notification overrides
 - web push subscriptions and delivery baseline
@@ -80,8 +83,9 @@ Last updated: March 11, 2026
 - completed: registry-first image publishing and source-free production deployment path
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods
+- completed: first real auth-method rollout for email code, magic link, passkeys and profile 2FA controls
 - in progress: responsive hardening, streaming UX cleanup and richer presence behavior
-- pending: presence indicators without full refresh, richer collaborative playback controls, stronger PWA shell, deeper auth-method rollout and broader notification automation
+- pending: presence indicators without full refresh, richer collaborative playback controls, stronger PWA shell and broader notification automation
 
 ## Open Notes
 
@@ -92,5 +96,5 @@ Last updated: March 11, 2026
 - prefer server components and server actions unless client interactivity is required
 - current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter
 - current missing production areas also include broader push automation, digests and background/offline polish beyond the baseline service-worker implementation
-- current missing production areas also include live passkey/email-code/2FA wiring on top of the new admin roadmap state
+- current missing production areas also include deeper auth hardening, especially broader 2FA enforcement outside the password flow
 - future integrations should follow the new `docs/integration-playbook.md` and `docs/streaming-provider-guide.md` documents instead of inventing new seams ad hoc

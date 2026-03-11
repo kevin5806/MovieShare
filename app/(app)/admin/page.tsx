@@ -55,7 +55,7 @@ export default async function SystemAdminPage() {
         <Badge variant="secondary">System admin</Badge>
         <h1 className="text-4xl font-semibold tracking-tight">System settings</h1>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-          Configure TMDB access, email delivery defaults and streaming providers from one
+          Configure catalog access, delivery defaults and streaming providers from one
           place. If a field is left empty here, movieshare falls back to the server
           environment when possible.
         </p>
@@ -159,7 +159,7 @@ export default async function SystemAdminPage() {
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span>Access plan source</span>
+              <span>Access config source</span>
               <SourceBadge source={adminState.accessMethodSettings.source} />
             </div>
             <p className="pt-2">
@@ -308,45 +308,43 @@ export default async function SystemAdminPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-6 text-muted-foreground">
-              Store rollout intent for additional access methods here. Only email and
-              password is live today and remains read-only here; the toggles below keep the admin plan and
-              prerequisites visible until their runtime wiring lands. `AUTH_*` env vars can
-              bootstrap these toggles on first setup, and the panel can then override them.
+              Choose which sign-in methods movieshare should expose. `AUTH_*` env vars can
+              bootstrap these toggles on first setup, then the admin panel can override
+              them without a rebuild.
             </p>
             <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Email and password</p>
               <p className="mt-1">
-                This method is the current production access flow. It stays on until a
-                different live auth path is actually wired at bootstrap time.
+                This stays available as the main fallback sign-in method.
               </p>
             </div>
             <form action={updateAccessMethodSettingsAction} className="grid gap-4">
               <SwitchField
                 name="authEmailCodeEnabled"
                 label="Email code"
-                description="Plan a one-time-code flow for low-friction sign-in."
+                description="Allow people to request a short sign-in code by email."
                 defaultChecked={adminState.accessMethodSettings.authEmailCodeEnabled}
               />
               <SwitchField
                 name="authMagicLinkEnabled"
                 label="Magic link"
-                description="Plan passwordless access through emailed links."
+                description="Allow passwordless access from a sign-in link sent by email."
                 defaultChecked={adminState.accessMethodSettings.authMagicLinkEnabled}
               />
               <SwitchField
                 name="authPasskeyEnabled"
                 label="Passkeys"
-                description="Plan WebAuthn/passkey support for modern devices."
+                description="Expose passkey sign-in and profile management on supported devices."
                 defaultChecked={adminState.accessMethodSettings.authPasskeyEnabled}
               />
               <SwitchField
                 name="authTwoFactorEnabled"
                 label="Two-factor auth"
-                description="Plan an extra verification step for sensitive accounts."
+                description="Let users with a password login add an authenticator app."
                 defaultChecked={adminState.accessMethodSettings.authTwoFactorEnabled}
               />
               <Button type="submit" className="w-full">
-                Save access method plan
+                Save access methods
               </Button>
             </form>
           </CardContent>
@@ -392,11 +390,10 @@ export default async function SystemAdminPage() {
 
       <section className="space-y-4">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold tracking-tight">Access roadmap</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Access status</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            Keep future authentication work visible from the admin panel. These cards
-            separate what is already live from what is only configured or still blocked by
-            prerequisites such as SMTP or HTTPS.
+            See which access methods are live right now, which ones are switched off and
+            which ones are still blocked by missing prerequisites such as SMTP or HTTPS.
           </p>
         </div>
         <div className="grid gap-6 xl:grid-cols-2">

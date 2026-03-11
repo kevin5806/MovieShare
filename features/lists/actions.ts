@@ -8,6 +8,7 @@ import {
   addMovieToListSchema,
   createListInviteSchema,
   createListSchema,
+  deleteListSchema,
   removeListMemberSchema,
   removeMovieFromListSchema,
   respondToListInviteSchema,
@@ -24,6 +25,7 @@ import {
   addMovieToList,
   createListInvite,
   createList,
+  deleteList,
   removeListMember,
   removeMovieFromList,
   respondToListInvite,
@@ -70,6 +72,34 @@ export async function updateListPresentationAction(formData: FormData) {
 
   revalidatePath(`/lists/${parsed.listSlug}`);
   revalidatePath("/dashboard");
+}
+
+export async function deleteListAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = deleteListSchema.parse({
+      listId: formData.get("listId"),
+      listSlug: formData.get("listSlug"),
+    });
+
+    const result = await deleteList(session.user.id, parsed);
+
+    revalidatePath("/dashboard");
+    revalidatePath("/lists");
+
+    return {
+      ok: true as const,
+      listName: result.listName,
+    };
+  } catch (error) {
+    console.error("deleteListAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to delete this list.",
+    };
+  }
 }
 
 export async function addMovieToListAction(formData: FormData) {

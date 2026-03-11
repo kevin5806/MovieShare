@@ -24,10 +24,10 @@ export default async function Home() {
           <BrandMark />
           <div className="flex items-center gap-3">
             <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }))}>
-              Access
+              Sign in
             </Link>
             <Link href="/login?mode=sign-up" className={cn(buttonVariants())}>
-              Start free
+              Get started
             </Link>
           </div>
         </header>
@@ -37,7 +37,7 @@ export default async function Home() {
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">Self-hosted</Badge>
               <Badge variant="secondary">Collaborative lists</Badge>
-              <Badge variant="secondary">Realtime-ready architecture</Badge>
+              <Badge variant="secondary">Built for groups</Badge>
             </div>
 
             <div className="space-y-6">
@@ -45,8 +45,8 @@ export default async function Home() {
                 Shared movie lists that feel organized before the night even starts.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                movieshare helps friends collect proposals, compare feedback, run lightweight
-                selection modes and prepare future group watch sessions in one calm workspace.
+                movieshare helps friends collect ideas, compare reactions and settle on what
+                to watch together in one calm workspace.
               </p>
             </div>
 
@@ -62,9 +62,9 @@ export default async function Home() {
 
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                ["Lists that stay social", "Every movie keeps the proposer, feedback and selection context together."],
-                ["Selection without chaos", "Manual, random and heuristic modes are ready now, richer logic can grow later."],
-                ["Watch sessions ready", "Checkpoint and presence models already support shared watch tracking and future sync."],
+                ["Lists that stay social", "Every movie keeps the proposer, reactions and decisions in the same place."],
+                ["Picking gets easier", "Use a simple vote, a random pick or a guided filter when the room is undecided."],
+                ["Watch together, your way", "Keep track of who started, who joined and where everyone stopped."],
               ].map(([title, description]) => (
                 <Card key={title} className="border-border/70 bg-card/80 shadow-sm">
                   <CardHeader className="pb-2">
@@ -111,19 +111,19 @@ export default async function Home() {
                 <div className="rounded-3xl border border-border/70 bg-accent/55 p-4">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <UsersRound className="size-4" />
-                    Feedback snapshot
+                    Group snapshot
                   </div>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Seen, interested and rewatch signals are visible to the whole list.
+                    Everyone can see who is interested, who already watched it and what still feels fresh.
                   </p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-accent/55 p-4">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Radio className="size-4" />
-                    Realtime-ready domain
+                    Shared watch history
                   </div>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Presence and watch-session state are designed for live updates.
+                    Sessions keep a clear history of starts, pauses and resume points for the group.
                   </p>
                 </div>
               </div>

@@ -24,7 +24,11 @@ export function FriendInviteEmail({
       <Text style={paragraph}>
         <strong>{senderName}</strong> wants to connect with you on movieshare.
       </Text>
-      {message ? <Text style={messageBox}>“{message}”</Text> : null}
+      {message ? (
+        <Text style={messageBox}>
+          &ldquo;{message}&rdquo;
+        </Text>
+      ) : null}
       <Text style={paragraph}>
         Accepting the invite makes it easier to share collaborative lists and future watch
         sessions with the same people.

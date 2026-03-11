@@ -102,16 +102,16 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(226,232,240,0.45),_transparent_32%),linear-gradient(180deg,_rgba(248,250,252,0.92),_rgba(248,250,252,1))] dark:bg-[radial-gradient(circle_at_top_left,_rgba(51,65,85,0.26),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(15,23,42,1))]">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 px-3 py-3 sm:px-4 md:px-6 lg:flex-row lg:gap-6">
-        <aside className="hidden w-[280px] shrink-0 rounded-[32px] border border-border/70 bg-sidebar/85 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur lg:block">
-          <ScrollArea className="h-[calc(100vh-2rem)]">
+    <div className="h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(226,232,240,0.45),_transparent_32%),linear-gradient(180deg,_rgba(248,250,252,0.92),_rgba(248,250,252,1))] dark:bg-[radial-gradient(circle_at_top_left,_rgba(51,65,85,0.26),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(15,23,42,1))]">
+      <div className="mx-auto flex h-full min-h-0 max-w-[1600px] flex-col gap-4 px-3 py-3 sm:px-4 md:px-6 lg:flex-row lg:gap-6">
+        <aside className="hidden h-full w-[280px] shrink-0 rounded-[32px] border border-border/70 bg-sidebar/85 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur lg:block">
+          <ScrollArea className="h-full">
             <SidebarContent sections={sections} versionLabel={versionLabel} />
           </ScrollArea>
         </aside>
 
-        <div className="flex min-h-[calc(100vh-1.5rem)] flex-1 flex-col rounded-[28px] border border-border/70 bg-background/90 shadow-[0_22px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:rounded-[32px] lg:min-h-[calc(100vh-2rem)]">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-4 md:px-6">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-border/70 bg-background/90 shadow-[0_22px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:rounded-[32px]">
+          <header className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-4 md:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <Sheet>
                 <SheetTrigger
@@ -140,7 +140,7 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
             <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
               <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs text-muted-foreground md:flex">
                 <Radio className="size-4" />
-                <span>Live refresh on</span>
+                <span>Shared updates on</span>
               </div>
               <InstallPrompt />
               <Link
@@ -165,7 +165,9 @@ export function AppShell({ children, user, notificationCount, versionLabel }: Ap
             </div>
           </header>
 
-          <main className="flex-1 p-3 sm:p-4 md:p-6">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+            {children}
+          </main>
         </div>
       </div>
     </div>

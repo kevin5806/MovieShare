@@ -21,6 +21,11 @@ export const updateListPresentationSchema = z.object({
   removeCoverImage: formBoolean,
 });
 
+export const deleteListSchema = z.object({
+  listId: z.string().min(1),
+  listSlug: z.string().min(1),
+});
+
 export const addMovieToListSchema = z.object({
   listId: z.string().min(1),
   listSlug: z.string().min(1),

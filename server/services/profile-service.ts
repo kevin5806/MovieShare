@@ -8,6 +8,12 @@ export async function getProfileOverview(userId: string) {
       id: userId,
     },
     include: {
+      accounts: {
+        select: {
+          providerId: true,
+          password: true,
+        },
+      },
       profile: true,
       sentFriendInvites: {
         where: {
@@ -80,6 +86,9 @@ export async function getProfileOverview(userId: string) {
 
   return {
     ...user,
+    hasPasswordAccount: user.accounts.some(
+      (account) => account.providerId === "credential" && Boolean(account.password),
+    ),
     friends,
   };
 }

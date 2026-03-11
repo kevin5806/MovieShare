@@ -2,6 +2,7 @@ import { saveProfileAction } from "@/features/profile/actions";
 import { NotificationPreferenceEditor } from "@/components/notifications/notification-preference-editor";
 import { PushSubscriptionCard } from "@/components/notifications/push-subscription-card";
 import { FriendshipPanel } from "@/components/profile/friendship-panel";
+import { SecuritySettingsCard } from "@/components/profile/security-settings-card";
 import { ImageUploadField } from "@/components/media/image-upload-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { requireSession } from "@/server/session";
 import { getNotificationSettingsOverview } from "@/server/services/notification-preference-service";
 import { getProfileOverview } from "@/server/services/profile-service";
+import { getPublicAuthState } from "@/server/services/system-config";
 
 export default async function ProfilePage() {
   const session = await requireSession();
-  const [user, notificationSettings] = await Promise.all([
+  const [user, notificationSettings, authState] = await Promise.all([
     getProfileOverview(session.user.id),
     getNotificationSettingsOverview(session.user.id),
+    getPublicAuthState(),
   ]);
+  const passkeyMethod =
+    authState.securityMethods.find((method) => method.key === "PASSKEY") ?? null;
+  const twoFactorMethod =
+    authState.securityMethods.find((method) => method.key === "TWO_FACTOR") ?? null;
 
   return (
     <div className="space-y-8">
@@ -25,7 +32,8 @@ export default async function ProfilePage() {
         <Badge variant="secondary">{session.user.role}</Badge>
         <h1 className="text-4xl font-semibold tracking-tight">Profile</h1>
         <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-          Keep a lightweight public profile for collaborators and future selection heuristics.
+          Keep your profile clear, decide how people reach you and choose how updates should
+          arrive.
         </p>
       </section>
 
@@ -39,7 +47,7 @@ export default async function ProfilePage() {
               <ImageUploadField
                 name="avatarImage"
                 label="Profile image"
-                description="Use a lightweight public avatar so collaborators recognize you across lists and sessions."
+                description="Choose a simple profile image so people recognize you across lists and watch sessions."
                 previewUrl={user?.image}
                 previewAlt={user?.name ?? session.user.name}
                 placeholderLabel={user?.profile?.displayName || user?.name || session.user.name}
@@ -129,14 +137,32 @@ export default async function ProfilePage() {
         />
       ) : null}
 
+      {user ? (
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight">Access and security</h2>
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+              Keep the sign-in experience comfortable on your devices while protecting the
+              account when you want an extra checkpoint.
+            </p>
+          </div>
+          <SecuritySettingsCard
+            hasPasswordAccount={user.hasPasswordAccount}
+            initialTwoFactorEnabled={user.twoFactorEnabled}
+            passkeyMethod={passkeyMethod}
+            twoFactorMethod={twoFactorMethod}
+          />
+        </section>
+      ) : null}
+
       <Card className="border-border/70 bg-card/85">
         <CardHeader>
           <CardTitle>Notification preferences</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            Override the system defaults for in-app, email and push notifications from one
-            place. Push delivery also requires a browser subscription on this device.
+            Override the app defaults for in-app, email and push notifications from one
+            place. Push only starts working after this browser is subscribed below.
           </p>
           <NotificationPreferenceEditor
             scope="user"

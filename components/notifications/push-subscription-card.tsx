@@ -14,6 +14,7 @@ type PushSubscriptionCardProps = {
     isEnabled: boolean;
     vapidConfigured: boolean;
     publicKey: string | null;
+    source?: "database" | "environment" | "missing";
   };
   activeSubscriptionCount: number;
 };
@@ -65,15 +66,15 @@ export function PushSubscriptionCard({
     }
 
     if (!pushRuntime.vapidConfigured) {
-      return "Push runtime is not configured on the server.";
+      return "This deployment still needs VAPID keys in its environment before push can work.";
     }
 
     if (!pushRuntime.isEnabled) {
-      return "Push delivery is disabled by the system admin.";
+      return "Push is configured on the server but currently disabled by the admin.";
     }
 
     if (permission === "granted") {
-      return "This browser can receive push notifications after subscription.";
+      return "This browser can receive push notifications as soon as this device is subscribed.";
     }
 
     if (permission === "denied") {
@@ -195,9 +196,23 @@ export function PushSubscriptionCard({
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{permission}</Badge>
           <Badge variant="secondary">{activeSubscriptionCount} active subscription(s)</Badge>
+          {pushRuntime.source ? (
+            <Badge variant="secondary">
+              {pushRuntime.source === "environment"
+                ? "Env bootstrap"
+                : pushRuntime.source === "database"
+                  ? "Admin override"
+                  : "Not configured"}
+            </Badge>
+          ) : null}
           {isReady ? <Badge>Ready</Badge> : <Badge variant="outline">Not ready</Badge>}
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{summary}</p>
+        <div className="rounded-2xl border border-dashed border-border bg-background px-4 py-3 text-sm leading-6 text-muted-foreground">
+          To enable push here: the deployment must provide `VAPID_PUBLIC_KEY`,
+          `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` in env, admin must enable push in system
+          settings, and then you can register this browser with the button below.
+        </div>
         <div className="flex flex-wrap gap-3">
           <Button type="button" onClick={subscribe} disabled={isPending || !isReady}>
             <BellRing className="size-4" />

@@ -17,6 +17,19 @@ export type AccessMethodKey =
   | "TWO_FACTOR";
 export type AccessMethodAvailability = "live" | "config-only" | "blocked";
 
+type AccessMethodSettings = ReturnType<typeof getAccessMethodEffectiveSettings>;
+
+function isLocalAuthOrigin(url: string) {
+  const { hostname } = new URL(url);
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function canUsePasskeys(authBaseUrl: string) {
+  const parsed = new URL(authBaseUrl);
+
+  return parsed.protocol === "https:" || isLocalAuthOrigin(authBaseUrl);
+}
+
 function normalizeOptionalString(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -58,12 +71,29 @@ function getAccessMethodEffectiveSettings(config: Awaited<ReturnType<typeof getS
 }
 
 function buildAccessMethodsAdminState(input: {
-  accessMethodSettings: ReturnType<typeof getAccessMethodEffectiveSettings>;
+  accessMethodSettings: AccessMethodSettings;
   emailConfigured: boolean;
+  authBaseUrl: string;
 }) {
-  const emailDependentAvailability: AccessMethodAvailability = input.emailConfigured
-    ? "config-only"
-    : "blocked";
+  const passkeysSupported = canUsePasskeys(input.authBaseUrl);
+  const emailCodeAvailability: AccessMethodAvailability = input.accessMethodSettings.authEmailCodeEnabled
+    ? input.emailConfigured
+      ? "live"
+      : "blocked"
+    : "config-only";
+  const magicLinkAvailability: AccessMethodAvailability = input.accessMethodSettings.authMagicLinkEnabled
+    ? input.emailConfigured
+      ? "live"
+      : "blocked"
+    : "config-only";
+  const passkeyAvailability: AccessMethodAvailability = input.accessMethodSettings.authPasskeyEnabled
+    ? passkeysSupported
+      ? "live"
+      : "blocked"
+    : "config-only";
+  const twoFactorAvailability: AccessMethodAvailability = input.accessMethodSettings.authTwoFactorEnabled
+    ? "live"
+    : "config-only";
 
   return [
     {
@@ -77,47 +107,73 @@ function buildAccessMethodsAdminState(input: {
     {
       key: "EMAIL_CODE" as const,
       label: "Email code",
-      description: "Useful for low-friction sign-in and lightweight account recovery.",
+      description: "A quick sign-in code sent to the user email address.",
       isEnabled: input.accessMethodSettings.authEmailCodeEnabled,
-      availability: emailDependentAvailability,
+      availability: emailCodeAvailability,
       source: input.accessMethodSettings.source,
-      requirement: input.emailConfigured
-        ? "SMTP is configured, so rollout can be wired on top of the current auth stack."
-        : "Requires working SMTP delivery before it can be turned into a real sign-in method.",
+      requirement:
+        emailCodeAvailability === "live"
+          ? "Live now. Users can request a one-time code from the login page."
+          : input.emailConfigured
+            ? "SMTP is ready. Turn this on to expose one-time codes on the login page."
+            : "Requires working SMTP delivery before it can be exposed.",
     },
     {
       key: "MAGIC_LINK" as const,
       label: "Magic link",
-      description: "Email-link based access for users who do not want a password.",
+      description: "A sign-in link sent by email for people who prefer to skip passwords.",
       isEnabled: input.accessMethodSettings.authMagicLinkEnabled,
-      availability: emailDependentAvailability,
+      availability: magicLinkAvailability,
       source: input.accessMethodSettings.source,
-      requirement: input.emailConfigured
-        ? "SMTP is configured, so link delivery can be added without changing the domain model."
-        : "Requires working SMTP delivery before link-based access is viable.",
+      requirement:
+        magicLinkAvailability === "live"
+          ? "Live now. Users can request a sign-in link directly from the login page."
+          : input.emailConfigured
+            ? "SMTP is ready. Turn this on to expose magic links on the login page."
+            : "Requires working SMTP delivery before link-based sign-in is viable.",
     },
     {
       key: "PASSKEY" as const,
       label: "Passkeys",
-      description: "Best future option for passwordless access on modern browsers and devices.",
+      description: "Passwordless access on supported browsers and devices.",
       isEnabled: input.accessMethodSettings.authPasskeyEnabled,
-      availability: "config-only" as const,
+      availability: passkeyAvailability,
       source: input.accessMethodSettings.source,
       requirement:
-        "Requires HTTPS, RP configuration and explicit Better Auth passkey wiring before rollout.",
+        passkeyAvailability === "live"
+          ? "Live now. Users can sign in with a saved passkey and add new ones from their profile."
+          : passkeysSupported
+            ? "The deployment supports passkeys. Turn this on to expose passkey sign-in and profile management."
+            : "Passkeys require HTTPS or localhost, plus a stable Better Auth URL hostname.",
     },
     {
       key: "TWO_FACTOR" as const,
       label: "Two-factor authentication",
-      description: "Additional step for protecting sensitive or admin accounts.",
+      description: "Extra protection for password-based sign-ins with an authenticator app.",
       isEnabled: input.accessMethodSettings.authTwoFactorEnabled,
-      availability: emailDependentAvailability,
+      availability: twoFactorAvailability,
       source: input.accessMethodSettings.source,
-      requirement: input.emailConfigured
-        ? "SMTP exists, so OTP-based 2FA can be layered on top of the current login flow."
-        : "Needs a delivery channel such as email OTP or TOTP onboarding before activation.",
+      requirement:
+        twoFactorAvailability === "live"
+          ? "Live now. Users with a password login can enable it from their profile."
+          : "Turn this on to let eligible users add authenticator-app protection from their profile.",
     },
   ];
+}
+
+async function getAuthRuntimeState() {
+  const [config, email] = await Promise.all([getSystemConfig(), getEmailRuntimeConfig()]);
+  const accessMethodSettings = getAccessMethodEffectiveSettings(config);
+  const allMethods = buildAccessMethodsAdminState({
+    accessMethodSettings,
+    emailConfigured: email.isConfigured,
+    authBaseUrl: env.BETTER_AUTH_URL,
+  });
+
+  return {
+    allMethods,
+    accessMethodSettings,
+  };
 }
 
 export async function ensureSystemConfigSeeded() {
@@ -251,9 +307,25 @@ export async function getSystemAdminState() {
     accessMethods: buildAccessMethodsAdminState({
       accessMethodSettings,
       emailConfigured: email.isConfigured,
+      authBaseUrl: env.BETTER_AUTH_URL,
     }),
     streaming,
     authBaseUrl: env.BETTER_AUTH_URL,
+  };
+}
+
+export async function getPublicAuthState() {
+  const { allMethods, accessMethodSettings } = await getAuthRuntimeState();
+  const methods = allMethods.filter((method) => method.key !== "TWO_FACTOR");
+  const securityMethods = allMethods.filter(
+    (method) => method.key === "PASSKEY" || method.key === "TWO_FACTOR",
+  );
+
+  return {
+    methods,
+    securityMethods,
+    settings: accessMethodSettings,
+    twoFactorEnabled: accessMethodSettings.authTwoFactorEnabled,
   };
 }
 

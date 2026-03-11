@@ -3,8 +3,10 @@ import nodemailer from "nodemailer";
 
 import { NotificationCategory } from "@/generated/prisma/client";
 import { env } from "@/server/env";
+import { AuthCodeEmail } from "@/server/email/templates/auth-code-email";
 import { FriendInviteEmail } from "@/server/email/templates/friend-invite-email";
 import { ListInviteEmail } from "@/server/email/templates/list-invite-email";
+import { MagicLinkEmail } from "@/server/email/templates/magic-link-email";
 import { getEffectiveNotificationPreferences } from "@/server/services/notification-preference-service";
 import { getEmailRuntimeConfig } from "@/server/services/system-config";
 
@@ -74,6 +76,42 @@ export async function sendEmail(input: {
       error: error instanceof Error ? error.message : "Unknown email error",
     };
   }
+}
+
+export async function sendSignInCodeEmail(input: {
+  to: string;
+  code: string;
+  type: "sign-in" | "forget-password" | "email-verification" | "change-email";
+}) {
+  const loginUrl = buildAbsoluteUrl("/login");
+
+  if (input.type !== "sign-in") {
+    return sendEmail({
+      to: input.to,
+      subject: "Your movieshare verification code",
+      text: `Your movieshare verification code is ${input.code}. Open ${loginUrl} if you need to continue the flow manually.`,
+      html: await render(<AuthCodeEmail code={input.code} loginUrl={loginUrl} />),
+    });
+  }
+
+  return sendEmail({
+    to: input.to,
+    subject: "Your movieshare sign-in code",
+    text: `Your movieshare sign-in code is ${input.code}. Open ${loginUrl} to continue.`,
+    html: await render(<AuthCodeEmail code={input.code} loginUrl={loginUrl} />),
+  });
+}
+
+export async function sendMagicLinkEmail(input: {
+  to: string;
+  url: string;
+}) {
+  return sendEmail({
+    to: input.to,
+    subject: "Your movieshare sign-in link",
+    text: `Open this link to sign in to movieshare: ${input.url}`,
+    html: await render(<MagicLinkEmail loginUrl={input.url} />),
+  });
 }
 
 export async function sendListInviteEmail(input: {

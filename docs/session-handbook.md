@@ -18,15 +18,19 @@ Last updated: March 11, 2026
 - keep the new media storage stack stable so profile/list imagery stays easy to operate
 - improve production readiness without making unsupported compliance or deployment claims about streaming integrations
 - keep admin configuration controls working end-to-end, especially toggle-based forms
+- keep the new access-method rollout honest in copy and behavior: live methods should work end-to-end, blocked ones should say why
 
 ## Current state snapshot
 
 - authentication now uses a single access flow on `/login`, with `/register` kept as a compatibility redirect
 - the access flow is now progressive: users start from one form and only see onboarding fields if the email is new
+- email code, magic link and passkey access are now wired through Better Auth and exposed from the same login surface when enabled by admin/runtime state
+- profile security settings now let users manage passkeys and authenticator-based two-factor protection when the deployment and account are eligible
 - realtime live refresh exists through the self-hosted SSE route and broker
 - watch playback pages can now ingest iframe `PLAYER_EVENT` messages and persist automatic progress updates without forcing a full-page refresh
 - the watch embed listener is now tolerant of numeric-string payloads and deployment-specific iframe origins, and movie posters are being normalized toward full-bleed cover frames
 - collaborative lists now support `OWNER`, `MANAGER`, and `MEMBER` roles, owner-side member moderation, and movie removal by proposer or manager
+- list owners can now delete a list from the list detail page
 - list invites now support app-user delivery, email-bound links, and reusable public links with optional target role and usage limits
 - React Email now drives invite delivery, while notification defaults and per-user overrides cover in-app, email, and push channels
 - device push subscriptions can now be managed from the profile when VAPID is configured and push is enabled by admin
@@ -64,9 +68,10 @@ Last updated: March 11, 2026
 - the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have modeled defaults and per-user overrides, but delivery is still invite/activity-first rather than a full automation system
-- the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
+- two-factor currently protects password sign-ins; passwordless email-code and magic-link flows are live, but they do not yet trigger the same second-step challenge automatically
 - text settings still use direct `DB -> env` fallback, while boolean slot/toggle settings use env bootstrap and then persistent admin overrides
 - responsive hardening is better in the shell, but still not complete across every complex page
+- the authenticated shell now keeps viewport scroll locked and expects the right-hand content card to be the scroll container
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
@@ -126,6 +131,7 @@ Before finishing:
 - expand tests around server actions and list/watch flows
 - improve the existing user-provided streaming integration through safer typing, tests, UI wiring, and operational tooling
 - extend the new media/image layer, notification automation, and auth roadmap without reintroducing dead-end one-off UI
+- keep refining copy and form polish so user-facing pages stay plain-language and non-technical
 
 ## Update log
 
@@ -155,3 +161,4 @@ Before finishing:
 - March 11, 2026: manual `Publish container image` runs now default `publish_latest` to false, and production deployments should prefer immutable version tags over `latest`
 - March 11, 2026: stabilized `npm run typecheck` with a dedicated script because Next 16 typegen was intermittently omitting `.next/types` stub files needed by plain `tsc`
 - March 11, 2026: expanded the Playwright suite into full-site flows, hardened auth helpers to wait on real `/api/auth/*` responses, and raised Better Auth sign-in/sign-up burst limits enough for local E2E coverage without disabling rate limiting
+- March 11, 2026: finished the first real auth-method rollout with email codes, magic links, passkeys, profile security controls, clearer push setup guidance, owner-side list deletion, internal shell-only scrolling, and a broader copy/form polish pass

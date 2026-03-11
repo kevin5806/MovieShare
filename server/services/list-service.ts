@@ -418,6 +418,33 @@ export async function updateListPresentation(
   return updatedList;
 }
 
+export async function deleteList(
+  userId: string,
+  input: {
+    listId: string;
+    listSlug: string;
+  },
+) {
+  const list = await requireListOwner(input.listId, userId);
+
+  await db.movieList.delete({
+    where: {
+      id: list.id,
+    },
+  });
+
+  if (list.coverImageUrl) {
+    await deleteManagedImageByUrl(list.coverImageUrl).catch((error) => {
+      console.error("deleteManagedImageByUrl failed", error);
+    });
+  }
+
+  return {
+    listName: list.name,
+    listSlug: input.listSlug,
+  };
+}
+
 export async function getListDetails(slug: string, userId: string) {
   const list = await requireListAccessBySlug(slug, userId);
   const syncedMovies = await syncMovieArtworkBatch(list.items.map((item) => item.movie));

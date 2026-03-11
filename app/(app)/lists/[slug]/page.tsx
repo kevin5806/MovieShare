@@ -2,6 +2,7 @@ import { UsersRound, WandSparkles } from "lucide-react";
 
 import { InviteMembersCard } from "@/components/lists/invite-members-card";
 import { MemberManagementCard } from "@/components/lists/member-management-card";
+import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { ListPresentationForm } from "@/components/lists/list-presentation-form";
 import { MediaImage } from "@/components/media/media-image";
 import { AddMovieDialog } from "@/components/movies/add-movie-dialog";
@@ -49,7 +50,7 @@ export default async function ListPage({
             <div>
               <h1 className="text-4xl font-semibold tracking-tight">{list.name}</h1>
               <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
-                {list.description || "No description yet for this room."}
+                {list.description || "No description yet for this list."}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
@@ -67,7 +68,7 @@ export default async function ListPage({
         <Card className="border-border/70 bg-card/85">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Movies in this list</CardTitle>
-            <Badge variant="secondary">TMDB-backed</Badge>
+            <Badge variant="secondary">{list.items.length} saved</Badge>
           </CardHeader>
           <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {list.items.length ? (
@@ -76,7 +77,7 @@ export default async function ListPage({
               ))
             ) : (
               <div className="rounded-3xl border border-dashed border-border bg-background p-8 text-sm text-muted-foreground">
-                No movies yet. Add the first proposal from TMDB to start the conversation.
+                No movies yet. Add the first title to start the conversation.
               </div>
             )}
           </CardContent>
@@ -184,6 +185,21 @@ export default async function ListPage({
                 },
               }))}
             />
+          ) : null}
+
+          {isOwner ? (
+            <Card className="border-destructive/20 bg-card/85">
+              <CardHeader>
+                <CardTitle>Delete list</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm leading-6 text-muted-foreground">
+                  This permanently removes the list, its invites, feedback, sessions and
+                  shared history for everyone.
+                </p>
+                <DeleteListButton listId={list.id} listSlug={list.slug} listName={list.name} />
+              </CardContent>
+            </Card>
           ) : null}
         </div>
       </section>

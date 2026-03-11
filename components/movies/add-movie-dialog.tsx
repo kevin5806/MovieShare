@@ -68,7 +68,7 @@ export function AddMovieDialog({
         };
 
         if (!response.ok) {
-          toast.error(payload.error ?? "Unable to search TMDB.");
+          toast.error(payload.error ?? "Unable to search right now.");
           return;
         }
 
@@ -78,7 +78,7 @@ export function AddMovieDialog({
           return;
         }
 
-        toast.error("Unable to search TMDB right now.");
+        toast.error("Unable to search right now.");
       } finally {
         if (!controller.signal.aborted) {
           setIsSearching(false);
@@ -125,13 +125,13 @@ export function AddMovieDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className={cn(buttonVariants())}>
         <Plus className="size-4" />
-        Add movie from TMDB
+        Add movie
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] max-w-4xl overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle>Add a movie</DialogTitle>
           <DialogDescription>
-            Search TMDB and save only the metadata needed by your workspace.
+            Search for a title and add it to the list in a couple of clicks.
           </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-col gap-4 px-6 pb-6">
@@ -140,9 +140,9 @@ export function AddMovieDialog({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              aria-label="Search TMDB movies"
+              aria-label="Search movies"
               className="pl-10"
-              placeholder="Search for a title, director-adjacent title, or year"
+              placeholder="Search by title or year"
             />
           </div>
 
@@ -150,7 +150,7 @@ export function AddMovieDialog({
             {isSearching ? (
               <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/50 px-4 py-6 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
-                Searching TMDB...
+                Searching...
               </div>
             ) : visibleResults.length ? (
               visibleResults.map((result) => (
@@ -199,7 +199,7 @@ export function AddMovieDialog({
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-border bg-muted/35 px-4 py-6 text-sm text-muted-foreground">
-                Start typing to search TMDB.
+                Start typing to search for a movie.
               </div>
             )}
           </div>

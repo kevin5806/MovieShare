@@ -65,12 +65,12 @@ export function NotificationPreferenceEditor({
 
   const pushCopy = useMemo(() => {
     if (!pushRuntime.vapidConfigured) {
-      return "Push runtime is unavailable until VAPID env vars are configured.";
+      return "Push needs VAPID keys in the server environment before the app can offer device subscriptions.";
     }
 
     return pushNotificationsEnabled
-      ? "Push delivery is enabled. Users can subscribe from their profile."
-      : "Push delivery is disabled at system level even if VAPID is configured.";
+      ? "Push is available. Users still need to enable it on each device from their profile."
+      : "Push is configured but currently disabled from the admin panel.";
   }, [pushNotificationsEnabled, pushRuntime.vapidConfigured]);
 
   function setChannel(category: NotificationCategoryValue, channel: ChannelKey, value: boolean) {
@@ -132,17 +132,25 @@ export function NotificationPreferenceEditor({
       {scope === "admin" ? (
         <div className="rounded-[28px] border border-border/70 bg-background p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <p className="font-medium">Push delivery master switch</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">Push delivery master switch</p>
                 {pushRuntime.source ? (
                   <Badge variant="secondary">
-                    {pushRuntime.source === "environment" ? "Env bootstrap" : "Database"}
+                    {pushRuntime.source === "environment"
+                      ? "Env bootstrap"
+                      : pushRuntime.source === "database"
+                        ? "Database"
+                        : "Not configured"}
                   </Badge>
                 ) : null}
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{pushCopy}</p>
+                <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-3 text-xs leading-5 text-muted-foreground">
+                  Setup order: `VAPID_*` in env, enable push here in admin, then each user
+                  subscribes from their own profile.
+                </div>
               </div>
-              <p className="text-sm leading-6 text-muted-foreground">{pushCopy}</p>
-            </div>
             <div className="flex items-center gap-3">
               <Badge variant={pushRuntime.vapidConfigured ? "secondary" : "outline"}>
                 {pushRuntime.vapidConfigured ? "VAPID configured" : "VAPID missing"}

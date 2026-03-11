@@ -141,7 +141,12 @@ describe("system-config service", () => {
         }),
         expect.objectContaining({
           key: "EMAIL_CODE",
-          availability: "config-only",
+          availability: "live",
+          isEnabled: true,
+        }),
+        expect.objectContaining({
+          key: "TWO_FACTOR",
+          availability: "live",
           isEnabled: true,
         }),
       ]),

@@ -118,10 +118,13 @@ model User {
   emailVerified         Boolean             @default(false)
   image                 String?
   role                  UserRole            @default(USER)
+  twoFactorEnabled      Boolean             @default(false)
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   accounts              Account[]
   sessions              Session[]
+  twoFactor             TwoFactor?
+  passkeys              Passkey[]
   profile               Profile?
   createdLists          MovieList[]         @relation("MovieListOwner")
   listMemberships       MovieListMember[]
@@ -479,6 +482,34 @@ model PushSubscription {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive])
+}
+
+model TwoFactor {
+  id          String   @id
+  secret      String
+  backupCodes String
+  userId      String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Passkey {
+  id           String   @id
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String   @unique
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  aaguid       String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Session {

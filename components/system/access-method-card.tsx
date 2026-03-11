@@ -40,7 +40,7 @@ export function AccessMethodCard({ method }: AccessMethodCardProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant={availability.variant}>{availability.label}</Badge>
-          <Badge variant="secondary">{method.isEnabled ? "Planned" : "Off"}</Badge>
+          <Badge variant="secondary">{method.isEnabled ? "On" : "Off"}</Badge>
           {method.source === "environment" ? (
             <Badge variant="secondary">Env bootstrap</Badge>
           ) : null}
