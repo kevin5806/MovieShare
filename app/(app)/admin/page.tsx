@@ -5,6 +5,7 @@ import {
   updateTmdbSettingsAction,
 } from "@/features/system/actions";
 import { Field, FieldLabel } from "@/components/forms/field";
+import { NotificationPreferenceEditor } from "@/components/notifications/notification-preference-editor";
 import { SwitchField } from "@/components/forms/switch-field";
 import { AccessMethodCard } from "@/components/system/access-method-card";
 import {
@@ -17,6 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { requireAdminSession } from "@/server/session";
+import {
+  getPushRuntimeConfig,
+  getSystemNotificationPreferences,
+} from "@/server/services/notification-preference-service";
 import { getSystemAdminState } from "@/server/services/system-config";
 import { getApplicationVersion } from "@/server/version";
 
@@ -34,9 +39,11 @@ function SourceBadge({ source }: { source: "database" | "environment" | "missing
 
 export default async function SystemAdminPage() {
   await requireAdminSession();
-  const [adminState, appVersion] = await Promise.all([
+  const [adminState, appVersion, notificationPreferences, pushRuntime] = await Promise.all([
     getSystemAdminState(),
     getApplicationVersion(),
+    getSystemNotificationPreferences(),
+    getPushRuntimeConfig(),
   ]);
   const providerCatalog = new Map(
     adminState.streaming.providers.map((provider) => [provider.key, provider] as const),
@@ -342,6 +349,43 @@ export default async function SystemAdminPage() {
                 Save access method plan
               </Button>
             </form>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-4">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight">Notification defaults</h2>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Define the baseline delivery policy for everyone in movieshare. Users can
+            override these defaults from their own profile settings.
+          </p>
+        </div>
+        <Card className="border-border/70 bg-card/85">
+          <CardHeader>
+            <CardTitle>Default channels</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotificationPreferenceEditor
+              scope="admin"
+              preferences={notificationPreferences.map((preference) => ({
+                category: preference.category,
+                label: preference.label,
+                description: preference.description,
+                defaults: {
+                  inAppEnabled: preference.inAppEnabled,
+                  emailEnabled: preference.emailEnabled,
+                  pushEnabled: preference.pushEnabled,
+                },
+                effective: {
+                  inAppEnabled: preference.inAppEnabled,
+                  emailEnabled: preference.emailEnabled,
+                  pushEnabled: preference.pushEnabled,
+                },
+                pushAvailable: preference.pushAvailable,
+              }))}
+              pushRuntime={pushRuntime}
+            />
           </CardContent>
         </Card>
       </section>

@@ -39,12 +39,13 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
   return (
     <Link href={`/lists/${listSlug}/movies/${item.id}`} className="block h-full">
       <Card className="flex h-full flex-col overflow-hidden border-border/70 bg-card/85 shadow-sm transition-transform hover:-translate-y-0.5">
-        <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+        <div className="relative isolate aspect-[2/3] overflow-hidden bg-muted">
           {getMoviePosterUrl(item.movie) ? (
             <MediaImage
               src={getMoviePosterUrl(item.movie) ?? ""}
               alt={item.movie.title}
               fill
+              sizes="(min-width: 1280px) 20rem, (min-width: 640px) 33vw, 100vw"
               className="absolute inset-0 h-full w-full object-cover object-center"
             />
           ) : (

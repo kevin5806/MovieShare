@@ -1,6 +1,7 @@
 import { UsersRound, WandSparkles } from "lucide-react";
 
 import { InviteMembersCard } from "@/components/lists/invite-members-card";
+import { MemberManagementCard } from "@/components/lists/member-management-card";
 import { ListPresentationForm } from "@/components/lists/list-presentation-form";
 import { MediaImage } from "@/components/media/media-image";
 import { AddMovieDialog } from "@/components/movies/add-movie-dialog";
@@ -20,7 +21,10 @@ export default async function ListPage({
   const session = await requireSession();
   const list = await getListDetails(slug, session.user.id);
   const latestSelection = list.selectionRuns[0];
+  const viewerMembership = list.members.find((member) => member.userId === session.user.id);
   const isOwner = list.ownerId === session.user.id;
+  const canManageList =
+    viewerMembership?.role === "OWNER" || viewerMembership?.role === "MANAGER";
 
   return (
     <div className="space-y-8">
@@ -115,7 +119,7 @@ export default async function ListPage({
             </CardContent>
           </Card>
 
-          {isOwner ? (
+          {canManageList ? (
             <Card className="border-border/70 bg-card/85">
               <CardHeader>
                 <CardTitle>List presentation</CardTitle>
@@ -134,17 +138,50 @@ export default async function ListPage({
             </Card>
           ) : null}
 
-          {isOwner ? (
+          {canManageList ? (
             <InviteMembersCard
               listId={list.id}
               listSlug={list.slug}
+              canGrantManagerRole={isOwner}
               invites={list.invites.map((invite) => ({
                 id: invite.id,
+                kind: invite.kind,
                 email: invite.email,
                 status: invite.status,
                 token: invite.token,
                 expiresAt: invite.expiresAt.toISOString(),
                 invitedUserId: invite.invitedUserId,
+                invitedUserName:
+                  invite.invitedUser?.profile?.displayName || invite.invitedUser?.name || null,
+                invitedUserEmail: invite.invitedUser?.email || null,
+                targetRole: invite.targetRole,
+                maxUses: invite.maxUses,
+                useCount: invite.useCount,
+                note: invite.note,
+              }))}
+            />
+          ) : null}
+
+          {isOwner ? (
+            <MemberManagementCard
+              listId={list.id}
+              listSlug={list.slug}
+              ownerUserId={list.ownerId}
+              currentUserId={session.user.id}
+              members={list.members.map((member) => ({
+                id: member.id,
+                userId: member.userId,
+                role: member.role,
+                joinedAt: member.joinedAt.toISOString(),
+                user: {
+                  name: member.user.name,
+                  email: member.user.email,
+                  profile: member.user.profile
+                    ? {
+                        displayName: member.user.profile.displayName,
+                      }
+                    : null,
+                },
               }))}
             />
           ) : null}

@@ -21,6 +21,7 @@ enum FriendshipStatus {
 
 enum ListMemberRole {
   OWNER
+  MANAGER
   MEMBER
 }
 
@@ -29,6 +30,12 @@ enum ListInviteStatus {
   ACCEPTED
   DECLINED
   REVOKED
+}
+
+enum ListInviteKind {
+  APP_USER
+  EMAIL_LINK
+  PUBLIC_LINK
 }
 
 enum MovieDataProvider {
@@ -96,6 +103,14 @@ enum ActivityActorType {
   SYSTEM
 }
 
+enum NotificationCategory {
+  LIST_INVITES
+  FRIEND_INVITES
+  WATCH_SESSIONS
+  ACTIVITY_DIGEST
+  PRODUCT_UPDATES
+}
+
 model User {
   id                    String              @id
   name                  String
@@ -113,12 +128,15 @@ model User {
   addedListItems        MovieListItem[]     @relation("MovieListItemAddedBy")
   feedbacks             MovieFeedback[]
   listInvitesSent       MovieListInvite[]   @relation("MovieListInviteSender")
+  listInvitesReceived   MovieListInvite[]   @relation("MovieListInviteUser")
   selectionRuns         SelectionRun[]      @relation("SelectionRunInitiator")
   startedWatchSessions  WatchSession[]      @relation("WatchSessionStarter")
   watchSessionMembers   WatchSessionMember[]
   checkpoints           PlaybackCheckpoint[]
   activityLogs          ActivityLog[]       @relation("ActivityActorUser")
   notificationStates    NotificationState[]
+  notificationPreferences UserNotificationPreference[]
+  pushSubscriptions     PushSubscription[]
   sentFriendInvites     FriendshipInvite[]  @relation("FriendInviteSender")
   receivedFriendInvites FriendshipInvite[]  @relation("FriendInviteReceiver")
   initiatedFriendships  Friendship[]        @relation("FriendshipInitiator")
@@ -200,15 +218,22 @@ model MovieListInvite {
   id           String           @id @default(cuid())
   listId        String
   senderId      String
-  email         String
+  kind          ListInviteKind   @default(EMAIL_LINK)
+  email         String?
   token         String           @unique
   status        ListInviteStatus @default(PENDING)
+  targetRole    ListMemberRole   @default(MEMBER)
   expiresAt     DateTime
   invitedUserId String?
+  maxUses       Int?
+  useCount      Int              @default(0)
+  lastUsedAt    DateTime?
+  note          String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   list          MovieList        @relation(fields: [listId], references: [id], onDelete: Cascade)
   sender        User             @relation("MovieListInviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  invitedUser   User?            @relation("MovieListInviteUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
 
   @@index([listId, status])
 }
@@ -383,9 +408,20 @@ model SystemConfig {
   authMagicLinkEnabled    Boolean  @default(false)
   authPasskeyEnabled      Boolean  @default(false)
   authTwoFactorEnabled    Boolean  @default(false)
+  pushNotificationsEnabled Boolean @default(false)
   notes                   String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+}
+
+model SystemNotificationPreference {
+  id            String               @id @default(cuid())
+  category      NotificationCategory @unique
+  inAppEnabled  Boolean              @default(true)
+  emailEnabled  Boolean              @default(true)
+  pushEnabled   Boolean              @default(false)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
 }
 
 model ActivityLog {
@@ -413,6 +449,36 @@ model NotificationState {
 
   @@unique([userId, notificationKey])
   @@index([userId, readAt])
+}
+
+model UserNotificationPreference {
+  id            String               @id @default(cuid())
+  userId        String
+  category      NotificationCategory
+  inAppEnabled  Boolean?
+  emailEnabled  Boolean?
+  pushEnabled   Boolean?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastUsedAt DateTime?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
 }
 
 model Session {

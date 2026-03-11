@@ -1,19 +1,30 @@
+import { render } from "@react-email/render";
 import nodemailer from "nodemailer";
 
+import { NotificationCategory } from "@/generated/prisma/client";
 import { env } from "@/server/env";
+import { FriendInviteEmail } from "@/server/email/templates/friend-invite-email";
+import { ListInviteEmail } from "@/server/email/templates/list-invite-email";
+import { getEffectiveNotificationPreferences } from "@/server/services/notification-preference-service";
 import { getEmailRuntimeConfig } from "@/server/services/system-config";
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 function buildAbsoluteUrl(pathname: string) {
   return new URL(pathname, env.BETTER_AUTH_URL).toString();
+}
+
+async function shouldSendCategoryEmail(
+  userId: string | null | undefined,
+  category: NotificationCategory,
+) {
+  if (!userId) {
+    return true;
+  }
+
+  const preferences = await getEffectiveNotificationPreferences(userId);
+  return (
+    preferences.find((preference) => preference.category === category)?.effective
+      .emailEnabled !== false
+  );
 }
 
 export async function sendEmail(input: {
@@ -70,17 +81,32 @@ export async function sendListInviteEmail(input: {
   senderName: string;
   listName: string;
   token: string;
+  userId?: string | null;
 }) {
+  const emailAllowed = await shouldSendCategoryEmail(
+    input.userId,
+    NotificationCategory.LIST_INVITES,
+  );
+
+  if (!emailAllowed) {
+    return {
+      status: "skipped" as const,
+    };
+  }
+
   const inviteUrl = buildAbsoluteUrl(`/invites/lists/${input.token}`);
 
   return sendEmail({
     to: input.to,
     subject: `${input.senderName} invited you to join ${input.listName} on movieshare`,
     text: `${input.senderName} invited you to join "${input.listName}" on movieshare.\n\nOpen the invite: ${inviteUrl}`,
-    html: `
-      <p><strong>${escapeHtml(input.senderName)}</strong> invited you to join <strong>${escapeHtml(input.listName)}</strong> on movieshare.</p>
-      <p><a href="${inviteUrl}">Open the invite</a></p>
-    `,
+    html: await render(
+      <ListInviteEmail
+        senderName={input.senderName}
+        listName={input.listName}
+        inviteUrl={inviteUrl}
+      />,
+    ),
   });
 }
 
@@ -88,18 +114,31 @@ export async function sendFriendInviteEmail(input: {
   to: string;
   senderName: string;
   message?: string | null;
+  userId?: string | null;
 }) {
+  const emailAllowed = await shouldSendCategoryEmail(
+    input.userId,
+    NotificationCategory.FRIEND_INVITES,
+  );
+
+  if (!emailAllowed) {
+    return {
+      status: "skipped" as const,
+    };
+  }
+
   const profileUrl = buildAbsoluteUrl("/profile");
-  const safeMessage = input.message ? escapeHtml(input.message) : null;
 
   return sendEmail({
     to: input.to,
     subject: `${input.senderName} sent you a movieshare friend invite`,
     text: `${input.senderName} sent you a movieshare friend invite.${input.message ? `\n\nMessage: ${input.message}` : ""}\n\nReview it in your profile: ${profileUrl}`,
-    html: `
-      <p><strong>${escapeHtml(input.senderName)}</strong> sent you a movieshare friend invite.</p>
-      ${safeMessage ? `<p>Message: ${safeMessage}</p>` : ""}
-      <p><a href="${profileUrl}">Review the invite</a></p>
-    `,
+    html: await render(
+      <FriendInviteEmail
+        senderName={input.senderName}
+        message={input.message}
+        profileUrl={profileUrl}
+      />,
+    ),
   });
 }

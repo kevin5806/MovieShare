@@ -1,6 +1,7 @@
 import {
   FeedbackInterest,
   FeedbackSeenState,
+  ListMemberRole,
   SelectionMode,
   WatchSessionType,
 } from "@/generated/prisma/client";
@@ -30,7 +31,23 @@ export const addMovieToListSchema = z.object({
 export const createListInviteSchema = z.object({
   listId: z.string().min(1),
   listSlug: z.string().min(1),
-  email: z.email(),
+  kind: z.enum(["email", "public"]).default("email"),
+  email: z
+    .union([z.email(), z.literal(""), z.null(), z.undefined()])
+    .transform((value) => value ?? "")
+    .default(""),
+  targetRole: z.nativeEnum(ListMemberRole).default(ListMemberRole.MEMBER),
+  maxUses: z.preprocess(
+    (value) => {
+      if (value === "" || value === null || value === undefined) {
+        return null;
+      }
+
+      return value;
+    },
+    z.coerce.number().int().positive().max(500).nullable().default(null),
+  ),
+  note: optionalFormText(180).optional().default(""),
 });
 
 export const revokeListInviteSchema = z.object({
@@ -41,6 +58,24 @@ export const revokeListInviteSchema = z.object({
 export const respondToListInviteSchema = z.object({
   token: z.string().min(1),
   action: z.enum(["accept", "decline"]),
+});
+
+export const updateListMemberRoleSchema = z.object({
+  listId: z.string().min(1),
+  listSlug: z.string().min(1),
+  memberId: z.string().min(1),
+  role: z.nativeEnum(ListMemberRole),
+});
+
+export const removeListMemberSchema = z.object({
+  listId: z.string().min(1),
+  listSlug: z.string().min(1),
+  memberId: z.string().min(1),
+});
+
+export const removeMovieFromListSchema = z.object({
+  listItemId: z.string().min(1),
+  listSlug: z.string().min(1),
 });
 
 export const saveFeedbackSchema = z.object({

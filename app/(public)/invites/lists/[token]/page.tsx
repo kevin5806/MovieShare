@@ -38,7 +38,16 @@ export default async function ListInvitePage({
   const isExpired = invite.expiresAt < new Date();
   const isPending = invite.status === "PENDING";
   const sessionEmail = session?.user.email?.toLowerCase() ?? null;
-  const canRespond = sessionEmail === invite.email.toLowerCase();
+  const isPublicInvite = invite.kind === "PUBLIC_LINK";
+  const canRespond = Boolean(
+    session &&
+      (isPublicInvite ||
+        (invite.kind === "APP_USER"
+          ? invite.invitedUserId === session.user.id ||
+            sessionEmail === invite.email?.toLowerCase()
+          : sessionEmail === invite.email?.toLowerCase())),
+  );
+  const targetRoleCopy = invite.targetRole === "MANAGER" ? "manager" : "member";
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-16">
@@ -54,23 +63,58 @@ export default async function ListInvitePage({
         <CardContent className="space-y-5">
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">{invite.sender.name}</span> invited{" "}
-              <span className="font-medium text-foreground">{invite.email}</span> to join{" "}
+              <span className="font-medium text-foreground">
+                {invite.sender.profile?.displayName || invite.sender.name}
+              </span>{" "}
+              invited{" "}
+              <span className="font-medium text-foreground">
+                {invite.kind === "PUBLIC_LINK"
+                  ? "anyone with this link"
+                  : invite.invitedUser?.profile?.displayName ||
+                    invite.invitedUser?.email ||
+                    invite.email}
+              </span>{" "}
+              to join{" "}
               <span className="font-medium text-foreground">{invite.list.name}</span>.
             </p>
             <p>
               Current members:{" "}
               <span className="font-medium text-foreground">{invite.list.members.length}</span>
             </p>
+            <p>
+              Join role: <span className="font-medium text-foreground">{targetRoleCopy}</span>
+            </p>
+            {invite.kind === "PUBLIC_LINK" ? (
+              <p>
+                Usage:{" "}
+                <span className="font-medium text-foreground">
+                  {invite.maxUses ? `${invite.useCount}/${invite.maxUses}` : `${invite.useCount} uses`}
+                </span>
+              </p>
+            ) : null}
           </div>
 
           {!session ? (
             <div className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
-              Continue with <span className="font-medium text-foreground">{invite.email}</span> to
-              sign in or create an account, then accept or decline this invite.
+              {isPublicInvite ? (
+                <>
+                  Sign in or create an account to join this list from the public invite
+                  link.
+                </>
+              ) : (
+                <>
+                  Continue with{" "}
+                  <span className="font-medium text-foreground">{invite.email}</span> to sign
+                  in or create an account, then accept or decline this invite.
+                </>
+              )}
               <div className="mt-4">
                 <Link
-                  href={`/login?email=${encodeURIComponent(invite.email)}`}
+                  href={
+                    invite.email
+                      ? `/login?email=${encodeURIComponent(invite.email)}`
+                      : "/login"
+                  }
                 >
                   <Button type="button">Continue</Button>
                 </Link>
@@ -83,13 +127,15 @@ export default async function ListInvitePage({
                 <input type="hidden" name="action" value="accept" />
                 <Button type="submit">Accept invite</Button>
               </form>
-              <form action={respondToListInviteAction}>
-                <input type="hidden" name="token" value={token} />
-                <input type="hidden" name="action" value="decline" />
-                <Button type="submit" variant="outline">
-                  Decline
-                </Button>
-              </form>
+              {!isPublicInvite ? (
+                <form action={respondToListInviteAction}>
+                  <input type="hidden" name="token" value={token} />
+                  <input type="hidden" name="action" value="decline" />
+                  <Button type="submit" variant="outline">
+                    Decline
+                  </Button>
+                </form>
+              ) : null}
             </div>
           ) : canRespond ? (
             <div className="rounded-3xl border border-border/70 bg-background p-6 text-sm text-muted-foreground">
@@ -101,7 +147,8 @@ export default async function ListInvitePage({
             <div className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
               You are signed in as{" "}
               <span className="font-medium text-foreground">{session.user.email}</span>, but this
-              invite belongs to <span className="font-medium text-foreground">{invite.email}</span>.
+              invite belongs to{" "}
+              <span className="font-medium text-foreground">{invite.email}</span>.
             </div>
           )}
         </CardContent>

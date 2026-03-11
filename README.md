@@ -14,6 +14,9 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - Docker Compose
 - MinIO object storage
 - Nginx media CDN layer
+- React Email
+- Web Push
+- Playwright + axe-core
 
 ## What is included
 
@@ -30,16 +33,22 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - user profile page
 - notifications inbox page
 - persistent notification read state with bulk/single mark-as-read actions
-- list invite flow with shareable acceptance links
+- manager roles for collaborative list operations
+- list invite flow with app-user, email-bound and public-link access paths
+- invite management with revoke/copy and target-role assignment
 - friend invite flow for existing movieshare users
+- movie removal flow for proposers and list managers
 - TMDB search and metadata caching
 - mirrored TMDB movie artwork served through the local media CDN when storage is configured
-- SMTP-backed email delivery for list and friend invites
+- React Email-backed invite delivery for list and friend invites
+- admin notification defaults with per-user overrides
+- browser push subscription management and web push delivery
 - manual playback checkpoint saving and resume-point updates
 - abstract streaming provider registry
 - realtime-ready event broker interface
 - install prompt and offline fallback baseline for PWA-style usage
 - self-hosted media storage and public image delivery for avatars and list covers
+- Playwright smoke/a11y test baseline for UI regressions
 - project vision, development notes and session handbook in `docs/`
 - integration playbook and streaming-provider guide in `docs/`
 
@@ -96,14 +105,14 @@ Realtime sync is partially implemented:
 - watch session membership and presence state are persisted
 - playback checkpoints and activity logs already emit realtime events
 - a notifications inbox now surfaces invites, live sessions and recent shared activity with persistent read state
-- invite and social flows are still persistence-first and can later emit richer notifications
+- notification defaults and per-user overrides now cover in-app, email and push channels
+- web push delivery is available when VAPID is configured and the device is subscribed
 
 What is still missing:
 
-- push-style in-app notifications
 - presence badges without a full page refresh
-- collaborative playback controls and heartbeats beyond manual checkpoints
-- delivery preferences and push channels
+- collaborative playback controls and richer fan-out beyond persisted checkpoints
+- digests, batching and broader push automation beyond invite-first delivery
 
 ## PWA note
 
@@ -113,12 +122,13 @@ movieshare now includes a first installable PWA baseline:
 - service worker registration in production builds
 - install prompt when the browser exposes `beforeinstallprompt`
 - offline fallback page for navigation failures
+- service-worker-driven web push handling for notifications and deep links
 
 What is still missing:
 
 - richer asset caching strategy
-- background sync or push delivery
-- deeper offline support for authenticated collaborative flows
+- background sync and cache invalidation beyond the shell baseline
+- deeper offline affordances for authenticated list/watch workflows
 
 ## Admin settings
 
@@ -126,6 +136,7 @@ The admin console at `/admin` currently lets you manage:
 
 - TMDB credentials and default language
 - SMTP host, credentials and sender
+- notification delivery defaults and the push master switch
 - rollout planning for future access methods such as email code, magic link, passkeys and 2FA
 - media storage runtime visibility for avatar and list-cover uploads
 - streaming provider activation and selection
@@ -155,6 +166,8 @@ Optional but recommended:
 - `SEED_ADMIN_EMAIL`
 - `SEED_ADMIN_NAME`
 - `SMTP_*`
+- `PUSH_NOTIFICATIONS_ENABLED`
+- `VAPID_*`
 - `AUTH_*`
 - `MINIO_ROOT_*`
 - `STORAGE_*`
@@ -176,6 +189,7 @@ Admin/runtime config note:
 
 - TMDB token, API key and language can come from `.env` or `/admin`
 - SMTP host, port, secure mode, credentials and sender can come from `.env` or `/admin`
+- push delivery master state comes from `.env` or `/admin`, while VAPID keys stay in `.env`
 - future access-method toggles can be bootstrapped from `.env` and then overridden in `/admin`
 - streaming slot enablement and preferred provider can be bootstrapped from `.env` and then overridden in `/admin`
 
@@ -220,6 +234,13 @@ npm run db:seed
 
 ```bash
 npm run dev
+```
+
+Optional UI test setup:
+
+```bash
+npx playwright install
+npm run test:ui
 ```
 
 This path uses Next.js dev mode and does not rebuild the production image on every change.
@@ -300,7 +321,9 @@ Publishing behavior:
 
 - automatic publish only on semver tags like `v1.2.3`
 - manual publish through GitHub Actions `workflow_dispatch`
+- manual publish now keeps `publish_latest=false` by default
 - no automatic push for normal development builds
+- production auto-updaters should track explicit version tags, not `latest`
 
 Recommended default registry:
 
@@ -403,6 +426,7 @@ The Prisma schema currently covers:
 - `WatchSession`, `WatchSessionMember`, `PlaybackCheckpoint`
 - `StreamingProviderConfig`
 - `ActivityLog`
+- `SystemNotificationPreference`, `UserNotificationPreference`, `PushSubscription`
 - Better Auth tables: `Session`, `Account`, `Verification`
 
 ## Notes for future work
@@ -416,8 +440,7 @@ The Prisma schema currently covers:
 Current TODOs are intentionally concentrated around:
 
 - richer selection heuristics
-- in-app notifications center and delivery preferences
 - full PWA polish and installable app experience
 - full responsive hardening across mobile, tablet and desktop
 - presence indicators without full page refresh
-- stronger access-method rollout and production-ready streaming/provider integration
+- stronger access-method rollout, richer push/digest automation and production-ready streaming/provider integration

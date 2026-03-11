@@ -14,7 +14,7 @@ on:
         description: "Also publish the latest tag"
         required: true
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read

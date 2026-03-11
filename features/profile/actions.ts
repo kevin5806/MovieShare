@@ -7,12 +7,14 @@ import {
   profileSchema,
   respondToFriendInviteSchema,
 } from "@/features/profile/schemas";
+import { updateUserNotificationPreferencesSchema } from "@/features/notifications/preferences-schema";
 import { getOptionalFile } from "@/lib/form-files";
 import { requireSession } from "@/server/session";
 import {
   deleteManagedImageByUrl,
   uploadPublicImage,
 } from "@/server/services/media-storage";
+import { updateUserNotificationPreferences } from "@/server/services/notification-preference-service";
 import {
   respondToFriendInvite,
   sendFriendInvite,
@@ -112,6 +114,36 @@ export async function respondToFriendInviteAction(formData: FormData) {
     return {
       ok: false as const,
       error: error instanceof Error ? error.message : "Unable to update the invite.",
+    };
+  }
+}
+
+export async function updateUserNotificationPreferencesAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = updateUserNotificationPreferencesSchema.parse({
+      preferences: formData.get("preferences"),
+    });
+
+    await updateUserNotificationPreferences({
+      userId: session.user.id,
+      preferences: parsed.preferences,
+    });
+
+    revalidatePath("/profile");
+    revalidatePath("/notifications");
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("updateUserNotificationPreferencesAction failed", error);
+
+    return {
+      ok: false as const,
+      error:
+        error instanceof Error ? error.message : "Unable to update notification preferences.",
     };
   }
 }

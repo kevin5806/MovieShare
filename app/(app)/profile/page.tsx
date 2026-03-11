@@ -1,4 +1,6 @@
 import { saveProfileAction } from "@/features/profile/actions";
+import { NotificationPreferenceEditor } from "@/components/notifications/notification-preference-editor";
+import { PushSubscriptionCard } from "@/components/notifications/push-subscription-card";
 import { FriendshipPanel } from "@/components/profile/friendship-panel";
 import { ImageUploadField } from "@/components/media/image-upload-field";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { requireSession } from "@/server/session";
+import { getNotificationSettingsOverview } from "@/server/services/notification-preference-service";
 import { getProfileOverview } from "@/server/services/profile-service";
 
 export default async function ProfilePage() {
   const session = await requireSession();
-  const user = await getProfileOverview(session.user.id);
+  const [user, notificationSettings] = await Promise.all([
+    getProfileOverview(session.user.id),
+    getNotificationSettingsOverview(session.user.id),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -122,6 +128,28 @@ export default async function ProfilePage() {
           }))}
         />
       ) : null}
+
+      <Card className="border-border/70 bg-card/85">
+        <CardHeader>
+          <CardTitle>Notification preferences</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm leading-6 text-muted-foreground">
+            Override the system defaults for in-app, email and push notifications from one
+            place. Push delivery also requires a browser subscription on this device.
+          </p>
+          <NotificationPreferenceEditor
+            scope="user"
+            preferences={notificationSettings.preferences}
+            pushRuntime={notificationSettings.pushRuntime}
+          />
+        </CardContent>
+      </Card>
+
+      <PushSubscriptionCard
+        pushRuntime={notificationSettings.pushRuntime}
+        activeSubscriptionCount={notificationSettings.subscriptions.length}
+      />
     </div>
   );
 }

@@ -13,7 +13,7 @@ export default async function LoginPage({
   const defaultEmail = typeof params.email === "string" ? params.email : "";
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6 py-16">
+    <main className="flex min-h-screen items-center justify-center px-6 py-16">
       <div className="grid w-full max-w-5xl gap-10 lg:grid-cols-[1fr_420px]">
         <section className="space-y-8">
           <BrandMark />
@@ -40,6 +40,6 @@ export default async function LoginPage({
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

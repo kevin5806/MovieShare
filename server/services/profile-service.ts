@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import { sendFriendInviteEmail } from "@/server/services/email-service";
+import { sendPushNotificationToUser } from "@/server/services/push-notification-service";
 
 export async function getProfileOverview(userId: string) {
   const user = await db.user.findUnique({
@@ -240,6 +241,16 @@ export async function sendFriendInvite(
     to: receiver.email,
     senderName: sender.name,
     message: input.message,
+    userId: receiver.id,
+  });
+
+  await sendPushNotificationToUser({
+    userId: receiver.id,
+    category: "FRIEND_INVITES",
+    title: `${sender.name} sent you a friend invite`,
+    body: input.message?.trim() || "Open your profile to review it.",
+    url: "/profile",
+    tag: `friend-invite:${invite.id}`,
   });
 
   return {

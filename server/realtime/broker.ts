@@ -1,6 +1,11 @@
 export type RealtimeEvent =
   | "list.item.added"
+  | "list.item.removed"
   | "list.feedback.updated"
+  | "list.invite.created"
+  | "list.member.joined"
+  | "list.member.role.updated"
+  | "list.member.removed"
   | "list.presentation.updated"
   | "selection.run.completed"
   | "watch.session.created"

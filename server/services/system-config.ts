@@ -136,6 +136,7 @@ export async function ensureSystemConfigSeeded() {
       authMagicLinkEnabled: env.AUTH_MAGIC_LINK_ENABLED,
       authPasskeyEnabled: env.AUTH_PASSKEY_ENABLED,
       authTwoFactorEnabled: env.AUTH_TWO_FACTOR_ENABLED,
+      pushNotificationsEnabled: env.PUSH_NOTIFICATIONS_ENABLED,
     },
   });
 }

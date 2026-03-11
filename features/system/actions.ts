@@ -8,12 +8,14 @@ import {
   updateStreamingProviderSchema,
   updateTmdbSettingsSchema,
 } from "@/features/system/schemas";
+import { updateSystemNotificationPreferencesSchema } from "@/features/notifications/preferences-schema";
 import { requireAdminSession } from "@/server/session";
 import {
   updateAccessMethodSettings,
   updateEmailSettings,
   updateTmdbSettings,
 } from "@/server/services/system-config";
+import { updateSystemNotificationPreferences } from "@/server/services/notification-preference-service";
 import { updateStreamingProviderConfig } from "@/server/services/streaming";
 
 export async function updateStreamingProviderAction(formData: FormData) {
@@ -78,4 +80,32 @@ export async function updateAccessMethodSettingsAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/login");
+}
+
+export async function updateSystemNotificationPreferencesAction(formData: FormData) {
+  try {
+    await requireAdminSession();
+
+    const parsed = updateSystemNotificationPreferencesSchema.parse({
+      pushNotificationsEnabled: formData.get("pushNotificationsEnabled"),
+      preferences: formData.get("preferences"),
+    });
+
+    await updateSystemNotificationPreferences(parsed);
+
+    revalidatePath("/admin");
+    revalidatePath("/notifications");
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("updateSystemNotificationPreferencesAction failed", error);
+
+    return {
+      ok: false as const,
+      error:
+        error instanceof Error ? error.message : "Unable to update notification defaults.",
+    };
+  }
 }

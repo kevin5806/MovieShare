@@ -8,11 +8,14 @@ import {
   addMovieToListSchema,
   createListInviteSchema,
   createListSchema,
+  removeListMemberSchema,
+  removeMovieFromListSchema,
   respondToListInviteSchema,
   revokeListInviteSchema,
   runSelectionSchema,
   saveFeedbackSchema,
   startWatchSessionSchema,
+  updateListMemberRoleSchema,
   updateListPresentationSchema,
 } from "@/features/lists/schemas";
 import { getOptionalFile } from "@/lib/form-files";
@@ -21,9 +24,12 @@ import {
   addMovieToList,
   createListInvite,
   createList,
+  removeListMember,
+  removeMovieFromList,
   respondToListInvite,
   revokeListInvite,
   saveMovieFeedback,
+  updateListMemberRole,
   updateListPresentation,
 } from "@/server/services/list-service";
 import { runSelection } from "@/server/services/selection-service";
@@ -102,6 +108,10 @@ export async function createListInviteAction(formData: FormData) {
       listId: formData.get("listId"),
       listSlug: formData.get("listSlug"),
       email: formData.get("email"),
+      kind: formData.get("kind"),
+      targetRole: formData.get("targetRole"),
+      maxUses: formData.get("maxUses"),
+      note: formData.get("note"),
     });
 
     const result = await createListInvite(session.user.id, parsed);
@@ -167,6 +177,91 @@ export async function respondToListInviteAction(formData: FormData) {
   }
 
   redirect("/dashboard");
+}
+
+export async function updateListMemberRoleAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = updateListMemberRoleSchema.parse({
+      listId: formData.get("listId"),
+      listSlug: formData.get("listSlug"),
+      memberId: formData.get("memberId"),
+      role: formData.get("role"),
+    });
+
+    await updateListMemberRole(session.user.id, parsed);
+
+    revalidatePath(`/lists/${parsed.listSlug}`);
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("updateListMemberRoleAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to update the member role.",
+    };
+  }
+}
+
+export async function removeListMemberAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = removeListMemberSchema.parse({
+      listId: formData.get("listId"),
+      listSlug: formData.get("listSlug"),
+      memberId: formData.get("memberId"),
+    });
+
+    await removeListMember(session.user.id, parsed);
+
+    revalidatePath(`/lists/${parsed.listSlug}`);
+    revalidatePath("/dashboard");
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("removeListMemberAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to remove this member.",
+    };
+  }
+}
+
+export async function removeMovieFromListAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = removeMovieFromListSchema.parse({
+      listItemId: formData.get("listItemId"),
+      listSlug: formData.get("listSlug"),
+    });
+
+    const result = await removeMovieFromList(session.user.id, parsed);
+
+    revalidatePath(`/lists/${parsed.listSlug}`);
+    revalidatePath(`/lists/${parsed.listSlug}/movies/${parsed.listItemId}`);
+
+    return {
+      ok: true as const,
+      listSlug: result.listSlug,
+      movieTitle: result.movieTitle,
+    };
+  } catch (error) {
+    console.error("removeMovieFromListAction failed", error);
+
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to remove this movie.",
+    };
+  }
 }
 
 export async function saveMovieFeedbackAction(formData: FormData) {

@@ -98,13 +98,19 @@ export function FriendshipPanel({
     <div className="space-y-6">
       <Card className="border-border/70 bg-card/85">
         <CardHeader>
-          <CardTitle>Friends and invites</CardTitle>
+          <CardTitle>Optional app-friends graph</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            Connect with existing movieshare users by email to make collaboration and future
-            invite flows easier.
+            This is an optional social graph for people who already have a movieshare
+            account. It helps surface recurring collaborators for future list and watch
+            flows, but it does not replace list invites from inside a list.
           </p>
+          <div className="rounded-2xl border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+            Enter the email of an existing movieshare user. If the account does not exist
+            yet, or if you want to invite someone into a specific list, use the invite tools
+            on the list page instead.
+          </div>
           <div className="space-y-3">
             <Input
               value={email}

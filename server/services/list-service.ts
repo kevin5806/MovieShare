@@ -1,6 +1,7 @@
 import {
   FeedbackInterest,
   FeedbackSeenState,
+  ListInviteKind,
   ListMemberRole,
   ListInviteStatus,
   type Prisma,
@@ -13,6 +14,7 @@ import {
 } from "@/server/services/media-storage";
 import { logActivity } from "@/server/services/activity-log";
 import { sendListInviteEmail } from "@/server/services/email-service";
+import { sendPushNotificationToUser } from "@/server/services/push-notification-service";
 import {
   cacheMovieFromTmdb,
   syncMovieArtwork,
@@ -32,6 +34,20 @@ async function requireListMember(listId: string, userId: string) {
 
   if (!membership) {
     throw new Error("You are not a member of this list.");
+  }
+
+  return membership;
+}
+
+function canManageListRole(role: ListMemberRole) {
+  return role === ListMemberRole.OWNER || role === ListMemberRole.MANAGER;
+}
+
+async function requireListManager(listId: string, userId: string) {
+  const membership = await requireListMember(listId, userId);
+
+  if (!canManageListRole(membership.role)) {
+    throw new Error("You do not have permission to manage this list.");
   }
 
   return membership;
@@ -64,6 +80,11 @@ async function requireListAccessBySlug(slug: string, userId: string) {
       invites: {
         include: {
           sender: true,
+          invitedUser: {
+            include: {
+              profile: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",
@@ -331,7 +352,16 @@ export async function updateListPresentation(
     coverImageFile?: File | null;
   },
 ) {
-  const list = await requireListOwner(input.listId, userId);
+  await requireListManager(input.listId, userId);
+  const list = await db.movieList.findUnique({
+    where: {
+      id: input.listId,
+    },
+  });
+
+  if (!list) {
+    throw new Error("List not found.");
+  }
   let coverImageUrl: string | null | undefined;
 
   if (input.coverImageFile) {
@@ -404,18 +434,17 @@ export async function createListInvite(
   userId: string,
   input: {
     listId: string;
-    email: string;
+    email?: string;
+    kind: "email" | "public";
+    targetRole?: ListMemberRole;
+    maxUses?: number | null;
+    note?: string;
   },
 ) {
-  const list = await db.movieList.findFirst({
+  const membership = await requireListManager(input.listId, userId);
+  const list = await db.movieList.findUnique({
     where: {
       id: input.listId,
-      members: {
-        some: {
-          userId,
-          role: ListMemberRole.OWNER,
-        },
-      },
     },
     include: {
       owner: true,
@@ -424,58 +453,127 @@ export async function createListInvite(
   });
 
   if (!list) {
-    throw new Error("Only the list owner can send invites.");
+    throw new Error("List not found.");
   }
 
-  const normalizedEmail = input.email.trim().toLowerCase();
+  const targetRole = input.targetRole ?? ListMemberRole.MEMBER;
+  const safeNote = input.note?.trim() || null;
 
-  if (!normalizedEmail) {
-    throw new Error("Invite email is required.");
-  }
-
-  const invitedUser = await db.user.findUnique({
-    where: {
-      email: normalizedEmail,
-    },
-  });
-
-  if (invitedUser && list.members.some((member) => member.userId === invitedUser.id)) {
-    throw new Error("That user is already a member of this list.");
+  if (membership.role !== ListMemberRole.OWNER && targetRole !== ListMemberRole.MEMBER) {
+    throw new Error("Only the list owner can grant manager access.");
   }
 
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-  const existingInvite = await db.movieListInvite.findFirst({
-    where: {
-      listId: input.listId,
-      email: normalizedEmail,
-      status: ListInviteStatus.PENDING,
-    },
-  });
+  let normalizedEmail: string | null = null;
+  let inviteKind: ListInviteKind = ListInviteKind.PUBLIC_LINK;
+  let invitedUserId: string | null = null;
+  let invite;
+  let delivery: Awaited<ReturnType<typeof sendListInviteEmail>> = {
+    status: "skipped" as const,
+  };
 
-  const invite = existingInvite
-    ? await db.movieListInvite.update({
-        where: {
-          id: existingInvite.id,
+  if (input.kind === "email") {
+    normalizedEmail = input.email?.trim().toLowerCase() ?? "";
+
+    if (!normalizedEmail) {
+      throw new Error("Invite email is required.");
+    }
+
+    const invitedUser = await db.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+    });
+
+    if (invitedUser && list.members.some((member) => member.userId === invitedUser.id)) {
+      throw new Error("That user is already a member of this list.");
+    }
+
+    inviteKind = invitedUser ? ListInviteKind.APP_USER : ListInviteKind.EMAIL_LINK;
+    invitedUserId = invitedUser?.id ?? null;
+
+    const existingInvite = await db.movieListInvite.findFirst({
+      where: {
+        listId: input.listId,
+        email: normalizedEmail,
+        status: ListInviteStatus.PENDING,
+        kind: {
+          in: [ListInviteKind.APP_USER, ListInviteKind.EMAIL_LINK],
         },
-        data: {
-          senderId: userId,
-          token,
-          expiresAt,
-          invitedUserId: invitedUser?.id,
-          status: ListInviteStatus.PENDING,
-        },
-      })
-    : await db.movieListInvite.create({
-        data: {
-          listId: input.listId,
-          senderId: userId,
-          email: normalizedEmail,
-          token,
-          expiresAt,
-          invitedUserId: invitedUser?.id,
-        },
+      },
+    });
+
+    invite = existingInvite
+      ? await db.movieListInvite.update({
+          where: {
+            id: existingInvite.id,
+          },
+          data: {
+            senderId: userId,
+            kind: inviteKind,
+            token,
+            expiresAt,
+            invitedUserId,
+            email: normalizedEmail,
+            targetRole,
+            maxUses: 1,
+            note: safeNote,
+            status: ListInviteStatus.PENDING,
+          },
+        })
+      : await db.movieListInvite.create({
+          data: {
+            listId: input.listId,
+            senderId: userId,
+            kind: inviteKind,
+            email: normalizedEmail,
+            token,
+            expiresAt,
+            invitedUserId,
+            targetRole,
+            maxUses: 1,
+            note: safeNote,
+          },
+        });
+
+    delivery = await sendListInviteEmail({
+      to: normalizedEmail,
+      senderName: list.owner.name,
+      listName: list.name,
+      token: invite.token,
+      userId: invitedUserId,
+    });
+
+    if (invitedUserId) {
+      await sendPushNotificationToUser({
+        userId: invitedUserId,
+        category: "LIST_INVITES",
+        title: `${list.owner.name} invited you to ${list.name}`,
+        body:
+          targetRole === ListMemberRole.MANAGER
+            ? "You were invited as a manager for this list."
+            : "Open the invite and join the list.",
+        url: `/invites/lists/${invite.token}`,
+        tag: `list-invite:${invite.id}`,
       });
+    }
+  } else {
+    invite = await db.movieListInvite.create({
+      data: {
+        listId: input.listId,
+        senderId: userId,
+        kind: ListInviteKind.PUBLIC_LINK,
+        email: null,
+        token,
+        expiresAt,
+        invitedUserId: null,
+        targetRole,
+        maxUses: input.maxUses ?? null,
+        note: safeNote,
+      },
+    });
+  }
 
   await logActivity({
     listId: input.listId,
@@ -483,15 +581,22 @@ export async function createListInvite(
     event: "list.invite.created",
     payload: {
       inviteId: invite.id,
+      kind: invite.kind,
       email: normalizedEmail,
+      targetRole,
+      maxUses: invite.maxUses,
     },
   });
 
-  const delivery = await sendListInviteEmail({
-    to: normalizedEmail,
-    senderName: list.owner.name,
-    listName: list.name,
-    token: invite.token,
+  await realtimeBroker.publish({
+    channel: `list:${input.listId}`,
+    event: "list.invite.created",
+    payload: {
+      inviteId: invite.id,
+      kind: invite.kind,
+      invitedUserId: invite.invitedUserId,
+    },
+    occurredAt: new Date().toISOString(),
   });
 
   return {
@@ -508,7 +613,9 @@ export async function revokeListInvite(userId: string, inviteId: string) {
         members: {
           some: {
             userId,
-            role: ListMemberRole.OWNER,
+            role: {
+              in: [ListMemberRole.OWNER, ListMemberRole.MANAGER],
+            },
           },
         },
       },
@@ -547,7 +654,16 @@ export async function getListInviteByToken(token: string) {
           },
         },
       },
-      sender: true,
+      sender: {
+        include: {
+          profile: true,
+        },
+      },
+      invitedUser: {
+        include: {
+          profile: true,
+        },
+      },
     },
   });
 }
@@ -578,21 +694,59 @@ export async function respondToListInvite(input: {
     throw new Error("This invite has expired.");
   }
 
-  if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
+  const normalizedUserEmail = user.email.toLowerCase();
+  const isPublicInvite = invite.kind === ListInviteKind.PUBLIC_LINK;
+  const matchesEmail = invite.email?.toLowerCase() === normalizedUserEmail;
+  const matchesUser = invite.invitedUserId === user.id;
+
+  if (invite.kind === ListInviteKind.APP_USER && !matchesUser && !matchesEmail) {
+    throw new Error("This invite belongs to a different user.");
+  }
+
+  if (invite.kind === ListInviteKind.EMAIL_LINK && !matchesEmail) {
     throw new Error("This invite belongs to a different email address.");
+  }
+
+  const isExistingMember = invite.list.members.some((member) => member.userId === user.id);
+
+  if (input.action === "accept" && isExistingMember) {
+    return {
+      invite,
+      listSlug: invite.list.slug,
+    };
+  }
+
+  if (input.action === "decline" && isPublicInvite) {
+    return {
+      invite,
+      listSlug: invite.list.slug,
+    };
   }
 
   const status =
     input.action === "accept" ? ListInviteStatus.ACCEPTED : ListInviteStatus.DECLINED;
 
   return db.$transaction(async (tx) => {
+    const nextUseCount = invite.useCount + (input.action === "accept" ? 1 : 0);
+    const publicInviteReachedLimit =
+      invite.kind === ListInviteKind.PUBLIC_LINK &&
+      invite.maxUses !== null &&
+      nextUseCount >= invite.maxUses;
     const updatedInvite = await tx.movieListInvite.update({
       where: {
         id: invite.id,
       },
       data: {
-        status,
-        invitedUserId: user.id,
+        status:
+          invite.kind === ListInviteKind.PUBLIC_LINK && input.action === "accept"
+            ? publicInviteReachedLimit
+              ? ListInviteStatus.ACCEPTED
+              : ListInviteStatus.PENDING
+            : status,
+        invitedUserId:
+          invite.kind === ListInviteKind.PUBLIC_LINK ? invite.invitedUserId : user.id,
+        useCount: input.action === "accept" ? nextUseCount : invite.useCount,
+        lastUsedAt: input.action === "accept" ? new Date() : invite.lastUsedAt,
       },
     });
 
@@ -608,7 +762,7 @@ export async function respondToListInvite(input: {
         create: {
           listId: invite.listId,
           userId: user.id,
-          role: ListMemberRole.MEMBER,
+          role: invite.targetRole,
         },
       });
 
@@ -620,6 +774,8 @@ export async function respondToListInvite(input: {
           payload: {
             inviteId: invite.id,
             email: user.email,
+            kind: invite.kind,
+            role: invite.targetRole,
           },
         },
       });
@@ -634,8 +790,22 @@ export async function respondToListInvite(input: {
           payload: {
             inviteId: invite.id,
             email: user.email,
+            kind: invite.kind,
           },
         },
+      });
+    }
+
+    if (input.action === "accept") {
+      await realtimeBroker.publish({
+        channel: `list:${invite.listId}`,
+        event: "list.member.joined",
+        payload: {
+          inviteId: invite.id,
+          userId: user.id,
+          role: invite.targetRole,
+        },
+        occurredAt: new Date().toISOString(),
       });
     }
 
@@ -644,6 +814,136 @@ export async function respondToListInvite(input: {
       listSlug: invite.list.slug,
     };
   });
+}
+
+export async function updateListMemberRole(
+  userId: string,
+  input: {
+    listId: string;
+    memberId: string;
+    role: ListMemberRole;
+  },
+) {
+  await requireListOwner(input.listId, userId);
+
+  const member = await db.movieListMember.findFirst({
+    where: {
+      id: input.memberId,
+      listId: input.listId,
+    },
+    include: {
+      user: true,
+      list: true,
+    },
+  });
+
+  if (!member) {
+    throw new Error("Member not found.");
+  }
+
+  if (member.role === ListMemberRole.OWNER) {
+    throw new Error("The list owner role cannot be changed here.");
+  }
+
+  if (member.userId === userId) {
+    throw new Error("Use ownership transfer instead of editing your own role.");
+  }
+
+  const updatedMember = await db.movieListMember.update({
+    where: {
+      id: member.id,
+    },
+    data: {
+      role: input.role,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  await logActivity({
+    listId: input.listId,
+    actorId: userId,
+    event: "list.member.role.updated",
+    payload: {
+      memberId: member.id,
+      targetUserId: member.userId,
+      role: input.role,
+    },
+  });
+
+  await realtimeBroker.publish({
+    channel: `list:${input.listId}`,
+    event: "list.member.role.updated",
+    payload: {
+      memberId: member.id,
+      userId: member.userId,
+      role: input.role,
+    },
+    occurredAt: new Date().toISOString(),
+  });
+
+  return updatedMember;
+}
+
+export async function removeListMember(
+  userId: string,
+  input: {
+    listId: string;
+    memberId: string;
+  },
+) {
+  await requireListOwner(input.listId, userId);
+
+  const member = await db.movieListMember.findFirst({
+    where: {
+      id: input.memberId,
+      listId: input.listId,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!member) {
+    throw new Error("Member not found.");
+  }
+
+  if (member.role === ListMemberRole.OWNER) {
+    throw new Error("The list owner cannot be removed.");
+  }
+
+  if (member.userId === userId) {
+    throw new Error("Use a dedicated leave flow instead of removing yourself.");
+  }
+
+  await db.movieListMember.delete({
+    where: {
+      id: member.id,
+    },
+  });
+
+  await logActivity({
+    listId: input.listId,
+    actorId: userId,
+    event: "list.member.removed",
+    payload: {
+      memberId: member.id,
+      targetUserId: member.userId,
+    },
+  });
+
+  await realtimeBroker.publish({
+    channel: `list:${input.listId}`,
+    event: "list.member.removed",
+    payload: {
+      memberId: member.id,
+      userId: member.userId,
+    },
+    occurredAt: new Date().toISOString(),
+  });
+
+  return member;
 }
 
 export async function getListItemDetail(
@@ -771,6 +1071,85 @@ export async function addMovieToList(
   });
 
   return listItem;
+}
+
+export async function removeMovieFromList(
+  userId: string,
+  input: {
+    listItemId: string;
+  },
+) {
+  const listItem = await db.movieListItem.findFirst({
+    where: {
+      id: input.listItemId,
+      list: {
+        members: {
+          some: {
+            userId,
+          },
+        },
+      },
+    },
+    include: {
+      movie: true,
+      list: {
+        include: {
+          members: true,
+        },
+      },
+    },
+  });
+
+  if (!listItem) {
+    throw new Error("Movie item not found.");
+  }
+
+  const actingMembership = listItem.list.members.find((member) => member.userId === userId);
+
+  if (!actingMembership) {
+    throw new Error("You are not a member of this list.");
+  }
+
+  const canRemove =
+    canManageListRole(actingMembership.role) || listItem.addedById === userId;
+
+  if (!canRemove) {
+    throw new Error("Only the proposer or a list manager can remove this movie.");
+  }
+
+  await db.movieListItem.delete({
+    where: {
+      id: listItem.id,
+    },
+  });
+
+  await logActivity({
+    listId: listItem.listId,
+    actorId: userId,
+    event: "list.item.removed",
+    payload: {
+      listItemId: listItem.id,
+      movieId: listItem.movieId,
+      title: listItem.movie.title,
+      removedById: userId,
+    },
+  });
+
+  await realtimeBroker.publish({
+    channel: `list:${listItem.listId}`,
+    event: "list.item.removed",
+    payload: {
+      listItemId: listItem.id,
+      movieTitle: listItem.movie.title,
+      removedById: userId,
+    },
+    occurredAt: new Date().toISOString(),
+  });
+
+  return {
+    listSlug: listItem.list.slug,
+    movieTitle: listItem.movie.title,
+  };
 }
 
 export async function saveMovieFeedback(

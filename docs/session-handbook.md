@@ -1,6 +1,6 @@
 # Session Handbook
 
-Last updated: March 10, 2026
+Last updated: March 11, 2026
 
 ## How to use this file
 
@@ -13,6 +13,7 @@ Last updated: March 10, 2026
 - keep `movieshare` as a modular monolith with clear boundaries between `app`, `components`, `features`, and `server`
 - keep the UI moving toward reusable primitives instead of page-specific logic
 - continue Phase 4 hardening: responsive cleanup, stronger presence/notifications, and better PWA polish
+- keep the new role/invite/notification layers coherent across admin, profile, and list pages
 - keep installation and first-run experience simple on fresh machines
 - keep the new media storage stack stable so profile/list imagery stays easy to operate
 - improve production readiness without making unsupported compliance or deployment claims about streaming integrations
@@ -25,6 +26,12 @@ Last updated: March 10, 2026
 - realtime live refresh exists through the self-hosted SSE route and broker
 - watch playback pages can now ingest iframe `PLAYER_EVENT` messages and persist automatic progress updates without forcing a full-page refresh
 - the watch embed listener is now tolerant of numeric-string payloads and deployment-specific iframe origins, and movie posters are being normalized toward full-bleed cover frames
+- collaborative lists now support `OWNER`, `MANAGER`, and `MEMBER` roles, owner-side member moderation, and movie removal by proposer or manager
+- list invites now support app-user delivery, email-bound links, and reusable public links with optional target role and usage limits
+- React Email now drives invite delivery, while notification defaults and per-user overrides cover in-app, email, and push channels
+- device push subscriptions can now be managed from the profile when VAPID is configured and push is enabled by admin
+- a Playwright plus axe-core smoke harness now exists for UI/client-side regression coverage
+- `npm run typecheck` now goes through `scripts/typecheck.mjs` because Next 16 typegen is intermittently leaving missing `.next/types` stub files on this project
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
 - the notifications inbox now has persistent read state, filterable feed actions, and shell badge counts driven by unread items
@@ -54,12 +61,14 @@ Last updated: March 10, 2026
 - iframe-driven watch tracking now persists server-side state, but other viewers still do not see second-by-second position changes unless future realtime fan-out is added
 - the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
-- notifications now have read state, but still lack delivery preference modeling or push channels
+- notifications now have modeled defaults and per-user overrides, but delivery is still invite/activity-first rather than a full automation system
 - the access-method admin section is roadmap/config-first today; only email/password is live until future Better Auth wiring is explicitly added
 - text settings still use direct `DB -> env` fallback, while boolean slot/toggle settings use env bootstrap and then persistent admin overrides
 - responsive hardening is better in the shell, but still not complete across every complex page
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
+- production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
+- Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
 
@@ -80,6 +89,7 @@ While implementing:
 - avoid regressions in Docker startup or local setup flow
 - keep `minio`, `minio-init`, and `media-cdn` healthy when touching storage, env, or compose
 - prefer CDN-backed movie artwork URLs over raw TMDB image paths for persisted library entries
+- keep invite UX split clearly between list invites and the optional app-friends graph in profile
 
 Before finishing:
 
@@ -112,7 +122,7 @@ Before finishing:
 - implement richer presence and notifications without relying only on full refresh or summary cards alone
 - expand tests around server actions and list/watch flows
 - improve the existing user-provided streaming integration through safer typing, tests, UI wiring, and operational tooling
-- extend the new media/image layer and auth roadmap without reintroducing dead-end one-off UI
+- extend the new media/image layer, notification automation, and auth roadmap without reintroducing dead-end one-off UI
 
 ## Update log
 
@@ -138,4 +148,6 @@ Before finishing:
 - March 10, 2026: documented the Portainer/Linux bind-mount caveat for `media-cdn` and the need to align MinIO app credentials with the active MinIO user
 - March 10, 2026: documented that `minio-init` should use `mc ready` before bucket/policy commands to avoid early-init failures in Linux and Portainer deployments
 - March 10, 2026: added account-level light/dark theme toggling, persisted browser preference, and dark-mode shell/background gradients
-- March 10, 2026: changed manual image-publish workflow default so `publish_latest` is enabled by default for public latest-tag builds
+- March 11, 2026: shipped manager roles, layered list invites, movie removal, React Email invite templates, notification defaults/user overrides, device push subscriptions, and a Playwright smoke/a11y baseline
+- March 11, 2026: manual `Publish container image` runs now default `publish_latest` to false, and production deployments should prefer immutable version tags over `latest`
+- March 11, 2026: stabilized `npm run typecheck` with a dedicated script because Next 16 typegen was intermittently omitting `.next/types` stub files needed by plain `tsc`

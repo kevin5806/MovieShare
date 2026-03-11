@@ -8,6 +8,7 @@ import {
   startWatchSessionAction,
 } from "@/features/lists/actions";
 import { MediaImage } from "@/components/media/media-image";
+import { RemoveMovieButton } from "@/components/movies/remove-movie-button";
 import { CheckboxListField } from "@/components/forms/checkbox-list-field";
 import { SelectField } from "@/components/forms/select-field";
 import { SwitchField } from "@/components/forms/switch-field";
@@ -42,6 +43,11 @@ export default async function MovieDetailPage({
   const session = await requireSession();
   const item = await getListItemDetail(slug, itemId, session.user.id);
   const yourFeedback = item.feedbacks.find((feedback) => feedback.userId === session.user.id);
+  const viewerMembership = item.list.members.find((member) => member.userId === session.user.id);
+  const canRemoveMovie =
+    viewerMembership?.role === "OWNER" ||
+    viewerMembership?.role === "MANAGER" ||
+    item.addedById === session.user.id;
   const memberOptions = item.list.members
     .filter((member) => member.userId !== session.user.id)
     .map((member) => ({
@@ -56,12 +62,13 @@ export default async function MovieDetailPage({
       <RealtimeRefresh channels={[`list:${item.listId}`]} />
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card className="overflow-hidden border-border/70 bg-card/85">
-          <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+          <div className="relative isolate aspect-[2/3] overflow-hidden bg-muted">
             {getMoviePosterUrl(item.movie, "w780") ? (
               <MediaImage
                 src={getMoviePosterUrl(item.movie, "w780") ?? ""}
                 alt={item.movie.title}
                 fill
+                sizes="(min-width: 1280px) 32rem, 100vw"
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
             ) : (
@@ -93,6 +100,11 @@ export default async function MovieDetailPage({
             <p className="text-sm text-muted-foreground">
               Proposed by <span className="font-medium text-foreground">{item.addedBy.name}</span>
             </p>
+            {canRemoveMovie ? (
+              <div className="pt-2">
+                <RemoveMovieButton listItemId={item.id} listSlug={slug} />
+              </div>
+            ) : null}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">

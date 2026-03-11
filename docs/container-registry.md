@@ -48,6 +48,9 @@ git push origin v1.0.0
 - `ghcr.io/<owner>/movieshare:1`
 - `ghcr.io/<owner>/movieshare:latest`
 
+For semver tag pushes, `latest` is published automatically. For manual workflow runs,
+`publish_latest` now defaults to `false`.
+
 3. On the production server, create an env file from `.env.production.example`.
 4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
    deployment bundle.
@@ -101,6 +104,8 @@ git push origin v1.0.0
 ```
 
 Or run `Publish container image` manually from GitHub Actions with version `1.0.0`.
+If you do this for production, leave `publish_latest` disabled unless you intentionally want
+automation that follows `latest` to move immediately.
 
 ### 2. Confirm the package exists
 
@@ -144,6 +149,12 @@ Also fill at least:
 - `STORAGE_SECRET_KEY`
 
 Optional integrations can stay empty if you do not need them immediately.
+
+Recommended production rule:
+
+- pin `MOVIESHARE_IMAGE` to an explicit release tag such as `ghcr.io/<owner>/movieshare:1.0.0`
+- do not point Watchtower or similar auto-updaters at `latest` unless you explicitly want it
+  to move as soon as the tag is republished
 
 ### 5. Authenticate only if the package is private
 

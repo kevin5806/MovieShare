@@ -1,5 +1,11 @@
-import { ListInviteStatus, WatchSessionStatus } from "@/generated/prisma/client";
+import {
+  ListInviteKind,
+  ListInviteStatus,
+  NotificationCategory,
+  WatchSessionStatus,
+} from "@/generated/prisma/client";
 import { db } from "@/server/db";
+import { getEffectiveNotificationPreferences } from "@/server/services/notification-preference-service";
 
 type NotificationKind = "friend_invite" | "list_invite" | "live_session" | "activity";
 
@@ -50,7 +56,17 @@ async function getNotificationDataset(input: { userId: string; email: string }) 
     }),
     db.movieListInvite.findMany({
       where: {
-        email: normalizedEmail,
+        kind: {
+          in: [ListInviteKind.APP_USER, ListInviteKind.EMAIL_LINK],
+        },
+        OR: [
+          {
+            invitedUserId: input.userId,
+          },
+          {
+            email: normalizedEmail,
+          },
+        ],
         status: ListInviteStatus.PENDING,
       },
       include: {
@@ -202,9 +218,43 @@ async function getNotificationStateMap(userId: string, keys: string[]) {
   return new Map(states.map((state) => [state.notificationKey, state.readAt]));
 }
 
+function getNotificationCategory(kind: NotificationKind) {
+  if (kind === "list_invite") {
+    return NotificationCategory.LIST_INVITES;
+  }
+
+  if (kind === "friend_invite") {
+    return NotificationCategory.FRIEND_INVITES;
+  }
+
+  if (kind === "live_session") {
+    return NotificationCategory.WATCH_SESSIONS;
+  }
+
+  return NotificationCategory.ACTIVITY_DIGEST;
+}
+
+async function filterInAppNotificationItems(
+  userId: string,
+  items: ReturnType<typeof buildNotificationItems>,
+) {
+  const preferences = await getEffectiveNotificationPreferences(userId);
+  const preferenceMap = new Map(
+    preferences.map((preference) => [
+      preference.category,
+      preference.effective.inAppEnabled,
+    ] as const),
+  );
+
+  return items.filter((item) => preferenceMap.get(getNotificationCategory(item.kind)) !== false);
+}
+
 export async function getNotificationSummary(input: { userId: string; email: string }) {
   const dataset = await getNotificationDataset(input);
-  const items = buildNotificationItems(dataset);
+  const items = await filterInAppNotificationItems(
+    input.userId,
+    buildNotificationItems(dataset),
+  );
   const stateMap = await getNotificationStateMap(
     input.userId,
     items.map((item) => item.key),
@@ -221,7 +271,10 @@ export async function getNotificationSummary(input: { userId: string; email: str
 
 export async function getNotificationsOverview(input: { userId: string; email: string }) {
   const dataset = await getNotificationDataset(input);
-  const items = buildNotificationItems(dataset);
+  const items = await filterInAppNotificationItems(
+    input.userId,
+    buildNotificationItems(dataset),
+  );
   const stateMap = await getNotificationStateMap(
     input.userId,
     items.map((item) => item.key),
