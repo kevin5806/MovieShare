@@ -110,3 +110,4 @@ Last updated: March 11, 2026
 - current missing production areas also include broader account-security ergonomics beyond the new session manager, especially richer device naming and stronger second-factor coverage across every auth method
 - current missing production areas also include richer live presence for watch sessions; the progress model is in place, but second-by-second co-presence updates are still summary-driven rather than fully realtime
 - future integrations should follow the new `docs/integration-playbook.md` and `docs/streaming-provider-guide.md` documents instead of inventing new seams ad hoc
+- public-route polish should now follow `docs/public-surface.md` so icons, previews, metadata and branded fallback pages stay consistent

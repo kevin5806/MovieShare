@@ -21,6 +21,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 ## What is included
 
 - landing page
+- branded app metadata surface with generated icons, social previews and custom route fallbacks
 - single progressive access flow for login and registration
 - authenticated dashboard
 - collaborative list page
@@ -53,6 +54,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - Playwright smoke/a11y test baseline for UI regressions
 - project vision, development notes and session handbook in `docs/`
 - integration playbook and streaming-provider guide in `docs/`
+- public-surface guide for metadata, icons, social previews and branded error states in `docs/`
 
 ## Architecture
 
@@ -131,6 +133,35 @@ What is still missing:
 - richer asset caching strategy
 - background sync and cache invalidation beyond the shell baseline
 - deeper offline affordances for authenticated list/watch workflows
+
+## Public surface polish
+
+The app now includes a proper branded public shell instead of framework defaults:
+
+- generated favicon/app icon and Apple icon routes
+- Open Graph and Twitter preview images
+- custom public and authenticated 404 states
+- custom root error page
+- `robots.txt` and `sitemap.xml`
+- route-specific metadata for important public entry points such as login and public list invites
+
+Implementation references:
+
+- `app/layout.tsx`
+- `app/icon.tsx`
+- `app/apple-icon.tsx`
+- `app/opengraph-image.tsx`
+- `app/twitter-image.tsx`
+- `app/not-found.tsx`
+- `app/(app)/not-found.tsx`
+- `app/error.tsx`
+- `app/robots.ts`
+- `app/sitemap.ts`
+- `server/site-config.ts`
+
+Contributor note:
+
+- see [docs/public-surface.md](./docs/public-surface.md) before changing landing metadata, public previews, icons, or route-level error surfaces
 
 ## Admin settings
 
@@ -455,6 +486,7 @@ The Prisma schema currently covers:
 - see [docs/project-vision.md](./docs/project-vision.md)
 - see [docs/development-plan.md](./docs/development-plan.md)
 - see [docs/session-handbook.md](./docs/session-handbook.md)
+- see [docs/public-surface.md](./docs/public-surface.md)
 - see [docs/integration-playbook.md](./docs/integration-playbook.md)
 - see [docs/streaming-provider-guide.md](./docs/streaming-provider-guide.md)
 

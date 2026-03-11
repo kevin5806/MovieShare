@@ -97,6 +97,7 @@ Before changing code:
 - read this file
 - read `docs/development-plan.md` if priorities may have shifted
 - read `docs/integration-playbook.md` when the task introduces or changes an external integration seam
+- read `docs/public-surface.md` when the task changes public pages, metadata, previews, icons, or error/not-found UX
 - inspect `git status`
 - inspect the affected module instead of guessing from memory
 
@@ -181,3 +182,4 @@ Before finishing:
 - March 11, 2026: added admin-configurable VAPID key storage with env fallback, fixed the server-component `buttonVariants` import regression on list pages, and refreshed the Playwright suite to match the live UI while filtering known third-party iframe console noise
 - March 11, 2026: added profile-level active session management and recent access history, verified cross-device session revocation with Playwright, and switched protected-session reads to bypass Better Auth cookie cache so revoked sessions are rejected immediately
 - March 11, 2026: added branded app metadata polish with generated icons, social preview images, custom 404/error states, public-route invite metadata, robots/sitemap routes, and smoke coverage for metadata plus missing-route recovery
+- March 11, 2026: consolidated the new metadata/error/icon work into `docs/public-surface.md` and linked it from the README so future sessions treat public-surface polish as a maintained part of the product, not as optional cleanup
