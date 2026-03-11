@@ -205,7 +205,10 @@ export function InviteMembersCard({
                     value={emailRole}
                     onValueChange={(value) => setEmailRole(value as InviteRoleValue)}
                   >
-                    <SelectTrigger className="h-10 rounded-2xl bg-card px-3">
+                    <SelectTrigger
+                      aria-label="Invite role on join"
+                      className="h-10 rounded-2xl bg-card px-3"
+                    >
                       <SelectValue placeholder="Member" />
                     </SelectTrigger>
                     <SelectContent align="start">
@@ -263,7 +266,10 @@ export function InviteMembersCard({
                     value={publicRole}
                     onValueChange={(value) => setPublicRole(value as InviteRoleValue)}
                   >
-                    <SelectTrigger className="h-10 rounded-2xl bg-card px-3">
+                    <SelectTrigger
+                      aria-label="Public invite role on join"
+                      className="h-10 rounded-2xl bg-card px-3"
+                    >
                       <SelectValue placeholder="Member" />
                     </SelectTrigger>
                     <SelectContent align="start">

@@ -21,9 +21,16 @@ export function ListPresentationForm({ list }: ListPresentationFormProps) {
     <form action={updateListPresentationAction} className="space-y-4">
       <input type="hidden" name="listId" value={list.id} />
       <input type="hidden" name="listSlug" value={list.slug} />
-      <Input name="name" defaultValue={list.name} placeholder="List name" required />
+      <Input
+        name="name"
+        aria-label="List presentation name"
+        defaultValue={list.name}
+        placeholder="List name"
+        required
+      />
       <Textarea
         name="description"
+        aria-label="List presentation description"
         defaultValue={list.description ?? ""}
         placeholder="Describe the list mood, rules or context."
       />

@@ -25,3 +25,9 @@ test("login page is reachable and basic accessibility stays clean", async ({ pag
 
   expect(accessibility.violations).toEqual([]);
 });
+
+test("offline fallback route stays reachable", async ({ page }) => {
+  await page.goto("/offline");
+
+  await expect(page.getByText(/you are offline/i)).toBeVisible();
+});

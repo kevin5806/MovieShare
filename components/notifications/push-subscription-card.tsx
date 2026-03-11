@@ -1,7 +1,7 @@
 "use client";
 
 import { BellRing, BellOff, Send } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -18,6 +18,23 @@ type PushSubscriptionCardProps = {
   activeSubscriptionCount: number;
 };
 
+function getBrowserPushState() {
+  if (typeof window === "undefined") {
+    return {
+      permission: "default" as NotificationPermission,
+      isSupported: false,
+    };
+  }
+
+  const isSupported =
+    "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+
+  return {
+    isSupported,
+    permission: isSupported ? Notification.permission : ("default" as NotificationPermission),
+  };
+}
+
 function urlBase64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replaceAll("-", "+").replaceAll("_", "/");
@@ -31,19 +48,15 @@ export function PushSubscriptionCard({
   activeSubscriptionCount,
 }: PushSubscriptionCardProps) {
   const router = useRouter();
-  const [permission, setPermission] = useState<NotificationPermission>(() =>
-    typeof window !== "undefined" && "Notification" in window
-      ? Notification.permission
-      : "default",
+  const browserState = useSyncExternalStore(
+    () => () => undefined,
+    getBrowserPushState,
+    getBrowserPushState,
   );
-  const [isSupported] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window,
-  );
+  const [permissionOverride, setPermissionOverride] = useState<NotificationPermission | null>(null);
   const [isPending, startTransition] = useTransition();
+  const permission = permissionOverride ?? browserState.permission;
+  const isSupported = browserState.isSupported;
 
   const isReady = pushRuntime.isEnabled && pushRuntime.vapidConfigured && Boolean(pushRuntime.publicKey);
   const summary = useMemo(() => {
@@ -87,7 +100,7 @@ export function PushSubscriptionCard({
 
         const nextPermission =
           permission === "granted" ? permission : await Notification.requestPermission();
-        setPermission(nextPermission);
+        setPermissionOverride(nextPermission);
 
         if (nextPermission !== "granted") {
           toast.error("Push permission was not granted.");

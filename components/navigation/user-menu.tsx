@@ -47,8 +47,11 @@ export function UserMenu({ name, email, role, image }: UserMenuProps) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger className="rounded-full outline-none ring-offset-background transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        aria-label="Open account menu"
+        className="rounded-full outline-none ring-offset-background transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
         <Avatar className="size-10 border border-border/70 bg-card shadow-sm">
           {image ? <AvatarImage src={image} alt={name} /> : null}
           <AvatarFallback>{initialsFromName(name)}</AvatarFallback>

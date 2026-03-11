@@ -140,6 +140,7 @@ export function AddMovieDialog({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search TMDB movies"
               className="pl-10"
               placeholder="Search for a title, director-adjacent title, or year"
             />
@@ -160,12 +161,16 @@ export function AddMovieDialog({
                   disabled={isPending}
                   className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)] items-stretch gap-4 rounded-3xl border border-border/70 bg-card/85 p-4 text-left transition-colors hover:bg-accent/60 disabled:opacity-60"
                 >
-                  <div className="relative isolate aspect-[2/3] h-full min-h-32 overflow-hidden rounded-[18px] bg-muted">
+                  <div
+                    data-testid="search-result-poster-frame"
+                    className="relative isolate aspect-[2/3] h-full min-h-32 overflow-hidden rounded-[18px] bg-muted"
+                  >
                     {result.posterPath ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt={result.title}
                         src={tmdbImageUrl(result.posterPath, "w342") ?? undefined}
+                        data-testid="search-result-poster-image"
                         className="absolute inset-0 h-full w-full object-cover object-center"
                       />
                     ) : (

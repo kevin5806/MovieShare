@@ -6,6 +6,7 @@ import {
   ListInviteStatus,
   type Prisma,
 } from "@/generated/prisma/client";
+import { notFound } from "next/navigation";
 import { realtimeBroker } from "@/server/realtime/broker";
 import { db } from "@/server/db";
 import {
@@ -134,7 +135,7 @@ async function requireListAccessBySlug(slug: string, userId: string) {
   });
 
   if (!list) {
-    throw new Error("List not found.");
+    notFound();
   }
 
   return list;
@@ -1007,7 +1008,7 @@ export async function getListItemDetail(
   });
 
   if (!item) {
-    throw new Error("Movie not found in this list.");
+    notFound();
   }
 
   const syncedMovie = await syncMovieArtwork(item.movie);

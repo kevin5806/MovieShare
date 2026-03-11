@@ -31,6 +31,7 @@ Last updated: March 11, 2026
 - React Email now drives invite delivery, while notification defaults and per-user overrides cover in-app, email, and push channels
 - device push subscriptions can now be managed from the profile when VAPID is configured and push is enabled by admin
 - a Playwright plus axe-core smoke harness now exists for UI/client-side regression coverage
+- the Playwright suite now covers admin, auth, collaboration, lists/watch, profile/notifications, offline and client-error monitoring end-to-end against the Dockerized app
 - `npm run typecheck` now goes through `scripts/typecheck.mjs` because Next 16 typegen is intermittently leaving missing `.next/types` stub files on this project
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
@@ -59,6 +60,7 @@ Last updated: March 11, 2026
 - additional streaming slots can be added, but they must not displace or degrade an existing user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - iframe-driven watch tracking now persists server-side state, but other viewers still do not see second-by-second position changes unless future realtime fan-out is added
+- Better Auth rate limiting stays enabled, but `/sign-in/email` and `/sign-up/email` now use a less aggressive custom rule so local E2E coverage does not trip the default 3-requests-per-10-seconds lockout
 - the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have modeled defaults and per-user overrides, but delivery is still invite/activity-first rather than a full automation system
@@ -90,6 +92,7 @@ While implementing:
 - keep `minio`, `minio-init`, and `media-cdn` healthy when touching storage, env, or compose
 - prefer CDN-backed movie artwork URLs over raw TMDB image paths for persisted library entries
 - keep invite UX split clearly between list invites and the optional app-friends graph in profile
+- when expanding Playwright coverage, keep auth-heavy specs serial or consciously revisit the custom Better Auth rate-limit thresholds before increasing account-creation volume
 
 Before finishing:
 
@@ -151,3 +154,4 @@ Before finishing:
 - March 11, 2026: shipped manager roles, layered list invites, movie removal, React Email invite templates, notification defaults/user overrides, device push subscriptions, and a Playwright smoke/a11y baseline
 - March 11, 2026: manual `Publish container image` runs now default `publish_latest` to false, and production deployments should prefer immutable version tags over `latest`
 - March 11, 2026: stabilized `npm run typecheck` with a dedicated script because Next 16 typegen was intermittently omitting `.next/types` stub files needed by plain `tsc`
+- March 11, 2026: expanded the Playwright suite into full-site flows, hardened auth helpers to wait on real `/api/auth/*` responses, and raised Better Auth sign-in/sign-up burst limits enough for local E2E coverage without disabling rate limiting

@@ -62,13 +62,17 @@ export default async function MovieDetailPage({
       <RealtimeRefresh channels={[`list:${item.listId}`]} />
       <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card className="overflow-hidden border-border/70 bg-card/85">
-          <div className="relative isolate aspect-[2/3] overflow-hidden bg-muted">
+          <div
+            data-testid="movie-detail-poster-frame"
+            className="relative isolate aspect-[2/3] overflow-hidden bg-muted"
+          >
             {getMoviePosterUrl(item.movie, "w780") ? (
               <MediaImage
                 src={getMoviePosterUrl(item.movie, "w780") ?? ""}
                 alt={item.movie.title}
                 fill
                 sizes="(min-width: 1280px) 32rem, 100vw"
+                data-testid="movie-detail-poster-image"
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
             ) : (

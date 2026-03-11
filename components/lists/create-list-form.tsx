@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 export function CreateListForm() {
   return (
     <form action={createListAction} className="space-y-3">
-      <Input name="name" placeholder="Friday picks" required />
+      <Input name="name" aria-label="List name" placeholder="Friday picks" required />
       <Textarea
         name="description"
+        aria-label="List description"
         placeholder="Add a short description for the group, mood or theme."
       />
       <ImageUploadField

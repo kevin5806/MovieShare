@@ -132,6 +132,8 @@ export function MemberManagementCard({
             return (
               <div
                 key={member.id}
+                data-testid="member-management-row"
+                data-member-email={member.user.email}
                 className="space-y-4 rounded-[28px] border border-border/70 bg-background p-5"
               >
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -165,7 +167,10 @@ export function MemberManagementCard({
                           }))
                         }
                       >
-                        <SelectTrigger className="h-10 rounded-2xl bg-card px-3">
+                        <SelectTrigger
+                          aria-label={`Role for ${displayName}`}
+                          className="h-10 rounded-2xl bg-card px-3"
+                        >
                           <SelectValue placeholder="Role" />
                         </SelectTrigger>
                         <SelectContent align="start">
@@ -181,6 +186,7 @@ export function MemberManagementCard({
                           type="button"
                           size="sm"
                           className="flex-1"
+                          aria-label={`Save role for ${displayName}`}
                           disabled={isPending}
                           onClick={() => handleRoleSave(member.id)}
                         >
@@ -190,6 +196,7 @@ export function MemberManagementCard({
                           type="button"
                           size="sm"
                           variant="outline"
+                          aria-label={`Remove ${displayName} from the list`}
                           disabled={isPending}
                           onClick={() => handleRemove(member.id)}
                         >

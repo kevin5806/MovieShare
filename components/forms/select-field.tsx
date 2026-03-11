@@ -47,7 +47,10 @@ export function SelectField({
           }
         }}
       >
-        <SelectTrigger className="h-10 w-full rounded-2xl bg-background px-3">
+        <SelectTrigger
+          aria-label={label}
+          className="h-10 w-full rounded-2xl bg-background px-3"
+        >
           <SelectValue placeholder={placeholder ?? label} />
         </SelectTrigger>
         <SelectContent align="start">
