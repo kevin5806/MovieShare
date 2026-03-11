@@ -50,6 +50,7 @@ Last updated: March 11, 2026
 - the dashboard is now status-first and no longer embeds list creation directly; new lists should be created from the dedicated `/lists` area so the overview stays compact
 - the notifications inbox now has persistent read state, filterable feed actions, and shell badge counts driven by unread items
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
+- branded app polish now includes generated app icons, apple icon, Open Graph/Twitter preview images, custom 404/error surfaces, and basic `robots.txt` plus `sitemap.xml` routes
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
@@ -81,6 +82,7 @@ Last updated: March 11, 2026
 - text settings still use direct `DB -> env` fallback, while boolean slot/toggle settings use env bootstrap and then persistent admin overrides
 - server-side route protection now reads sessions with `disableCookieCache: true`, because revoked Better Auth sessions must stop working immediately across browsers instead of surviving in cached cookie payloads
 - responsive hardening is better in the shell, but still not complete across every complex page
+- metadata and preview polish now exist, but any new public-facing route should still ship with deliberate title/description rules instead of falling back to generic app copy
 - the authenticated shell now keeps viewport scroll locked and expects the right-hand content card to be the scroll container
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
@@ -126,6 +128,7 @@ Before finishing:
 - Do not reintroduce the HTML `sandbox` attribute on the watch playback iframe unless the user explicitly asks for it and the active provider has been verified to keep playback and client-side events working correctly.
 - No fake completeness: if a provider is truly placeholder-only, UI and docs must say so clearly, but do not relabel a user-provided integration as placeholder.
 - Server-first rendering: prefer server components and actions; when client rendering is required, make hydration-safe choices.
+- Metadata routes and social-image rendering must stay build-safe with `next/og` limitations; use only supported inline CSS and avoid browser-only styling assumptions there.
 - Security before convenience: protect search/admin/realtime endpoints, validate env in production, and keep secrets out of defaults.
 - Session revocation must be real-time from the user's perspective: protected app routes should prefer a fresh Better Auth session lookup over cached cookie session payloads.
 - Installation must stay easy: preserve `npm run setup`, reliable Docker startup, and clear README steps.
@@ -177,3 +180,4 @@ Before finishing:
 - March 11, 2026: stabilized the profile security page, fixed Better Auth magic-link verification against Prisma, moved list management to a dedicated settings page, persisted list ordering preferences, and upgraded watch tracking to maintain per-user movie progress across partial group sessions
 - March 11, 2026: added admin-configurable VAPID key storage with env fallback, fixed the server-component `buttonVariants` import regression on list pages, and refreshed the Playwright suite to match the live UI while filtering known third-party iframe console noise
 - March 11, 2026: added profile-level active session management and recent access history, verified cross-device session revocation with Playwright, and switched protected-session reads to bypass Better Auth cookie cache so revoked sessions are rejected immediately
+- March 11, 2026: added branded app metadata polish with generated icons, social preview images, custom 404/error states, public-route invite metadata, robots/sitemap routes, and smoke coverage for metadata plus missing-route recovery

@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
+
 import { BrandMark } from "@/components/brand-mark";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { redirectIfAuthenticated } from "@/server/session";
 import { getPublicAuthState } from "@/server/services/system-config";
+
+export const metadata: Metadata = {
+  title: "Access",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function LoginPage({
   searchParams,

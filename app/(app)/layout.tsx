@@ -1,7 +1,16 @@
+import type { Metadata } from "next";
+
 import { AppShell } from "@/components/layout/app-shell";
 import { requireSession } from "@/server/session";
 import { getNotificationSummary } from "@/server/services/notification-service";
 import { getApplicationVersion } from "@/server/version";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AuthenticatedLayout({
   children,

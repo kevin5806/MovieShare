@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { respondToListInviteAction } from "@/features/lists/actions";
@@ -7,6 +8,49 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/server/session";
 import { getListInviteByToken } from "@/server/services/list-service";
+import { buildAbsoluteUrl } from "@/server/site-config";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const invite = await getListInviteByToken(token);
+
+  if (!invite) {
+    return {
+      title: "Invite not found",
+      description: "This invite is no longer available or the link is invalid.",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const senderName = invite.sender.profile?.displayName || invite.sender.name;
+  const title = `Join ${invite.list.name}`;
+  const description = `${senderName} invited you to ${invite.list.name} on movieshare.`;
+
+  return {
+    title,
+    description,
+    robots: {
+      index: false,
+      follow: false,
+    },
+    openGraph: {
+      title,
+      description,
+      url: buildAbsoluteUrl(`/invites/lists/${token}`),
+    },
+    twitter: {
+      title,
+      description,
+    },
+  };
+}
 
 export default async function ListInvitePage({
   params,

@@ -34,6 +34,7 @@ Last updated: March 11, 2026
 - media storage stack with MinIO and an internal media-cdn service
 - self-hosted SSE broker with live refresh on list, selection, movie-detail and watch-session pages
 - installable PWA baseline with manifest, service worker registration and offline fallback page
+- branded metadata polish with custom icons, Open Graph/Twitter images, and custom 404/error surfaces
 - Playwright plus axe-core smoke coverage for browser/UI regressions
 - registry-first deployment path through GitHub Actions image publishing and source-free production Docker Compose
 - dedicated Docker development path with mounted source and hot reload instead of production rebuilds
@@ -86,6 +87,7 @@ Last updated: March 11, 2026
 - completed: web push baseline with device subscriptions, admin-configurable master switch and admin-managed VAPID keys
 - completed: Playwright + axe-core smoke harness for UI validation
 - completed: Playwright runtime coverage aligned with the current UI copy and flows against the Dockerized app
+- completed: public app polish for metadata, social previews, missing-route recovery and crawlable sitemap/robots endpoints
 - completed: registry-first image publishing and source-free production deployment path
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods
