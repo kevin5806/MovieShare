@@ -32,7 +32,7 @@ Last updated: March 11, 2026
 - collaborative lists now support `OWNER`, `MANAGER`, and `MEMBER` roles, owner-side member moderation, and movie removal by proposer or manager
 - list owners can now delete a list from the list detail page
 - list invites now support app-user delivery, email-bound links, and reusable public links with optional target role and usage limits
-- React Email now drives invite delivery, while notification defaults and per-user overrides cover in-app, email, and push channels
+- React Email now drives invite delivery plus auth emails such as sign-in codes and magic links, while notification defaults and per-user overrides cover in-app, email, and push channels
 - device push subscriptions can now be managed from the profile when VAPID is configured and push is enabled by admin
 - a Playwright plus axe-core smoke harness now exists for UI/client-side regression coverage
 - the Playwright suite now covers admin, auth, collaboration, lists/watch, profile/notifications, offline and client-error monitoring end-to-end against the Dockerized app

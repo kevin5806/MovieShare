@@ -23,7 +23,7 @@ Last updated: March 11, 2026
 - layered list invites for app users, restricted email links and public links
 - admin notification defaults plus per-user notification overrides
 - web push subscriptions and delivery baseline
-- React Email invite templates aligned with the app UI
+- React Email templates aligned with the app UI for invites and auth emails
 - profile avatars and list-cover uploads backed by self-hosted media storage
 - watch sessions with group membership, resume state and manual playback checkpoints
 - streaming provider abstraction with admin-managed runtime configuration

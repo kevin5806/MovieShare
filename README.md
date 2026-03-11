@@ -40,7 +40,7 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - movie removal flow for proposers and list managers
 - TMDB search and metadata caching
 - mirrored TMDB movie artwork served through the local media CDN when storage is configured
-- React Email-backed invite delivery for list and friend invites
+- React Email-backed email delivery for list invites, friend invites, sign-in codes and magic links
 - admin notification defaults with per-user overrides
 - browser push subscription management and web push delivery
 - manual playback checkpoint saving and resume-point updates
@@ -192,6 +192,23 @@ Admin/runtime config note:
 - push delivery master state comes from `.env` or `/admin`, while VAPID keys stay in `.env`
 - future access-method toggles can be bootstrapped from `.env` and then overridden in `/admin`
 - streaming slot enablement and preferred provider can be bootstrapped from `.env` and then overridden in `/admin`
+
+## Delivery email coverage
+
+React Email is already used in production code for:
+
+- list invite emails
+- friend invite emails
+- sign-in code emails
+- magic link emails
+
+Implementation references:
+
+- `server/services/email-service.tsx`
+- `server/email/templates/list-invite-email.tsx`
+- `server/email/templates/friend-invite-email.tsx`
+- `server/email/templates/auth-code-email.tsx`
+- `server/email/templates/magic-link-email.tsx`
 
 ## Local development
 
