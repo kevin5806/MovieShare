@@ -125,7 +125,7 @@ export function AddMovieDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className={cn(buttonVariants())}>
         <Plus className="size-4" />
-        Add movie
+        Add a title
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] max-w-4xl overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="px-6 pt-6">
@@ -171,7 +171,7 @@ export function AddMovieDialog({
                         alt={result.title}
                         src={tmdbImageUrl(result.posterPath, "w342") ?? undefined}
                         data-testid="search-result-poster-image"
-                        className="absolute inset-0 h-full w-full object-cover object-center"
+                        className="absolute inset-0 !h-full !w-full object-cover object-center"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs text-muted-foreground">

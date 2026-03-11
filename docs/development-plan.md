@@ -20,12 +20,15 @@ Last updated: March 11, 2026
 - TMDB-backed movie search with local caching of essential metadata
 - collaborative lists with owner/manager/member roles, invite management and movie removal controls
 - owner-side list deletion
+- dedicated list settings page for presentation, invites, member permissions and deletion
+- persisted per-user list organization preferences for ordering and proposer filters
 - layered list invites for app users, restricted email links and public links
 - admin notification defaults plus per-user notification overrides
 - web push subscriptions and delivery baseline
+- admin-managed VAPID keys with environment fallback
 - React Email templates aligned with the app UI for invites and auth emails
 - profile avatars and list-cover uploads backed by self-hosted media storage
-- watch sessions with group membership, resume state and manual playback checkpoints
+- watch sessions with group membership, per-user movie progress, resume state and manual playback checkpoints
 - streaming provider abstraction with admin-managed runtime configuration
 - media storage stack with MinIO and an internal media-cdn service
 - self-hosted SSE broker with live refresh on list, selection, movie-detail and watch-session pages
@@ -76,14 +79,17 @@ Last updated: March 11, 2026
 - completed: first notifications inbox and working topbar account/notification actions
 - completed: minimal PWA install/offline shell
 - completed: role-aware list management with manager promotions, member moderation and movie removal
+- completed: dedicated list settings page plus persisted ordering/proposer preferences for each viewer
 - completed: layered list invite flows for app users, email-bound links and public links
 - completed: notification defaults, per-user overrides and React Email invite templates
-- completed: web push baseline with device subscriptions and admin-configurable master switch
+- completed: web push baseline with device subscriptions, admin-configurable master switch and admin-managed VAPID keys
 - completed: Playwright + axe-core smoke harness for UI validation
+- completed: Playwright runtime coverage aligned with the current UI copy and flows against the Dockerized app
 - completed: registry-first image publishing and source-free production deployment path
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods
 - completed: first real auth-method rollout for email code, magic link, passkeys and profile 2FA controls
+- completed: per-user watch progress model with grouped room propagation for shared in-room sessions
 - in progress: responsive hardening, streaming UX cleanup and richer presence behavior
 - pending: presence indicators without full refresh, richer collaborative playback controls, stronger PWA shell and broader notification automation
 
@@ -97,4 +103,5 @@ Last updated: March 11, 2026
 - current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter
 - current missing production areas also include broader push automation, digests and background/offline polish beyond the baseline service-worker implementation
 - current missing production areas also include deeper auth hardening, especially broader 2FA enforcement outside the password flow
+- current missing production areas also include richer live presence for watch sessions; the progress model is in place, but second-by-second co-presence updates are still summary-driven rather than fully realtime
 - future integrations should follow the new `docs/integration-playbook.md` and `docs/streaming-provider-guide.md` documents instead of inventing new seams ad hoc

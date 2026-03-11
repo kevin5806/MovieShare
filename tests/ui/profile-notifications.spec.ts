@@ -20,6 +20,9 @@ test("profile, notifications and friend invites stay usable from the client", as
     await registerViaAccessFlow(bobPage, bob);
 
     await page.goto("/profile");
+    await expect(page.getByRole("heading", { name: /profile/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /access and security/i })).toBeVisible();
+    await expect(page.getByText("Passkeys", { exact: true })).toBeVisible();
     await page.getByPlaceholder("Display name").fill("Alice UI");
     await page.getByPlaceholder("Location").fill("Rome");
     await page.getByPlaceholder("Favorite genres, comma separated").fill("Sci-Fi, Drama");
@@ -31,7 +34,7 @@ test("profile, notifications and friend invites stay usable from the client", as
 
     await page.getByPlaceholder("friend@example.com").fill(bob.email);
     await page.getByPlaceholder("Optional message").fill("Join my recurring movie circle.");
-    await page.getByRole("button", { name: /send friend invite/i }).click();
+    await page.getByRole("button", { name: /add connection/i }).click();
     await expect(page.getByText(bob.email)).toBeVisible({ timeout: 20_000 });
 
     await bobPage.goto("/notifications");

@@ -29,3 +29,9 @@ export const updateAccessMethodSettingsSchema = z.object({
   authPasskeyEnabled: formBoolean,
   authTwoFactorEnabled: formBoolean,
 });
+
+export const updatePushDeliverySettingsSchema = z.object({
+  vapidPublicKey: z.string().max(4096).default(""),
+  vapidPrivateKey: z.string().max(4096).default(""),
+  vapidSubject: z.string().max(1024).default(""),
+});

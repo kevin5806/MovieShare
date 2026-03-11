@@ -114,19 +114,45 @@ export async function getPushRuntimeConfig() {
           createdAt: new Date(0),
           updatedAt: new Date(0),
           pushNotificationsEnabled: env.PUSH_NOTIFICATIONS_ENABLED,
+          vapidPublicKey: env.VAPID_PUBLIC_KEY,
+          vapidPrivateKey: env.VAPID_PRIVATE_KEY,
+          vapidSubject: env.VAPID_SUBJECT,
         };
-  const vapidConfigured = Boolean(
-    env.VAPID_PUBLIC_KEY.trim() && env.VAPID_PRIVATE_KEY.trim() && env.VAPID_SUBJECT.trim(),
+  const databasePublicKey = config.vapidPublicKey?.trim() || "";
+  const databasePrivateKey = config.vapidPrivateKey?.trim() || "";
+  const databaseSubject = config.vapidSubject?.trim() || "";
+  const hasEnvironmentValues = Boolean(
+    env.PUSH_NOTIFICATIONS_ENABLED ||
+      env.VAPID_PUBLIC_KEY.trim() ||
+      env.VAPID_PRIVATE_KEY.trim() ||
+      env.VAPID_SUBJECT.trim(),
   );
-  const usesEnvironmentFallback = isSystemConfigPristine(config) && env.PUSH_NOTIFICATIONS_ENABLED;
+  const hasDatabaseValues = Boolean(
+    databasePublicKey ||
+      databasePrivateKey ||
+      databaseSubject ||
+      (!isSystemConfigPristine(config) &&
+        config.pushNotificationsEnabled !== env.PUSH_NOTIFICATIONS_ENABLED),
+  );
+  const usesEnvironmentFallback =
+    isSystemConfigPristine(config) && hasEnvironmentValues;
+  const publicKey = databasePublicKey || env.VAPID_PUBLIC_KEY.trim();
+  const privateKey = databasePrivateKey || env.VAPID_PRIVATE_KEY.trim();
+  const subject = databaseSubject || env.VAPID_SUBJECT.trim();
+  const vapidConfigured = Boolean(publicKey && privateKey && subject);
   const isEnabled = usesEnvironmentFallback ? env.PUSH_NOTIFICATIONS_ENABLED : config.pushNotificationsEnabled;
 
   return {
     isEnabled,
     vapidConfigured,
-    publicKey: env.VAPID_PUBLIC_KEY || null,
-    subject: env.VAPID_SUBJECT || null,
-    source: usesEnvironmentFallback ? ("environment" as const) : ("database" as const),
+    publicKey: publicKey || null,
+    privateKey: privateKey || null,
+    subject: subject || null,
+    source: hasDatabaseValues
+      ? ("database" as const)
+      : hasEnvironmentValues
+        ? ("environment" as const)
+        : ("missing" as const),
   };
 }
 

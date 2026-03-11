@@ -1,15 +1,15 @@
 import { UsersRound, WandSparkles } from "lucide-react";
+import Link from "next/link";
 
-import { InviteMembersCard } from "@/components/lists/invite-members-card";
-import { MemberManagementCard } from "@/components/lists/member-management-card";
-import { DeleteListButton } from "@/components/lists/delete-list-button";
-import { ListPresentationForm } from "@/components/lists/list-presentation-form";
+import { ListViewControls } from "@/components/lists/list-view-controls";
 import { MediaImage } from "@/components/media/media-image";
 import { AddMovieDialog } from "@/components/movies/add-movie-dialog";
 import { MovieCard } from "@/components/movies/movie-card";
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button-styles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { requireSession } from "@/server/session";
 import { getListDetails } from "@/server/services/list-service";
 
@@ -23,7 +23,6 @@ export default async function ListPage({
   const list = await getListDetails(slug, session.user.id);
   const latestSelection = list.selectionRuns[0];
   const viewerMembership = list.members.find((member) => member.userId === session.user.id);
-  const isOwner = list.ownerId === session.user.id;
   const canManageList =
     viewerMembership?.role === "OWNER" || viewerMembership?.role === "MANAGER";
 
@@ -63,6 +62,17 @@ export default async function ListPage({
           <AddMovieDialog listId={list.id} listSlug={list.slug} />
         </div>
       </section>
+
+      <ListViewControls
+        listId={list.id}
+        listSlug={list.slug}
+        currentSortBy={list.viewPreferences.sortBy}
+        currentProposerId={list.viewPreferences.proposerId}
+        proposers={list.members.map((member) => ({
+          id: member.userId,
+          label: member.user.profile?.displayName || member.user.name,
+        }))}
+      />
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <Card className="border-border/70 bg-card/85">
@@ -123,81 +133,19 @@ export default async function ListPage({
           {canManageList ? (
             <Card className="border-border/70 bg-card/85">
               <CardHeader>
-                <CardTitle>List presentation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ListPresentationForm
-                  list={{
-                    id: list.id,
-                    slug: list.slug,
-                    name: list.name,
-                    description: list.description,
-                    coverImageUrl: list.coverImageUrl,
-                  }}
-                />
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {canManageList ? (
-            <InviteMembersCard
-              listId={list.id}
-              listSlug={list.slug}
-              canGrantManagerRole={isOwner}
-              invites={list.invites.map((invite) => ({
-                id: invite.id,
-                kind: invite.kind,
-                email: invite.email,
-                status: invite.status,
-                token: invite.token,
-                expiresAt: invite.expiresAt.toISOString(),
-                invitedUserId: invite.invitedUserId,
-                invitedUserName:
-                  invite.invitedUser?.profile?.displayName || invite.invitedUser?.name || null,
-                invitedUserEmail: invite.invitedUser?.email || null,
-                targetRole: invite.targetRole,
-                maxUses: invite.maxUses,
-                useCount: invite.useCount,
-                note: invite.note,
-              }))}
-            />
-          ) : null}
-
-          {isOwner ? (
-            <MemberManagementCard
-              listId={list.id}
-              listSlug={list.slug}
-              ownerUserId={list.ownerId}
-              currentUserId={session.user.id}
-              members={list.members.map((member) => ({
-                id: member.id,
-                userId: member.userId,
-                role: member.role,
-                joinedAt: member.joinedAt.toISOString(),
-                user: {
-                  name: member.user.name,
-                  email: member.user.email,
-                  profile: member.user.profile
-                    ? {
-                        displayName: member.user.profile.displayName,
-                      }
-                    : null,
-                },
-              }))}
-            />
-          ) : null}
-
-          {isOwner ? (
-            <Card className="border-destructive/20 bg-card/85">
-              <CardHeader>
-                <CardTitle>Delete list</CardTitle>
+                <CardTitle>List settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm leading-6 text-muted-foreground">
-                  This permanently removes the list, its invites, feedback, sessions and
-                  shared history for everyone.
+                  Manage members, invites, artwork and deletion from the dedicated settings
+                  page so this main view stays focused on the movies.
                 </p>
-                <DeleteListButton listId={list.id} listSlug={list.slug} listName={list.name} />
+                <Link
+                  href={`/lists/${list.slug}/settings`}
+                  className={cn(buttonVariants(), "w-full")}
+                >
+                  Open list settings
+                </Link>
               </CardContent>
             </Card>
           ) : null}

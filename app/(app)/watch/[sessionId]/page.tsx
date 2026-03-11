@@ -49,6 +49,9 @@ export default async function WatchSessionPage({
     : watchSession.streamingProvider
       ? `${providerLabel} configured`
       : providerLabel;
+  const runtimeSeconds = watchSession.listItem.movie.runtimeMinutes
+    ? watchSession.listItem.movie.runtimeMinutes * 60
+    : 0;
 
   return (
     <div className="space-y-8">
@@ -65,8 +68,9 @@ export default async function WatchSessionPage({
           {watchSession.listItem.movie.title}
         </h1>
         <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-          This area tracks who started the title, who joined the same session and where each
-          member stopped. It is not a realtime teleparty or synced screen-sharing flow.
+          This area keeps a trace of who watched together, where each person really got,
+          and which watch entries happened over time. It is not a synced teleparty or
+          remote co-watching room.
         </p>
       </section>
 
@@ -98,7 +102,7 @@ export default async function WatchSessionPage({
               {joinedMembers.length}/{watchSession.members.length}
             </p>
             <p className="text-sm text-muted-foreground">
-              Presence and checkpoints remain shareable across the list.
+              People added to the same watch entry are assumed to be in the room already.
             </p>
           </CardContent>
         </Card>
@@ -149,8 +153,8 @@ export default async function WatchSessionPage({
                   </p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-card/80 p-4 text-sm text-muted-foreground">
-                  Use this session as a shared tracking space: each member can play the movie
-                  in their own setup and save checkpoints here to keep the group informed.
+                  Use this watch entry as a shared tracking space: each person can play the
+                  movie in their own setup and keep the group informed here.
                 </div>
               </div>
             )}
@@ -179,7 +183,7 @@ export default async function WatchSessionPage({
                         {member.user.profile?.displayName || member.user.name}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Position {formatSeconds(member.currentPositionSeconds)}
+                        Last session point {formatSeconds(member.currentPositionSeconds)}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -196,6 +200,7 @@ export default async function WatchSessionPage({
             sessionId={watchSession.id}
             resumeFromSeconds={watchSession.resumeFromSeconds}
             yourCurrentPositionSeconds={currentMember?.currentPositionSeconds ?? 0}
+            runtimeSeconds={runtimeSeconds}
             checkpoints={watchSession.checkpoints.map((checkpoint) => ({
               id: checkpoint.id,
               positionSeconds: checkpoint.positionSeconds,
@@ -204,6 +209,91 @@ export default async function WatchSessionPage({
             }))}
           />
         </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="border-border/70 bg-card/85">
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <CardTitle>Per-person progress</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">
+                {watchSession.aggregateProgress.startedCount} started
+              </Badge>
+              <Badge variant="secondary">
+                {watchSession.aggregateProgress.completedCount} finished
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {watchSession.progressBoard.length ? (
+              watchSession.progressBoard.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-3xl border border-border/70 bg-background p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium">{row.userName}</p>
+                    <Badge variant={row.completionState === "COMPLETED" ? "default" : "secondary"}>
+                      {row.completionState === "COMPLETED"
+                        ? "Finished"
+                        : row.completionState === "IN_PROGRESS"
+                          ? "In progress"
+                          : "Not started"}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Last known point {formatSeconds(row.lastPositionSeconds)}
+                  </p>
+                  {row.lastWatchedAt ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Updated <DateTimeText value={row.lastWatchedAt.toISOString()} />
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
+                Nobody has tracked progress for this title yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/85">
+          <CardHeader>
+            <CardTitle>Watch history</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {watchSession.history.length ? (
+              watchSession.history.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-3xl border border-border/70 bg-background p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="font-medium">
+                      {entry.type === "GROUP" ? "Group watch" : "Solo watch"}
+                    </p>
+                    <Badge variant="secondary">{entry.participantCount} people</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Started by {entry.startedByName}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Started <DateTimeText value={entry.startedAt.toISOString()} />
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Started from {formatSeconds(entry.resumeFromSeconds)}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="rounded-3xl border border-dashed border-border bg-background p-6 text-sm text-muted-foreground">
+                No older watch entries yet for this title.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

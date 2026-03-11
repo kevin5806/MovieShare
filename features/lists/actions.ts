@@ -18,6 +18,7 @@ import {
   startWatchSessionSchema,
   updateListMemberRoleSchema,
   updateListPresentationSchema,
+  updateListViewPreferencesSchema,
 } from "@/features/lists/schemas";
 import { getOptionalFile } from "@/lib/form-files";
 import { requireSession } from "@/server/session";
@@ -33,6 +34,7 @@ import {
   saveMovieFeedback,
   updateListMemberRole,
   updateListPresentation,
+  updateListViewPreferences,
 } from "@/server/services/list-service";
 import { runSelection } from "@/server/services/selection-service";
 import { createWatchSession } from "@/server/services/watch-service";
@@ -61,7 +63,9 @@ export async function updateListPresentationAction(formData: FormData) {
     listSlug: formData.get("listSlug"),
     name: formData.get("name"),
     description: formData.get("description"),
-    removeCoverImage: formData.get("removeCoverImage") === "on",
+    removeCoverImage:
+      formData.get("removeCoverImage") === "on" ||
+      formData.get("removeCoverImage") === "true",
   });
   const coverImageFile = getOptionalFile(formData.get("coverImage"));
 
@@ -294,6 +298,37 @@ export async function removeMovieFromListAction(formData: FormData) {
   }
 }
 
+export async function updateListViewPreferencesAction(formData: FormData) {
+  try {
+    const session = await requireSession();
+
+    const parsed = updateListViewPreferencesSchema.parse({
+      listId: formData.get("listId"),
+      listSlug: formData.get("listSlug"),
+      sortBy: formData.get("sortBy"),
+      proposerId: formData.get("proposerId"),
+    });
+
+    await updateListViewPreferences(session.user.id, parsed);
+
+    revalidatePath(`/lists/${parsed.listSlug}`);
+
+    return {
+      ok: true as const,
+    };
+  } catch (error) {
+    console.error("updateListViewPreferencesAction failed", error);
+
+    return {
+      ok: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unable to save the list view right now.",
+    };
+  }
+}
+
 export async function saveMovieFeedbackAction(formData: FormData) {
   const session = await requireSession();
 
@@ -302,7 +337,8 @@ export async function saveMovieFeedbackAction(formData: FormData) {
     listSlug: formData.get("listSlug"),
     seenState: formData.get("seenState"),
     interest: formData.get("interest"),
-    wouldRewatch: formData.get("wouldRewatch") === "on",
+    wouldRewatch:
+      formData.get("wouldRewatch") === "on" || formData.get("wouldRewatch") === "true",
     comment: formData.get("comment"),
   });
 

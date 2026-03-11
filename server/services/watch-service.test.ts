@@ -4,6 +4,7 @@ import {
   PlaybackCheckpointSource,
   PresenceState,
   StreamingProviderKey,
+  WatchProgressState,
   WatchSessionStatus,
   WatchSessionType,
 } from "@/generated/prisma/client";
@@ -11,6 +12,12 @@ import {
 const mocks = vi.hoisted(() => ({
   db: {
     movieListItem: {
+      findFirst: vi.fn(),
+    },
+    movieWatchProgress: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
       findFirst: vi.fn(),
     },
     watchSession: {
@@ -65,10 +72,17 @@ describe("watch-service", () => {
       movie: {
         id: "movie-1",
         tmdbId: 42,
+        runtimeMinutes: 120,
       },
       list: {
         members: [{ userId: "user-1" }, { userId: "user-2" }],
       },
+    });
+    mocks.db.movieWatchProgress.findMany.mockResolvedValue([]);
+    mocks.db.movieWatchProgress.findUnique.mockResolvedValue(null);
+    mocks.db.movieWatchProgress.upsert.mockResolvedValue({
+      id: "progress-1",
+      completionState: WatchProgressState.IN_PROGRESS,
     });
 
     mocks.getActiveStreamingProviderConfig.mockResolvedValue({
@@ -77,6 +91,7 @@ describe("watch-service", () => {
 
     mocks.db.$transaction.mockImplementation(async (callback) =>
       callback({
+        movieWatchProgress: mocks.db.movieWatchProgress,
         watchSession: mocks.db.watchSession,
         watchSessionMember: mocks.db.watchSessionMember,
         playbackCheckpoint: mocks.db.playbackCheckpoint,
@@ -117,10 +132,15 @@ describe("watch-service", () => {
         isHost: true,
         presence: "JOINED",
         joinedAt: expect.any(Date),
+        currentPositionSeconds: 0,
+        activeSegmentStartSeconds: 0,
       },
       {
         userId: "user-2",
-        presence: "INVITED",
+        presence: "JOINED",
+        joinedAt: expect.any(Date),
+        currentPositionSeconds: 0,
+        activeSegmentStartSeconds: 0,
       },
     ]);
 
@@ -152,6 +172,52 @@ describe("watch-service", () => {
     expect(result).toMatchObject(updatedSession);
   });
 
+  it("uses existing per-user progress to choose the next session resume point", async () => {
+    mocks.db.movieWatchProgress.findMany.mockResolvedValue([
+      {
+        lastPositionSeconds: 600,
+      },
+      {
+        lastPositionSeconds: 125,
+      },
+    ]);
+    mocks.db.watchSession.create.mockResolvedValue({
+      id: "session-progress",
+      streamingPlaybackUrl: null,
+      groupState: { kind: "unavailable" },
+    });
+    mocks.resolvePlaybackSource.mockResolvedValue({
+      kind: "unavailable",
+    });
+    mocks.db.watchSession.update.mockResolvedValue({
+      id: "session-progress",
+      streamingPlaybackUrl: null,
+      groupState: { kind: "unavailable" },
+    });
+
+    await createWatchSession({
+      userId: "user-1",
+      listItemId: "list-item-1",
+      type: WatchSessionType.GROUP,
+      memberIds: ["user-2"],
+    });
+
+    const [{ data }] = mocks.db.watchSession.create.mock.calls.at(-1)!;
+    expect(data.resumeFromSeconds).toBe(600);
+    expect(data.members.create).toEqual([
+      expect.objectContaining({
+        userId: "user-1",
+        currentPositionSeconds: 600,
+        activeSegmentStartSeconds: 600,
+      }),
+      expect.objectContaining({
+        userId: "user-2",
+        currentPositionSeconds: 600,
+        activeSegmentStartSeconds: 600,
+      }),
+    ]);
+  });
+
   it("records automatic heartbeat progress from iframe timeupdate events", async () => {
     const startedAt = new Date("2026-03-10T12:00:00.000Z");
     const joinedAt = new Date("2026-03-10T12:01:00.000Z");
@@ -172,6 +238,7 @@ describe("watch-service", () => {
       listItem: {
         movie: {
           tmdbId: 42,
+          runtimeMinutes: 120,
         },
       },
       members: [
@@ -180,6 +247,8 @@ describe("watch-service", () => {
           presence: PresenceState.JOINED,
           joinedAt,
           leftAt: null,
+          currentPositionSeconds: 40,
+          activeSegmentStartSeconds: 40,
         },
       ],
     });
@@ -272,6 +341,7 @@ describe("watch-service", () => {
       listItem: {
         movie: {
           tmdbId: 42,
+          runtimeMinutes: 120,
         },
       },
       members: [
@@ -280,6 +350,8 @@ describe("watch-service", () => {
           presence: PresenceState.JOINED,
           joinedAt,
           leftAt: null,
+          currentPositionSeconds: 118,
+          activeSegmentStartSeconds: 118,
         },
       ],
     });
@@ -348,5 +420,88 @@ describe("watch-service", () => {
       currentPositionSeconds: 126,
       checkpointSaved: true,
     });
+  });
+
+  it("propagates group playback progress to everyone already in the room", async () => {
+    const joinedAt = new Date("2026-03-10T12:01:00.000Z");
+
+    mocks.db.watchSession.findFirst.mockResolvedValue({
+      id: "session-group",
+      listId: "list-1",
+      listItemId: "list-item-1",
+      movieId: "movie-1",
+      type: WatchSessionType.GROUP,
+      status: WatchSessionStatus.LIVE,
+      startedAt: joinedAt,
+      endedAt: null,
+      groupState: {
+        kind: "embed",
+        url: "https://player.example.com/embed/42",
+      },
+      listItem: {
+        movie: {
+          tmdbId: 42,
+          runtimeMinutes: 120,
+        },
+      },
+      members: [
+        {
+          userId: "user-1",
+          presence: PresenceState.JOINED,
+          joinedAt,
+          leftAt: null,
+          currentPositionSeconds: 600,
+          activeSegmentStartSeconds: 600,
+        },
+        {
+          userId: "user-2",
+          presence: PresenceState.JOINED,
+          joinedAt,
+          leftAt: null,
+          currentPositionSeconds: 600,
+          activeSegmentStartSeconds: 600,
+        },
+        {
+          userId: "user-3",
+          presence: PresenceState.JOINED,
+          joinedAt,
+          leftAt: null,
+          currentPositionSeconds: 600,
+          activeSegmentStartSeconds: 600,
+        },
+        {
+          userId: "user-4",
+          presence: PresenceState.JOINED,
+          joinedAt,
+          leftAt: null,
+          currentPositionSeconds: 600,
+          activeSegmentStartSeconds: 600,
+        },
+      ],
+    });
+    mocks.db.playbackCheckpoint.findFirst.mockResolvedValue({
+      positionSeconds: 600,
+    });
+
+    await recordPlaybackEvent({
+      sessionId: "session-group",
+      userId: "user-1",
+      event: "timeupdate",
+      currentTime: 780,
+      duration: 7200,
+      videoId: 42,
+    });
+
+    expect(mocks.db.watchSessionMember.update).toHaveBeenCalledTimes(4);
+    expect(mocks.db.movieWatchProgress.upsert).toHaveBeenCalledTimes(4);
+    expect(mocks.db.watchSessionMember.update).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          currentPositionSeconds: 780,
+          presence: PresenceState.JOINED,
+        }),
+      }),
+    );
   });
 });

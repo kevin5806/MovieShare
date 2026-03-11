@@ -34,16 +34,18 @@ movieshare is a self-hosted collaborative movie list workspace built as a modula
 - notifications inbox page
 - persistent notification read state with bulk/single mark-as-read actions
 - manager roles for collaborative list operations
+- dedicated list settings page for presentation, invites, member permissions and deletion
 - list invite flow with app-user, email-bound and public-link access paths
 - invite management with revoke/copy and target-role assignment
 - friend invite flow for existing movieshare users
 - movie removal flow for proposers and list managers
+- persisted per-user list ordering and proposer filters
 - TMDB search and metadata caching
 - mirrored TMDB movie artwork served through the local media CDN when storage is configured
 - React Email-backed email delivery for list invites, friend invites, sign-in codes and magic links
 - admin notification defaults with per-user overrides
 - browser push subscription management and web push delivery
-- manual playback checkpoint saving and resume-point updates
+- per-user movie progress tracking, grouped room progress propagation, manual checkpoints and resume-point updates
 - abstract streaming provider registry
 - realtime-ready event broker interface
 - install prompt and offline fallback baseline for PWA-style usage
@@ -137,6 +139,7 @@ The admin console at `/admin` currently lets you manage:
 - TMDB credentials and default language
 - SMTP host, credentials and sender
 - notification delivery defaults and the push master switch
+- VAPID key management for push delivery
 - rollout planning for future access methods such as email code, magic link, passkeys and 2FA
 - media storage runtime visibility for avatar and list-cover uploads
 - streaming provider activation and selection
@@ -190,6 +193,7 @@ Admin/runtime config note:
 - TMDB token, API key and language can come from `.env` or `/admin`
 - SMTP host, port, secure mode, credentials and sender can come from `.env` or `/admin`
 - push delivery master state comes from `.env` or `/admin`, while VAPID keys stay in `.env`
+- push delivery master state and VAPID keys can both come from `.env` or `/admin`, with database values taking precedence
 - future access-method toggles can be bootstrapped from `.env` and then overridden in `/admin`
 - streaming slot enablement and preferred provider can be bootstrapped from `.env` and then overridden in `/admin`
 

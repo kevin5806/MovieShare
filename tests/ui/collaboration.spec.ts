@@ -14,7 +14,7 @@ import {
 import { createListName, createTestIdentity } from "./helpers/test-data";
 import { chooseSelectOption, createList } from "./helpers/workspace";
 
-test("list collaboration supports app-user invites, public links, role changes and member removal", async ({
+test("list collaboration supports layered invites, role changes and member removal", async ({
   browser,
   page,
 }) => {
@@ -35,31 +35,40 @@ test("list collaboration supports app-user invites, public links, role changes a
       description: "UI coverage for invites, roles and list membership.",
     });
 
+    const listPath = new URL(page.url()).pathname;
+    const listSlug = listPath.split("/").filter(Boolean).pop();
+
+    expect(listSlug).toBeTruthy();
+
+    await page.goto(`/lists/${listSlug}/settings`);
     await registerViaAccessFlow(managerPage, manager);
 
     await page.getByPlaceholder("friend@example.com").fill(manager.email);
     await chooseSelectOption(page, "Invite role on join", "Manager");
-    await page.getByPlaceholder("Optional context for this invite").first().fill("Come help manage the room.");
+    await page
+      .getByPlaceholder("Optional context for this invite")
+      .first()
+      .fill("Come help manage the room.");
     await page.getByRole("button", { name: /send invite/i }).click();
     await expect(page.getByText(manager.email)).toBeVisible({ timeout: 20_000 });
 
     await managerPage.goto("/notifications");
     await managerPage.reload();
     await expect(managerPage.getByRole("heading", { name: /notifications/i })).toBeVisible();
-    const inviteCard = managerPage.locator("div").filter({ hasText: listName }).first();
-    await expect(inviteCard).toBeVisible({ timeout: 20_000 });
+    await expect(managerPage.getByText(/invited you to/i)).toBeVisible({ timeout: 20_000 });
+
     const appInviteToken = await waitForInviteToken({
       listName,
       kind: "APP_USER",
       email: manager.email,
     });
+
     await managerPage.goto(`${TEST_BASE_URL}/invites/lists/${appInviteToken}`);
     await expect(managerPage).toHaveURL(/\/invites\/lists\/.+/);
     await managerPage.getByRole("button", { name: /accept invite/i }).click();
-    await expect(managerPage).toHaveURL(/\/lists\/.+/);
-    await expect(
-      managerPage.getByRole("button", { name: /save list presentation/i }),
-    ).toBeVisible();
+    await expect(managerPage).toHaveURL(new RegExp(`/lists/${listSlug}$`));
+    await managerPage.goto(`/lists/${listSlug}/settings`);
+    await expect(managerPage.getByRole("heading", { name: /manage this list/i })).toBeVisible();
 
     await expect
       .poll(async () => getListMembershipRole({ listName, email: manager.email }))
@@ -85,7 +94,7 @@ test("list collaboration supports app-user invites, public links, role changes a
     await guestPage.goto(`${TEST_BASE_URL}/invites/lists/${publicInviteToken}`);
     await expect(guestPage.getByText(/list invite/i)).toBeVisible();
     await guestPage.getByRole("button", { name: /accept invite/i }).click();
-    await expect(guestPage).toHaveURL(/\/lists\/.+/);
+    await expect(guestPage).toHaveURL(new RegExp(`/lists/${listSlug}$`));
     await expect(guestPage.getByRole("heading", { name: listName })).toBeVisible();
 
     await page.reload();

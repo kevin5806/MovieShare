@@ -110,7 +110,7 @@ export async function registerViaAccessFlow(page: Page, user: TestIdentity) {
     return;
   }
 
-  await expect(page.getByRole("heading", { name: /this email is new here/i })).toBeVisible();
+  await expect(page.getByLabel("Name")).toBeVisible();
   await page.getByLabel("Name").fill(user.name);
   const signUpPromise = waitForJsonResponse<BetterAuthResponse>(page, {
     path: "/api/auth/sign-up/email",

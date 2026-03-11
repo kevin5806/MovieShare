@@ -1,7 +1,9 @@
-import { ImageIcon, Upload } from "lucide-react";
+"use client";
+
+import { ImageIcon, Upload, XCircle } from "lucide-react";
+import { useState } from "react";
 
 import { Field, FieldDescription, FieldLabel } from "@/components/forms/field";
-import { SwitchField } from "@/components/forms/switch-field";
 import { MediaImage } from "@/components/media/media-image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -30,7 +32,8 @@ export function ImageUploadField({
   removeName,
   removeLabel = "Remove current image",
 }: ImageUploadFieldProps) {
-  const hasPreview = Boolean(previewUrl);
+  const [removeRequested, setRemoveRequested] = useState(false);
+  const hasPreview = Boolean(previewUrl) && !removeRequested;
   const acceptedFormats = "JPG, PNG or WebP up to 5 MB.";
 
   return (
@@ -66,7 +69,7 @@ export function ImageUploadField({
               alt={previewAlt}
               fill
               sizes="(min-width: 1280px) 28rem, 100vw"
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 !h-full !w-full object-cover"
             />
           ) : null}
           <div className="relative z-10 flex min-h-28 items-end">
@@ -108,13 +111,17 @@ export function ImageUploadField({
         className="sr-only"
       />
 
-      {removeName && hasPreview ? (
-        <SwitchField
-          name={removeName}
-          label={removeLabel}
-          description="Leave this off to keep the current image."
-          defaultChecked={false}
-        />
+      {removeName ? <input type="hidden" name={removeName} value={removeRequested ? "true" : "false"} /> : null}
+
+      {removeName && previewUrl ? (
+        <button
+          type="button"
+          onClick={() => setRemoveRequested((current) => !current)}
+          className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/35"
+        >
+          <XCircle className="size-4" />
+          {removeRequested ? "Keep current image" : removeLabel}
+        </button>
       ) : null}
     </Field>
   );

@@ -24,7 +24,8 @@ test("system admin settings stay navigable and submittable from the UI", async (
 
     await page.getByRole("button", { name: /save tmdb settings/i }).click();
     await page.getByRole("switch", { name: /email code/i }).click();
-    await page.getByRole("button", { name: /save access method plan/i }).click();
+    await page.getByRole("button", { name: /save access methods/i }).click();
+    await page.getByRole("button", { name: /save push keys/i }).click();
     await page.getByRole("button", { name: /save provider settings/i }).first().click();
 
     await page.goto("/admin/streaming");

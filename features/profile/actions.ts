@@ -29,7 +29,8 @@ export async function saveProfileAction(formData: FormData) {
     bio: formData.get("bio"),
     location: formData.get("location"),
     favoriteGenres: formData.get("favoriteGenres"),
-    removeAvatar: formData.get("removeAvatar") === "on",
+    removeAvatar:
+      formData.get("removeAvatar") === "on" || formData.get("removeAvatar") === "true",
   });
   const avatarImageFile = getOptionalFile(formData.get("avatarImage"));
   let imageUrl: string | null | undefined;

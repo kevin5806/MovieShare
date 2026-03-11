@@ -1,6 +1,7 @@
 import {
   PlaybackCheckpointSource,
   PresenceState,
+  WatchProgressState,
   WatchSessionStatus,
   WatchSessionType,
   type Prisma,
@@ -52,6 +53,10 @@ const watchSessionInclude = {
 
 const AUTO_TRACKING_CHECKPOINT_MIN_DELTA_SECONDS = 30;
 const AUTO_TRACKING_PAUSE_DELTA_SECONDS = 15;
+const WATCH_COMPLETION_HEAD_TOLERANCE_SECONDS = 90;
+const WATCH_COMPLETION_TAIL_TOLERANCE_SECONDS = 120;
+const WATCH_COMPLETION_TOTAL_TOLERANCE_SECONDS = 180;
+const WATCH_RANGE_MERGE_TOLERANCE_SECONDS = 5;
 
 export type PlaybackTrackingEventName =
   | "play"
@@ -77,6 +82,226 @@ function getGroupStateRecord(groupState: Prisma.JsonValue | null) {
   }
 
   return {} as Prisma.JsonObject;
+}
+
+type CoveredRange = {
+  fromSeconds: number;
+  toSeconds: number;
+};
+
+function normalizeCoveredRange(input: CoveredRange) {
+  const fromSeconds = Math.max(0, Math.floor(input.fromSeconds));
+  const toSeconds = Math.max(fromSeconds, Math.floor(input.toSeconds));
+
+  return {
+    fromSeconds,
+    toSeconds,
+  };
+}
+
+function parseCoveredRanges(input: Prisma.JsonValue | null) {
+  if (!Array.isArray(input)) {
+    return [] as CoveredRange[];
+  }
+
+  return input
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return null;
+      }
+
+      const candidate = entry as { fromSeconds?: unknown; toSeconds?: unknown };
+      const fromSeconds = Number(candidate.fromSeconds);
+      const toSeconds = Number(candidate.toSeconds);
+
+      if (!Number.isFinite(fromSeconds) || !Number.isFinite(toSeconds)) {
+        return null;
+      }
+
+      return normalizeCoveredRange({
+        fromSeconds,
+        toSeconds,
+      });
+    })
+    .filter((entry): entry is CoveredRange => Boolean(entry))
+    .sort((left, right) => left.fromSeconds - right.fromSeconds);
+}
+
+function mergeCoveredRanges(existing: CoveredRange[], nextRange: CoveredRange | null) {
+  const normalizedExisting = existing.map(normalizeCoveredRange);
+  const ranges = nextRange ? [...normalizedExisting, normalizeCoveredRange(nextRange)] : normalizedExisting;
+
+  if (!ranges.length) {
+    return [] as CoveredRange[];
+  }
+
+  const sorted = ranges.sort((left, right) => left.fromSeconds - right.fromSeconds);
+  const merged: CoveredRange[] = [sorted[0]];
+
+  for (const range of sorted.slice(1)) {
+    const previous = merged[merged.length - 1];
+
+    if (range.fromSeconds <= previous.toSeconds + WATCH_RANGE_MERGE_TOLERANCE_SECONDS) {
+      previous.toSeconds = Math.max(previous.toSeconds, range.toSeconds);
+      continue;
+    }
+
+    merged.push(range);
+  }
+
+  return merged;
+}
+
+function getCoveredSeconds(ranges: CoveredRange[]) {
+  return ranges.reduce((total, range) => total + (range.toSeconds - range.fromSeconds), 0);
+}
+
+function getRuntimeSeconds(input: { runtimeMinutes?: number | null }, fallbackDurationSeconds = 0) {
+  if (input.runtimeMinutes && input.runtimeMinutes > 0) {
+    return input.runtimeMinutes * 60;
+  }
+
+  return Math.max(0, Math.floor(fallbackDurationSeconds));
+}
+
+function deriveWatchProgressState(input: {
+  ranges: CoveredRange[];
+  lastPositionSeconds: number;
+  runtimeSeconds: number;
+}) {
+  if (!input.ranges.length && input.lastPositionSeconds <= 0) {
+    return WatchProgressState.NOT_STARTED;
+  }
+
+  if (!input.runtimeSeconds) {
+    return WatchProgressState.IN_PROGRESS;
+  }
+
+  const firstRange = input.ranges[0] ?? null;
+  const lastRange = input.ranges.at(-1) ?? null;
+  const coveredSeconds = getCoveredSeconds(input.ranges);
+  const startsNearBeginning =
+    firstRange?.fromSeconds != null &&
+    firstRange.fromSeconds <= WATCH_COMPLETION_HEAD_TOLERANCE_SECONDS;
+  const reachesEnding =
+    lastRange?.toSeconds != null &&
+    lastRange.toSeconds >= input.runtimeSeconds - WATCH_COMPLETION_TAIL_TOLERANCE_SECONDS;
+  const coversAlmostEverything =
+    coveredSeconds >= Math.max(input.runtimeSeconds - WATCH_COMPLETION_TOTAL_TOLERANCE_SECONDS, 0);
+
+  if (startsNearBeginning && reachesEnding && coversAlmostEverything) {
+    return WatchProgressState.COMPLETED;
+  }
+
+  return WatchProgressState.IN_PROGRESS;
+}
+
+type SessionMemberSnapshot = {
+  userId: string;
+  presence: PresenceState;
+  joinedAt: Date | null;
+  leftAt: Date | null;
+  currentPositionSeconds: number;
+  activeSegmentStartSeconds: number | null;
+};
+
+function getTrackedSessionMembers(
+  members: SessionMemberSnapshot[],
+  sessionType: WatchSessionType,
+  actingUserId: string,
+) {
+  if (sessionType === WatchSessionType.SOLO) {
+    return members.filter((member) => member.userId === actingUserId);
+  }
+
+  const activeMembers = members.filter(
+    (member) =>
+      member.presence !== PresenceState.INVITED && member.presence !== PresenceState.LEFT,
+  );
+
+  if (activeMembers.some((member) => member.userId === actingUserId)) {
+    return activeMembers;
+  }
+
+  const actingMember = members.find((member) => member.userId === actingUserId);
+
+  return actingMember ? [...activeMembers, actingMember] : activeMembers;
+}
+
+async function upsertMovieWatchProgress(
+  tx: Prisma.TransactionClient,
+  input: {
+    listItemId: string;
+    movieId: string;
+    movieRuntimeMinutes?: number | null;
+    userId: string;
+    watchSessionId: string;
+    lastPositionSeconds: number;
+    occurredAt: Date;
+    durationSeconds?: number;
+    nextRange?: CoveredRange | null;
+  },
+) {
+  const existing = await tx.movieWatchProgress.findUnique({
+    where: {
+      listItemId_userId: {
+        listItemId: input.listItemId,
+        userId: input.userId,
+      },
+    },
+  });
+  const mergedRanges = mergeCoveredRanges(
+    parseCoveredRanges(existing?.coveredRanges ?? null),
+    input.nextRange ?? null,
+  );
+  const runtimeSeconds = getRuntimeSeconds(
+    {
+      runtimeMinutes: input.movieRuntimeMinutes,
+    },
+    input.durationSeconds ?? 0,
+  );
+  const completionState = deriveWatchProgressState({
+    ranges: mergedRanges,
+    lastPositionSeconds: input.lastPositionSeconds,
+    runtimeSeconds,
+  });
+
+  return tx.movieWatchProgress.upsert({
+    where: {
+      listItemId_userId: {
+        listItemId: input.listItemId,
+        userId: input.userId,
+      },
+    },
+    update: {
+      completionState,
+      lastPositionSeconds: input.lastPositionSeconds,
+      coveredRanges: mergedRanges as Prisma.InputJsonValue,
+      lastWatchedAt: input.occurredAt,
+      lastWatchSessionId: input.watchSessionId,
+      startedAt:
+        existing?.startedAt ??
+        (input.lastPositionSeconds > 0 || mergedRanges.length ? input.occurredAt : null),
+      completedAt:
+        completionState === WatchProgressState.COMPLETED
+          ? existing?.completedAt ?? input.occurredAt
+          : null,
+    },
+    create: {
+      listItemId: input.listItemId,
+      movieId: input.movieId,
+      userId: input.userId,
+      completionState,
+      lastPositionSeconds: input.lastPositionSeconds,
+      coveredRanges: mergedRanges as Prisma.InputJsonValue,
+      lastWatchedAt: input.occurredAt,
+      lastWatchSessionId: input.watchSessionId,
+      startedAt:
+        input.lastPositionSeconds > 0 || mergedRanges.length ? input.occurredAt : null,
+      completedAt:
+        completionState === WatchProgressState.COMPLETED ? input.occurredAt : null,
+    },
+  });
 }
 
 export async function createWatchSession(input: {
@@ -114,6 +339,21 @@ export async function createWatchSession(input: {
   const invitedMemberIds = (input.memberIds ?? []).filter((memberId) =>
     allowedMemberIds.has(memberId),
   );
+  const existingProgress = await db.movieWatchProgress.findMany({
+    where: {
+      listItemId: listItem.id,
+      userId: {
+        in: [...new Set([input.userId, ...invitedMemberIds])],
+      },
+    },
+    select: {
+      lastPositionSeconds: true,
+    },
+  });
+  const suggestedResumeFromSeconds = Math.max(
+    0,
+    ...existingProgress.map((progress) => progress.lastPositionSeconds),
+  );
 
   const activeProvider = await getActiveStreamingProviderConfig();
   const startedAt = new Date();
@@ -127,12 +367,13 @@ export async function createWatchSession(input: {
       type: input.type,
       status: "LIVE",
       streamingProvider: activeProvider?.provider,
+      resumeFromSeconds: suggestedResumeFromSeconds,
       startedAt,
       lastEventAt: startedAt,
       groupState: {
         kind: "unavailable",
         message:
-          "This session is active for watch tracking. Playback stays in each member's own player unless a compliant deployment-specific provider adapter is configured.",
+          "This watch entry tracks who watched together and how far each person got. Playback stays in each member's own player unless a compatible deployment-specific provider adapter is configured.",
       },
       members: {
         create: [
@@ -141,15 +382,18 @@ export async function createWatchSession(input: {
             isHost: true,
             presence: "JOINED",
             joinedAt: new Date(),
+            currentPositionSeconds: suggestedResumeFromSeconds,
+            activeSegmentStartSeconds: suggestedResumeFromSeconds,
           },
           ...invitedMemberIds
             .filter((memberId) => memberId !== input.userId)
             .map((memberId) => ({
               userId: memberId,
-              presence:
-                input.type === WatchSessionType.GROUP
-                  ? PresenceState.INVITED
-                  : PresenceState.JOINED,
+              presence: PresenceState.JOINED,
+              joinedAt: input.type === WatchSessionType.GROUP ? new Date() : undefined,
+              currentPositionSeconds: suggestedResumeFromSeconds,
+              activeSegmentStartSeconds:
+                input.type === WatchSessionType.GROUP ? suggestedResumeFromSeconds : undefined,
             })),
         ],
       },
@@ -181,6 +425,8 @@ export async function createWatchSession(input: {
     payload: {
       watchSessionId: session.id,
       type: input.type,
+      resumeFromSeconds: suggestedResumeFromSeconds,
+      participantCount: 1 + invitedMemberIds.filter((memberId) => memberId !== input.userId).length,
     },
   });
 
@@ -240,7 +486,88 @@ export async function getWatchSession(sessionId: string, userId: string) {
     }
   }
 
-  return session;
+  const [progressRows, historyRows] = await Promise.all([
+    db.movieWatchProgress.findMany({
+      where: {
+        listItemId: session.listItemId,
+      },
+      include: {
+        user: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          completionState: "desc",
+        },
+        {
+          lastWatchedAt: "desc",
+        },
+      ],
+    }),
+    db.watchSession.findMany({
+      where: {
+        listItemId: session.listItemId,
+      },
+      include: {
+        startedBy: {
+          include: {
+            profile: true,
+          },
+        },
+        members: {
+          where: {
+            presence: PresenceState.JOINED,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 8,
+    }),
+  ]);
+
+  const progressBoard = progressRows.map((progress) => ({
+    id: progress.id,
+    userId: progress.userId,
+    userName: progress.user.profile?.displayName || progress.user.name,
+    completionState: progress.completionState,
+    lastPositionSeconds: progress.lastPositionSeconds,
+    lastWatchedAt: progress.lastWatchedAt,
+    startedAt: progress.startedAt,
+    completedAt: progress.completedAt,
+  }));
+  const aggregateProgress = {
+    startedCount: progressBoard.filter((row) => row.completionState !== WatchProgressState.NOT_STARTED).length,
+    completedCount: progressBoard.filter((row) => row.completionState === WatchProgressState.COMPLETED).length,
+    inProgressCount: progressBoard.filter((row) => row.completionState === WatchProgressState.IN_PROGRESS).length,
+    notStartedCount: Math.max(
+      0,
+      session.members.length -
+        progressBoard.filter((row) => row.completionState !== WatchProgressState.NOT_STARTED).length,
+    ),
+  };
+
+  const history = historyRows.map((entry) => ({
+    id: entry.id,
+    type: entry.type,
+    status: entry.status,
+    resumeFromSeconds: entry.resumeFromSeconds,
+    startedAt: entry.startedAt ?? entry.createdAt,
+    endedAt: entry.endedAt,
+    participantCount: entry.members.length,
+    startedByName: entry.startedBy.profile?.displayName || entry.startedBy.name,
+  }));
+
+  return {
+    ...session,
+    progressBoard,
+    aggregateProgress,
+    history,
+  };
 }
 
 export async function getWatchSessionsOverview(userId: string) {
@@ -314,6 +641,14 @@ export async function savePlaybackCheckpoint(input: {
         },
       },
     },
+    include: {
+      listItem: {
+        include: {
+          movie: true,
+        },
+      },
+      members: true,
+    },
   });
 
   if (!session) {
@@ -321,6 +656,12 @@ export async function savePlaybackCheckpoint(input: {
   }
 
   const checkpoint = await db.$transaction(async (tx) => {
+    const now = new Date();
+    const trackedMembers = getTrackedSessionMembers(
+      session.members,
+      session.type,
+      input.userId,
+    );
     const created = await tx.playbackCheckpoint.create({
       data: {
         watchSessionId: session.id,
@@ -338,24 +679,39 @@ export async function savePlaybackCheckpoint(input: {
       },
       data: {
         resumeFromSeconds: input.positionSeconds,
-        lastEventAt: new Date(),
+        lastEventAt: now,
         status: "LIVE",
       },
     });
 
-    await tx.watchSessionMember.update({
-      where: {
-        watchSessionId_userId: {
-          watchSessionId: session.id,
-          userId: input.userId,
+    for (const trackedMember of trackedMembers) {
+      await tx.watchSessionMember.update({
+        where: {
+          watchSessionId_userId: {
+            watchSessionId: session.id,
+            userId: trackedMember.userId,
+          },
         },
-      },
-      data: {
-        presence: "JOINED",
-        currentPositionSeconds: input.positionSeconds,
-        lastHeartbeatAt: new Date(),
-      },
-    });
+        data: {
+          presence: "JOINED",
+          activeSegmentStartSeconds: input.positionSeconds,
+          currentPositionSeconds: input.positionSeconds,
+          joinedAt: trackedMember.joinedAt ?? now,
+          leftAt: null,
+          lastHeartbeatAt: now,
+        },
+      });
+
+      await upsertMovieWatchProgress(tx, {
+        listItemId: session.listItemId,
+        movieId: session.movieId,
+        movieRuntimeMinutes: session.listItem.movie.runtimeMinutes,
+        userId: trackedMember.userId,
+        watchSessionId: session.id,
+        lastPositionSeconds: input.positionSeconds,
+        occurredAt: now,
+      });
+    }
 
     return created;
   });
@@ -428,6 +784,7 @@ export async function recordPlaybackEvent(input: {
   const now = new Date();
   const positionSeconds = clampTrackedSeconds(input.currentTime, input.duration ?? 0);
   const durationSeconds = clampTrackedSeconds(input.duration ?? 0);
+  const trackedMembers = getTrackedSessionMembers(session.members, session.type, input.userId);
   const statePayload = {
     event: input.event,
     currentTime: positionSeconds,
@@ -442,14 +799,9 @@ export async function recordPlaybackEvent(input: {
 
   let nextStatus = session.status;
   let endedAt = session.endedAt;
-  let nextPresence = member.presence;
-  let leftAt = member.leftAt;
-
   if (input.event === "play" || input.event === "seeked" || input.event === "timeupdate") {
     nextStatus = WatchSessionStatus.LIVE;
     endedAt = null;
-    nextPresence = PresenceState.JOINED;
-    leftAt = null;
   }
 
   if (input.event === "pause" && session.type === WatchSessionType.SOLO) {
@@ -457,24 +809,12 @@ export async function recordPlaybackEvent(input: {
   }
 
   if (input.event === "ended") {
-    nextPresence = PresenceState.LEFT;
-    leftAt = now;
-
     if (session.type === WatchSessionType.SOLO) {
       nextStatus = WatchSessionStatus.ENDED;
       endedAt = now;
     } else {
-      const otherActiveMembers = session.members.filter(
-        (candidate) =>
-          candidate.userId !== input.userId &&
-          candidate.presence !== PresenceState.INVITED &&
-          candidate.presence !== PresenceState.LEFT,
-      );
-
-      if (!otherActiveMembers.length) {
-        nextStatus = WatchSessionStatus.ENDED;
-        endedAt = now;
-      }
+      nextStatus = WatchSessionStatus.ENDED;
+      endedAt = now;
     }
   }
 
@@ -506,21 +846,84 @@ export async function recordPlaybackEvent(input: {
       },
     });
 
-    await tx.watchSessionMember.update({
-      where: {
-        watchSessionId_userId: {
-          watchSessionId: session.id,
-          userId: input.userId,
+    for (const trackedMember of trackedMembers) {
+      const previousPositionSeconds = trackedMember.currentPositionSeconds;
+      const activeSegmentStartSeconds =
+        trackedMember.activeSegmentStartSeconds ??
+        (input.event === "play" || input.event === "timeupdate"
+          ? previousPositionSeconds
+          : null);
+      let nextPresence = trackedMember.presence;
+      let leftAt = trackedMember.leftAt;
+      let nextActiveSegmentStartSeconds = trackedMember.activeSegmentStartSeconds;
+      let nextCoveredRange: CoveredRange | null = null;
+
+      if (activeSegmentStartSeconds != null) {
+        const segmentEndSeconds =
+          input.event === "seeked" ? previousPositionSeconds : positionSeconds;
+
+        if (
+          (input.event === "pause" ||
+            input.event === "seeked" ||
+            input.event === "ended" ||
+            input.event === "timeupdate") &&
+          segmentEndSeconds > activeSegmentStartSeconds
+        ) {
+          nextCoveredRange = {
+            fromSeconds: activeSegmentStartSeconds,
+            toSeconds: segmentEndSeconds,
+          };
+        }
+      }
+
+      if (input.event === "play" || input.event === "seeked" || input.event === "timeupdate") {
+        nextPresence = PresenceState.JOINED;
+        leftAt = null;
+        nextActiveSegmentStartSeconds =
+          input.event === "seeked"
+            ? positionSeconds
+            : activeSegmentStartSeconds ?? positionSeconds;
+      }
+
+      if (input.event === "pause") {
+        nextActiveSegmentStartSeconds = null;
+      }
+
+      if (input.event === "ended") {
+        nextPresence = PresenceState.LEFT;
+        leftAt = now;
+        nextActiveSegmentStartSeconds = null;
+      }
+
+      await tx.watchSessionMember.update({
+        where: {
+          watchSessionId_userId: {
+            watchSessionId: session.id,
+            userId: trackedMember.userId,
+          },
         },
-      },
-      data: {
-        presence: nextPresence,
-        currentPositionSeconds: positionSeconds,
-        joinedAt: member.joinedAt ?? now,
-        leftAt,
-        lastHeartbeatAt: now,
-      },
-    });
+        data: {
+          presence: nextPresence,
+          activeSegmentStartSeconds: nextActiveSegmentStartSeconds,
+          currentPositionSeconds: positionSeconds,
+          joinedAt: trackedMember.joinedAt ?? now,
+          leftAt,
+          lastHeartbeatAt: now,
+        },
+      });
+
+      await upsertMovieWatchProgress(tx, {
+        listItemId: session.listItemId,
+        movieId: session.movieId,
+        movieRuntimeMinutes: session.listItem.movie.runtimeMinutes,
+        userId: trackedMember.userId,
+        watchSessionId: session.id,
+        lastPositionSeconds: positionSeconds,
+        occurredAt: now,
+        durationSeconds,
+        nextRange: nextCoveredRange,
+      });
+    }
 
     if (checkpointSource) {
       await tx.playbackCheckpoint.create({

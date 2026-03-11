@@ -23,10 +23,15 @@ type MovieCardProps = {
     addedBy: {
       name: string;
     };
-    feedbacks: Array<{
+  feedbacks: Array<{
       interest: string;
       comment?: string | null;
     }>;
+    watchSummary?: {
+      startedCount: number;
+      completedCount: number;
+      inProgressCount: number;
+    };
   };
 };
 
@@ -35,6 +40,11 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
     (feedback) => feedback.interest === "INTERESTED",
   ).length;
   const commentsCount = item.feedbacks.filter((feedback) => feedback.comment).length;
+  const watchSummary = item.watchSummary ?? {
+    startedCount: 0,
+    completedCount: 0,
+    inProgressCount: 0,
+  };
 
   return (
     <Link href={`/lists/${listSlug}/movies/${item.id}`} className="block h-full">
@@ -50,7 +60,7 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
               fill
               sizes="(min-width: 1280px) 20rem, (min-width: 640px) 33vw, 100vw"
               data-testid="movie-poster-image"
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              className="absolute inset-0 !h-full !w-full object-cover object-center"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -82,6 +92,16 @@ export function MovieCard({ listSlug, item }: MovieCardProps) {
               <MessageSquareText className="size-3.5" />
               {commentsCount} comments
             </span>
+            {watchSummary.startedCount ? (
+              <span className="inline-flex items-center gap-1">
+                Started {watchSummary.startedCount}
+              </span>
+            ) : null}
+            {watchSummary.completedCount ? (
+              <span className="inline-flex items-center gap-1">
+                Finished {watchSummary.completedCount}
+              </span>
+            ) : null}
           </div>
         </CardContent>
       </Card>

@@ -193,6 +193,9 @@ export async function ensureSystemConfigSeeded() {
       authPasskeyEnabled: env.AUTH_PASSKEY_ENABLED,
       authTwoFactorEnabled: env.AUTH_TWO_FACTOR_ENABLED,
       pushNotificationsEnabled: env.PUSH_NOTIFICATIONS_ENABLED,
+      vapidPublicKey: env.VAPID_PUBLIC_KEY || null,
+      vapidPrivateKey: env.VAPID_PRIVATE_KEY || null,
+      vapidSubject: env.VAPID_SUBJECT || null,
     },
   });
 }
@@ -390,6 +393,25 @@ export async function updateAccessMethodSettings(input: {
       authMagicLinkEnabled: input.authMagicLinkEnabled,
       authPasskeyEnabled: input.authPasskeyEnabled,
       authTwoFactorEnabled: input.authTwoFactorEnabled,
+    },
+  });
+}
+
+export async function updatePushDeliverySettings(input: {
+  vapidPublicKey: string;
+  vapidPrivateKey: string;
+  vapidSubject: string;
+}) {
+  await ensureSystemConfigSeeded();
+
+  await db.systemConfig.update({
+    where: {
+      scope: SYSTEM_CONFIG_SCOPE,
+    },
+    data: {
+      vapidPublicKey: normalizeOptionalString(input.vapidPublicKey),
+      vapidPrivateKey: normalizeOptionalString(input.vapidPrivateKey),
+      vapidSubject: normalizeOptionalString(input.vapidSubject),
     },
   });
 }

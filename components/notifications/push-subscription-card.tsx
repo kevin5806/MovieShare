@@ -14,6 +14,7 @@ type PushSubscriptionCardProps = {
     isEnabled: boolean;
     vapidConfigured: boolean;
     publicKey: string | null;
+    privateKey?: string | null;
     source?: "database" | "environment" | "missing";
   };
   activeSubscriptionCount: number;
@@ -36,6 +37,29 @@ function getBrowserPushState() {
   };
 }
 
+function subscribeToBrowserPushState() {
+  return () => {};
+}
+
+function getBrowserPushSnapshot() {
+  const state = getBrowserPushState();
+
+  return `${state.isSupported ? "1" : "0"}:${state.permission}`;
+}
+
+function getServerPushSnapshot() {
+  return "0:default";
+}
+
+function parseBrowserPushSnapshot(snapshot: string) {
+  const [supportedFlag, permission] = snapshot.split(":");
+
+  return {
+    isSupported: supportedFlag === "1",
+    permission: (permission as NotificationPermission | undefined) ?? "default",
+  };
+}
+
 function urlBase64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replaceAll("-", "+").replaceAll("_", "/");
@@ -49,11 +73,12 @@ export function PushSubscriptionCard({
   activeSubscriptionCount,
 }: PushSubscriptionCardProps) {
   const router = useRouter();
-  const browserState = useSyncExternalStore(
-    () => () => undefined,
-    getBrowserPushState,
-    getBrowserPushState,
+  const browserSnapshot = useSyncExternalStore(
+    subscribeToBrowserPushState,
+    getBrowserPushSnapshot,
+    getServerPushSnapshot,
   );
+  const browserState = parseBrowserPushSnapshot(browserSnapshot);
   const [permissionOverride, setPermissionOverride] = useState<NotificationPermission | null>(null);
   const [isPending, startTransition] = useTransition();
   const permission = permissionOverride ?? browserState.permission;
@@ -66,7 +91,7 @@ export function PushSubscriptionCard({
     }
 
     if (!pushRuntime.vapidConfigured) {
-      return "This deployment still needs VAPID keys in its environment before push can work.";
+      return "This deployment still needs VAPID keys from the admin panel or environment before push can work.";
     }
 
     if (!pushRuntime.isEnabled) {
@@ -209,9 +234,8 @@ export function PushSubscriptionCard({
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{summary}</p>
         <div className="rounded-2xl border border-dashed border-border bg-background px-4 py-3 text-sm leading-6 text-muted-foreground">
-          To enable push here: the deployment must provide `VAPID_PUBLIC_KEY`,
-          `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` in env, admin must enable push in system
-          settings, and then you can register this browser with the button below.
+          To enable push here: configure the VAPID keys in system settings or env, let the
+          admin enable push delivery, and then register this browser with the button below.
         </div>
         <div className="flex flex-wrap gap-3">
           <Button type="button" onClick={subscribe} disabled={isPending || !isReady}>

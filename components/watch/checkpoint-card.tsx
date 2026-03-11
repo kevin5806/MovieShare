@@ -9,13 +9,13 @@ import { formatSeconds } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { DateTimeText } from "@/components/time/date-time";
 
 type CheckpointCardProps = {
   sessionId: string;
   resumeFromSeconds: number;
   yourCurrentPositionSeconds: number;
+  runtimeSeconds: number;
   checkpoints: Array<{
     id: string;
     positionSeconds: number;
@@ -28,6 +28,7 @@ export function CheckpointCard({
   sessionId,
   resumeFromSeconds,
   yourCurrentPositionSeconds,
+  runtimeSeconds,
   checkpoints,
 }: CheckpointCardProps) {
   const router = useRouter();
@@ -66,17 +67,40 @@ export function CheckpointCard({
             Save your current position manually so the session keeps a shared trace of where
             members stopped watching.
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Input
-              type="number"
+          <div className="space-y-3 rounded-3xl border border-border/70 bg-background p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">Position</span>
+              <span className="font-medium">{formatSeconds(Number(positionSeconds) || 0)}</span>
+            </div>
+            <input
+              type="range"
               min={0}
-              value={positionSeconds}
+              max={Math.max(runtimeSeconds || resumeFromSeconds || yourCurrentPositionSeconds || 0, 1)}
+              step={15}
+              value={Math.min(Number(positionSeconds) || 0, Math.max(runtimeSeconds || 0, 1))}
               onChange={(event) => setPositionSeconds(event.target.value)}
-              placeholder="Position in seconds"
+              className="w-full cursor-pointer accent-foreground"
+              aria-label="Playback position"
             />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Start</span>
+              <span>{runtimeSeconds ? formatSeconds(runtimeSeconds) : "Unknown duration"}</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Button type="button" onClick={handleSave} disabled={isPending}>
               Save checkpoint
             </Button>
+            {runtimeSeconds ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => setPositionSeconds(String(runtimeSeconds))}
+              >
+                Mark as finished
+              </Button>
+            ) : null}
           </div>
           <p className="text-xs text-muted-foreground">
             Your current member position: {formatSeconds(yourCurrentPositionSeconds)}

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   updateAccessMethodSettingsSchema,
   updateEmailSettingsSchema,
+  updatePushDeliverySettingsSchema,
   updateStreamingProviderSchema,
   updateTmdbSettingsSchema,
 } from "@/features/system/schemas";
@@ -13,6 +14,7 @@ import { requireAdminSession } from "@/server/session";
 import {
   updateAccessMethodSettings,
   updateEmailSettings,
+  updatePushDeliverySettings,
   updateTmdbSettings,
 } from "@/server/services/system-config";
 import { updateSystemNotificationPreferences } from "@/server/services/notification-preference-service";
@@ -80,6 +82,21 @@ export async function updateAccessMethodSettingsAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/login");
+}
+
+export async function updatePushDeliverySettingsAction(formData: FormData) {
+  await requireAdminSession();
+
+  const parsed = updatePushDeliverySettingsSchema.parse({
+    vapidPublicKey: formData.get("vapidPublicKey")?.toString() ?? "",
+    vapidPrivateKey: formData.get("vapidPrivateKey")?.toString() ?? "",
+    vapidSubject: formData.get("vapidSubject")?.toString() ?? "",
+  });
+
+  await updatePushDeliverySettings(parsed);
+
+  revalidatePath("/admin");
+  revalidatePath("/profile");
 }
 
 export async function updateSystemNotificationPreferencesAction(formData: FormData) {

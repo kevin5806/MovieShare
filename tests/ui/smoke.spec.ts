@@ -17,7 +17,7 @@ test("login page is reachable and basic accessibility stays clean", async ({ pag
 
   await expect(
     page.getByRole("heading", {
-      name: /one access form, whether you are returning or joining for the first time\./i,
+      name: /welcome back, or start fresh without leaving this page\./i,
     }),
   ).toBeVisible();
 

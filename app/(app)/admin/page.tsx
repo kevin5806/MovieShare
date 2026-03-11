@@ -1,6 +1,7 @@
 import {
   updateAccessMethodSettingsAction,
   updateEmailSettingsAction,
+  updatePushDeliverySettingsAction,
   updateStreamingProviderAction,
   updateTmdbSettingsAction,
 } from "@/features/system/actions";
@@ -359,33 +360,90 @@ export default async function SystemAdminPage() {
             override these defaults from their own profile settings.
           </p>
         </div>
-        <Card className="border-border/70 bg-card/85">
-          <CardHeader>
-            <CardTitle>Default channels</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NotificationPreferenceEditor
-              scope="admin"
-              preferences={notificationPreferences.map((preference) => ({
-                category: preference.category,
-                label: preference.label,
-                description: preference.description,
-                defaults: {
-                  inAppEnabled: preference.inAppEnabled,
-                  emailEnabled: preference.emailEnabled,
-                  pushEnabled: preference.pushEnabled,
-                },
-                effective: {
-                  inAppEnabled: preference.inAppEnabled,
-                  emailEnabled: preference.emailEnabled,
-                  pushEnabled: preference.pushEnabled,
-                },
-                pushAvailable: preference.pushAvailable,
-              }))}
-              pushRuntime={pushRuntime}
-            />
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <Card className="border-border/70 bg-card/85">
+            <CardHeader>
+              <CardTitle>Push delivery keys</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm leading-6 text-muted-foreground">
+                Push can be bootstrapped from `VAPID_*` env vars or overridden here at
+                runtime. Database values take priority and let you rotate keys without a
+                rebuild.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <SourceBadge source={pushRuntime.source ?? "missing"} />
+                <Badge variant={pushRuntime.vapidConfigured ? "secondary" : "outline"}>
+                  {pushRuntime.vapidConfigured ? "VAPID ready" : "VAPID missing"}
+                </Badge>
+              </div>
+              <form action={updatePushDeliverySettingsAction} className="space-y-4">
+                <Field>
+                  <FieldLabel htmlFor="vapid-public-key">Public key</FieldLabel>
+                  <Textarea
+                    id="vapid-public-key"
+                    name="vapidPublicKey"
+                    rows={3}
+                    defaultValue={adminState.config.vapidPublicKey ?? ""}
+                    className="h-24 resize-none font-mono text-xs"
+                    placeholder="BOr..."
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="vapid-private-key">Private key</FieldLabel>
+                  <Textarea
+                    id="vapid-private-key"
+                    name="vapidPrivateKey"
+                    rows={3}
+                    defaultValue={adminState.config.vapidPrivateKey ?? ""}
+                    className="h-24 resize-none font-mono text-xs"
+                    placeholder="6W0..."
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="vapid-subject">Subject</FieldLabel>
+                  <Input
+                    id="vapid-subject"
+                    name="vapidSubject"
+                    defaultValue={adminState.config.vapidSubject ?? ""}
+                    placeholder="mailto:ops@example.com"
+                  />
+                </Field>
+                <Button type="submit" className="w-full">
+                  Save push keys
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70 bg-card/85">
+            <CardHeader>
+              <CardTitle>Default channels</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NotificationPreferenceEditor
+                scope="admin"
+                preferences={notificationPreferences.map((preference) => ({
+                  category: preference.category,
+                  label: preference.label,
+                  description: preference.description,
+                  defaults: {
+                    inAppEnabled: preference.inAppEnabled,
+                    emailEnabled: preference.emailEnabled,
+                    pushEnabled: preference.pushEnabled,
+                  },
+                  effective: {
+                    inAppEnabled: preference.inAppEnabled,
+                    emailEnabled: preference.emailEnabled,
+                    pushEnabled: preference.pushEnabled,
+                  },
+                  pushAvailable: preference.pushAvailable,
+                }))}
+                pushRuntime={pushRuntime}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
       <section className="space-y-4">

@@ -10,8 +10,8 @@ export async function createList(page: Page, input: { name: string; description:
 }
 
 export async function addMovieFromTmdb(page: Page, query: string, expectedTitle: RegExp) {
-  await page.getByRole("button", { name: /add movie from tmdb/i }).click();
-  const searchInput = page.getByLabel("Search TMDB movies");
+  await page.getByRole("button", { name: /add a title/i }).click();
+  const searchInput = page.getByLabel("Search movies");
 
   await expect(searchInput).toBeVisible();
   await searchInput.fill(query);

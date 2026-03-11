@@ -2,8 +2,9 @@ import {
   FeedbackInterest,
   FeedbackSeenState,
   ListInviteKind,
-  ListMemberRole,
   ListInviteStatus,
+  ListMemberRole,
+  WatchProgressState,
   type Prisma,
 } from "@/generated/prisma/client";
 import { notFound } from "next/navigation";
@@ -22,6 +23,95 @@ import {
   syncMovieArtworkBatch,
 } from "@/server/services/tmdb-service";
 import { slugify } from "@/lib/utils";
+
+export const listSortOptions = [
+  "RECENT",
+  "TITLE",
+  "TMDB_RATING",
+  "INTEREST",
+  "COMMENTS",
+] as const;
+
+export type ListSortOption = (typeof listSortOptions)[number];
+
+type ListViewPreferences = {
+  sortBy: ListSortOption;
+  proposerId: string | null;
+};
+
+function parseListViewPreferences(input: Prisma.JsonValue | null | undefined): ListViewPreferences {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {
+      sortBy: "RECENT",
+      proposerId: null,
+    };
+  }
+
+  const candidate = input as {
+    sortBy?: unknown;
+    proposerId?: unknown;
+  };
+  const sortBy =
+    typeof candidate.sortBy === "string" &&
+    listSortOptions.includes(candidate.sortBy as ListSortOption)
+      ? (candidate.sortBy as ListSortOption)
+      : "RECENT";
+  const proposerId =
+    typeof candidate.proposerId === "string" && candidate.proposerId.trim()
+      ? candidate.proposerId
+      : null;
+
+  return {
+    sortBy,
+    proposerId,
+  };
+}
+
+function sortListItems<T extends {
+  addedAt: Date;
+  movie: {
+    title: string;
+    tmdbVoteAverage?: number | null;
+  };
+  feedbacks: Array<{
+    interest: FeedbackInterest;
+    comment?: string | null;
+  }>;
+}>(items: T[], sortBy: ListSortOption) {
+  const copy = [...items];
+
+  copy.sort((left, right) => {
+    if (sortBy === "TITLE") {
+      return left.movie.title.localeCompare(right.movie.title, undefined, {
+        sensitivity: "base",
+      });
+    }
+
+    if (sortBy === "TMDB_RATING") {
+      return (right.movie.tmdbVoteAverage ?? 0) - (left.movie.tmdbVoteAverage ?? 0);
+    }
+
+    if (sortBy === "INTEREST") {
+      return (
+        right.feedbacks.filter((feedback) => feedback.interest === FeedbackInterest.INTERESTED)
+          .length -
+        left.feedbacks.filter((feedback) => feedback.interest === FeedbackInterest.INTERESTED)
+          .length
+      );
+    }
+
+    if (sortBy === "COMMENTS") {
+      return (
+        right.feedbacks.filter((feedback) => feedback.comment?.trim()).length -
+        left.feedbacks.filter((feedback) => feedback.comment?.trim()).length
+      );
+    }
+
+    return right.addedAt.getTime() - left.addedAt.getTime();
+  });
+
+  return copy;
+}
 
 async function requireListMember(listId: string, userId: string) {
   const membership = await db.movieListMember.findUnique({
@@ -96,6 +186,15 @@ async function requireListAccessBySlug(slug: string, userId: string) {
           movie: true,
           addedBy: true,
           feedbacks: true,
+          watchProgress: {
+            include: {
+              user: {
+                include: {
+                  profile: true,
+                },
+              },
+            },
+          },
           watchSessions: {
             orderBy: {
               createdAt: "desc",
@@ -448,14 +547,62 @@ export async function deleteList(
 export async function getListDetails(slug: string, userId: string) {
   const list = await requireListAccessBySlug(slug, userId);
   const syncedMovies = await syncMovieArtworkBatch(list.items.map((item) => item.movie));
+  const viewerMembership = list.members.find((member) => member.userId === userId);
+  const viewPreferences = parseListViewPreferences(viewerMembership?.viewPreferences);
+  const normalizedItems = list.items.map((item) => {
+    const syncedMovie = syncedMovies.get(item.movie.id) ?? item.movie;
+    const startedCount = item.watchProgress.filter(
+      (progress) => progress.completionState !== WatchProgressState.NOT_STARTED,
+    ).length;
+    const completedCount = item.watchProgress.filter(
+      (progress) => progress.completionState === WatchProgressState.COMPLETED,
+    ).length;
+    const inProgressCount = item.watchProgress.filter(
+      (progress) => progress.completionState === WatchProgressState.IN_PROGRESS,
+    ).length;
+
+    return {
+      ...item,
+      movie: syncedMovie,
+      watchSummary: {
+        startedCount,
+        completedCount,
+        inProgressCount,
+      },
+    };
+  });
+  const filteredItems = viewPreferences.proposerId
+    ? normalizedItems.filter((item) => item.addedById === viewPreferences.proposerId)
+    : normalizedItems;
 
   return {
     ...list,
-    items: list.items.map((item) => ({
-      ...item,
-      movie: syncedMovies.get(item.movie.id) ?? item.movie,
-    })),
+    viewPreferences,
+    items: sortListItems(filteredItems, viewPreferences.sortBy),
   };
+}
+
+export async function updateListViewPreferences(
+  userId: string,
+  input: {
+    listId: string;
+    sortBy: ListSortOption;
+    proposerId?: string | null;
+  },
+) {
+  const membership = await requireListMember(input.listId, userId);
+
+  await db.movieListMember.update({
+    where: {
+      id: membership.id,
+    },
+    data: {
+      viewPreferences: {
+        sortBy: input.sortBy,
+        proposerId: input.proposerId?.trim() || null,
+      } satisfies Prisma.InputJsonValue,
+    },
+  });
 }
 
 export async function createListInvite(
@@ -1019,11 +1166,32 @@ export async function getListItemDetail(
           updatedAt: "desc",
         },
       },
+      watchProgress: {
+        include: {
+          user: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+        orderBy: {
+          lastWatchedAt: "desc",
+        },
+      },
       watchSessions: {
         include: {
+          startedBy: {
+            include: {
+              profile: true,
+            },
+          },
           members: {
             include: {
-              user: true,
+              user: {
+                include: {
+                  profile: true,
+                },
+              },
             },
           },
         },
@@ -1039,10 +1207,22 @@ export async function getListItemDetail(
   }
 
   const syncedMovie = await syncMovieArtwork(item.movie);
+  const watchSummary = {
+    startedCount: item.watchProgress.filter(
+      (progress) => progress.completionState !== WatchProgressState.NOT_STARTED,
+    ).length,
+    completedCount: item.watchProgress.filter(
+      (progress) => progress.completionState === WatchProgressState.COMPLETED,
+    ).length,
+    inProgressCount: item.watchProgress.filter(
+      (progress) => progress.completionState === WatchProgressState.IN_PROGRESS,
+    ).length,
+  };
 
   return {
     ...item,
     movie: syncedMovie,
+    watchSummary,
   };
 }
 

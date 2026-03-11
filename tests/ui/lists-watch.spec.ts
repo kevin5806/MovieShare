@@ -6,19 +6,24 @@ import { cleanupUsersByEmails } from "./helpers/db";
 import { createListName, createTestIdentity } from "./helpers/test-data";
 import {
   addMovieFromTmdb,
-  chooseSelectOption,
   createList,
   expectImageToFillFrame,
   openMovieDetail,
 } from "./helpers/workspace";
 
-test("lists, movie metadata, selection and watch tracking stay operational end-to-end", async ({
+test("lists, ordering, movie feedback and watch tracking stay operational end-to-end", async ({
   page,
 }) => {
   const user = createTestIdentity("lists");
   const listName = createListName("List");
   const feedbackComment = `Strong pick ${Date.now()}`;
-  const monitor = monitorClientErrors(page, "lists and watch flow");
+  const monitor = monitorClientErrors(page, "lists and watch flow", {
+    ignoreConsolePatterns: [
+      /from origin 'https:\/\/vixsrc\.to'/i,
+      /permissions policy violation: bluetooth/i,
+      /failed to load resource: net::ERR_FAILED/i,
+    ],
+  });
 
   try {
     await registerViaAccessFlow(page, user);
@@ -32,8 +37,8 @@ test("lists, movie metadata, selection and watch tracking stay operational end-t
 
     expect(listSlug).toBeTruthy();
 
-    await page.getByRole("button", { name: /add movie from tmdb/i }).click();
-    await page.getByLabel("Search TMDB movies").fill("Inception");
+    await page.getByRole("button", { name: /add a title/i }).click();
+    await page.getByLabel("Search movies").fill("Inception");
 
     const searchResult = page.getByRole("button", { name: /Inception/i }).first();
     await expect(searchResult).toBeVisible({ timeout: 20_000 });
@@ -44,6 +49,8 @@ test("lists, movie metadata, selection and watch tracking stay operational end-t
     await page.getByRole("dialog").press("Escape");
 
     await addMovieFromTmdb(page, "Inception", /Inception/i);
+    await addMovieFromTmdb(page, "Avatar", /Avatar/i);
+
     await expect(page.locator("a").filter({ hasText: /Inception/i }).first()).toBeVisible({
       timeout: 20_000,
     });
@@ -52,6 +59,17 @@ test("lists, movie metadata, selection and watch tracking stay operational end-t
       page.getByTestId("movie-poster-image").first(),
     );
 
+    await page.getByRole("button", { name: /^A to Z$/ }).click();
+    await expect(
+      page.locator('[data-testid="movie-poster-frame"]').first().locator("xpath=ancestor::a[1]"),
+    ).toContainText(/Avatar/i);
+
+    await page.goto("/dashboard");
+    await page.goto(listPath);
+    await expect(
+      page.locator('[data-testid="movie-poster-frame"]').first().locator("xpath=ancestor::a[1]"),
+    ).toContainText(/Avatar/i);
+
     await openMovieDetail(page, /Inception/i);
     await expectImageToFillFrame(
       page.getByTestId("movie-detail-poster-frame"),
@@ -59,19 +77,18 @@ test("lists, movie metadata, selection and watch tracking stay operational end-t
     );
     const movieDetailPath = new URL(page.url()).pathname;
 
-    await chooseSelectOption(page, "Seen state", "Already seen");
-    await chooseSelectOption(page, "Interest", "Interested");
-    await page.getByRole("switch", { name: /i would rewatch this title/i }).click();
-    await page.getByPlaceholder("Add a short comment for the group").fill(feedbackComment);
+    await page.getByRole("button", { name: /Already seen/i }).click();
+    await page.getByRole("button", { name: /Interested/i }).click();
+    await page.getByRole("button", { name: /Watch again/i }).click();
+    await page.getByPlaceholder("Add a short note for everyone").fill(feedbackComment);
     await page.getByRole("button", { name: /save feedback/i }).click();
 
     await expect(page.getByText(feedbackComment).last()).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole("button", { name: /create tracking session/i }).click();
+    await page.getByRole("button", { name: /a group/i }).click();
+    await page.getByRole("button", { name: /start watching/i }).click();
     await expect(page).toHaveURL(/\/watch\/.+/);
-    await expect(
-      page.getByRole("heading", { name: /Inception/i }).first(),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Inception/i }).first()).toBeVisible();
 
     if (await page.locator("iframe").count()) {
       const playbackFrame = page
@@ -91,16 +108,17 @@ test("lists, movie metadata, selection and watch tracking stay operational end-t
           },
         });
 
-        await expect(page.getByText(/Events received:\s*1/i)).toBeVisible({ timeout: 20_000 });
-        await expect(page.getByText(/Tracked time:\s*2:05/i)).toBeVisible();
+        await expect(page.getByText(/events received:\s*1/i)).toBeVisible({ timeout: 20_000 });
+        await expect(page.getByText(/tracked time:\s*2:05/i)).toBeVisible();
       }
     }
 
-    await page.getByPlaceholder("Position in seconds").fill("95");
+    await page.getByRole("button", { name: /mark as finished/i }).click();
     await page.getByRole("button", { name: /save checkpoint/i }).click();
-    await expect(page.getByText(/your current member position:\s*1:35/i)).toBeVisible({
+    await expect(page.getByText(/your current member position:\s*2:28:00/i)).toBeVisible({
       timeout: 20_000,
     });
+    await expect(page.getByText(/finished/i).first()).toBeVisible();
 
     await page.goto("/watch");
     await expect(page.getByRole("heading", { name: /watch sessions/i })).toBeVisible();

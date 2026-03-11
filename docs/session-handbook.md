@@ -26,16 +26,23 @@ Last updated: March 11, 2026
 - the access flow is now progressive: users start from one form and only see onboarding fields if the email is new
 - email code, magic link and passkey access are now wired through Better Auth and exposed from the same login surface when enabled by admin/runtime state
 - profile security settings now let users manage passkeys and authenticator-based two-factor protection when the deployment and account are eligible
+- the profile page and security section are stable again after hydration-safe push subscription handling, so passkey listing and two-factor controls render correctly in the shipped UI
+- magic-link verification now uses a Prisma-compatible `Verification.identifier` unique key, so opening a valid sign-in link no longer fails with the Better Auth adapter lookup error seen earlier
 - realtime live refresh exists through the self-hosted SSE route and broker
 - watch playback pages can now ingest iframe `PLAYER_EVENT` messages and persist automatic progress updates without forcing a full-page refresh
 - the watch embed listener is now tolerant of numeric-string payloads and deployment-specific iframe origins, and movie posters are being normalized toward full-bleed cover frames
 - collaborative lists now support `OWNER`, `MANAGER`, and `MEMBER` roles, owner-side member moderation, and movie removal by proposer or manager
 - list owners can now delete a list from the list detail page
+- list presentation, invites, member management and deletion now live on a dedicated `/lists/[slug]/settings` page, while the main list page stays focused on the titles
+- each member now has persisted list view preferences for ordering and proposer filters, so the chosen organization state survives future visits
 - list invites now support app-user delivery, email-bound links, and reusable public links with optional target role and usage limits
 - React Email now drives invite delivery plus auth emails such as sign-in codes and magic links, while notification defaults and per-user overrides cover in-app, email, and push channels
-- device push subscriptions can now be managed from the profile when VAPID is configured and push is enabled by admin
+- device push subscriptions can now be managed from the profile when VAPID is configured and push is enabled by admin, and VAPID keys themselves can now be configured with the same `DB -> env` priority model as other admin-managed integrations
+- watch progress is now modeled per user and per list item, with grouped playback events updating every joined member in that room so catch-up scenarios and partial group watches can be represented cleanly over time
+- movie detail and watch pages now expose per-person progress, started/finished summaries and recent watch history to make the tracking model visible without pretending the app is doing synced teleparty playback
 - a Playwright plus axe-core smoke harness now exists for UI/client-side regression coverage
 - the Playwright suite now covers admin, auth, collaboration, lists/watch, profile/notifications, offline and client-error monitoring end-to-end against the Dockerized app
+- Playwright coverage is now aligned with the current copy and flows, and the watch spec explicitly ignores known third-party iframe console noise from the active embed provider so app regressions remain visible without failing on external CORS chatter
 - `npm run typecheck` now goes through `scripts/typecheck.mjs` because Next 16 typegen is intermittently leaving missing `.next/types` stub files on this project
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
@@ -63,7 +70,7 @@ Last updated: March 11, 2026
 - assistant work on streaming should focus on compatibility, reliability, typing, tests, UX wiring, and operability around the user-provided integration
 - additional streaming slots can be added, but they must not displace or degrade an existing user-provided integration
 - watch sessions are still tracking-first, not synchronized teleparty playback
-- iframe-driven watch tracking now persists server-side state, but other viewers still do not see second-by-second position changes unless future realtime fan-out is added
+- iframe-driven watch tracking now persists server-side state and group sessions propagate progress to every joined member in the same room entry, but other browsers still do not see second-by-second live cursor movement unless future realtime fan-out is added
 - Better Auth rate limiting stays enabled, but `/sign-in/email` and `/sign-up/email` now use a less aggressive custom rule so local E2E coverage does not trip the default 3-requests-per-10-seconds lockout
 - the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
@@ -74,6 +81,7 @@ Last updated: March 11, 2026
 - the authenticated shell now keeps viewport scroll locked and expects the right-hand content card to be the scroll container
 - navigation coverage is better, but some domains still rely on summary pages rather than deeper dedicated index views
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
+- when a server component needs button class variants, import `buttonVariants` from `components/ui/button-styles`, not from the client `components/ui/button` module
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
@@ -162,3 +170,5 @@ Before finishing:
 - March 11, 2026: stabilized `npm run typecheck` with a dedicated script because Next 16 typegen was intermittently omitting `.next/types` stub files needed by plain `tsc`
 - March 11, 2026: expanded the Playwright suite into full-site flows, hardened auth helpers to wait on real `/api/auth/*` responses, and raised Better Auth sign-in/sign-up burst limits enough for local E2E coverage without disabling rate limiting
 - March 11, 2026: finished the first real auth-method rollout with email codes, magic links, passkeys, profile security controls, clearer push setup guidance, owner-side list deletion, internal shell-only scrolling, and a broader copy/form polish pass
+- March 11, 2026: stabilized the profile security page, fixed Better Auth magic-link verification against Prisma, moved list management to a dedicated settings page, persisted list ordering preferences, and upgraded watch tracking to maintain per-user movie progress across partial group sessions
+- March 11, 2026: added admin-configurable VAPID key storage with env fallback, fixed the server-component `buttonVariants` import regression on list pages, and refreshed the Playwright suite to match the live UI while filtering known third-party iframe console noise

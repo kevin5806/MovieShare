@@ -2,33 +2,34 @@ import webpush, { type PushSubscription } from "web-push";
 
 import { NotificationCategory } from "@/generated/prisma/client";
 import { db } from "@/server/db";
-import { env } from "@/server/env";
 import {
   getEffectiveNotificationPreferences,
   getPushRuntimeConfig,
 } from "@/server/services/notification-preference-service";
 
-let vapidConfigured = false;
+let configuredFingerprint: string | null = null;
 
-function ensureWebPushConfigured() {
-  if (vapidConfigured) {
-    return true;
-  }
+function ensureWebPushConfigured(input: {
+  publicKey: string | null;
+  privateKey: string | null;
+  subject: string | null;
+}) {
+  const publicKey = input.publicKey?.trim() || "";
+  const privateKey = input.privateKey?.trim() || "";
+  const subject = input.subject?.trim() || "";
 
-  if (
-    !env.VAPID_PUBLIC_KEY.trim() ||
-    !env.VAPID_PRIVATE_KEY.trim() ||
-    !env.VAPID_SUBJECT.trim()
-  ) {
+  if (!publicKey || !privateKey || !subject) {
     return false;
   }
 
-  webpush.setVapidDetails(
-    env.VAPID_SUBJECT.trim(),
-    env.VAPID_PUBLIC_KEY.trim(),
-    env.VAPID_PRIVATE_KEY.trim(),
-  );
-  vapidConfigured = true;
+  const fingerprint = `${subject}:${publicKey}:${privateKey}`;
+
+  if (configuredFingerprint === fingerprint) {
+    return true;
+  }
+
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+  configuredFingerprint = fingerprint;
 
   return true;
 }
@@ -131,7 +132,7 @@ export async function sendPushNotificationToUser(input: {
     };
   }
 
-  if (!ensureWebPushConfigured()) {
+  if (!ensureWebPushConfigured(runtime)) {
     return {
       status: "skipped" as const,
       delivered: 0,
@@ -216,7 +217,7 @@ export async function sendTestPushNotification(userId: string) {
     throw new Error("No active push subscription was found for this user.");
   }
 
-  if (!ensureWebPushConfigured()) {
+  if (!ensureWebPushConfigured(runtime)) {
     throw new Error("VAPID configuration is missing.");
   }
 

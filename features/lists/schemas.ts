@@ -104,3 +104,13 @@ export const startWatchSessionSchema = z.object({
   type: z.nativeEnum(WatchSessionType),
   memberIds: z.array(z.string()).optional().default([]),
 });
+
+export const updateListViewPreferencesSchema = z.object({
+  listId: z.string().min(1),
+  listSlug: z.string().min(1),
+  sortBy: z.enum(["RECENT", "TITLE", "TMDB_RATING", "INTEREST", "COMMENTS"]),
+  proposerId: z
+    .union([z.string().min(1), z.literal(""), z.null(), z.undefined()])
+    .transform((value) => (typeof value === "string" && value.trim() ? value : null))
+    .default(null),
+});

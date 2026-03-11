@@ -81,6 +81,12 @@ enum WatchSessionStatus {
   ARCHIVED
 }
 
+enum WatchProgressState {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
 enum PresenceState {
   INVITED
   JOINED
@@ -135,6 +141,7 @@ model User {
   selectionRuns         SelectionRun[]      @relation("SelectionRunInitiator")
   startedWatchSessions  WatchSession[]      @relation("WatchSessionStarter")
   watchSessionMembers   WatchSessionMember[]
+  watchProgress         MovieWatchProgress[]
   checkpoints           PlaybackCheckpoint[]
   activityLogs          ActivityLog[]       @relation("ActivityActorUser")
   notificationStates    NotificationState[]
@@ -209,6 +216,7 @@ model MovieListMember {
   listId     String
   userId     String
   role       ListMemberRole @default(MEMBER)
+  viewPreferences Json?
   joinedAt   DateTime       @default(now())
   lastSeenAt DateTime?
   list       MovieList      @relation(fields: [listId], references: [id], onDelete: Cascade)
@@ -260,6 +268,7 @@ model Movie {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   listItems       MovieListItem[]
+  watchProgress   MovieWatchProgress[]
   watchSessions   WatchSession[]
   checkpoints     PlaybackCheckpoint[]
 }
@@ -276,6 +285,7 @@ model MovieListItem {
   movie            Movie             @relation(fields: [movieId], references: [id], onDelete: Cascade)
   addedBy          User              @relation("MovieListItemAddedBy", fields: [addedById], references: [id], onDelete: Cascade)
   feedbacks        MovieFeedback[]
+  watchProgress    MovieWatchProgress[]
   selectionResults SelectionResult[]
   watchSessions    WatchSession[]
   checkpoints      PlaybackCheckpoint[]
@@ -348,6 +358,7 @@ model WatchSession {
   movie                Movie              @relation(fields: [movieId], references: [id], onDelete: Cascade)
   startedBy            User               @relation("WatchSessionStarter", fields: [startedById], references: [id], onDelete: Cascade)
   members              WatchSessionMember[]
+  progressSnapshots    MovieWatchProgress[] @relation("MovieWatchProgressLastSession")
   checkpoints          PlaybackCheckpoint[]
 }
 
@@ -357,6 +368,7 @@ model WatchSessionMember {
   userId                 String
   presence               PresenceState @default(INVITED)
   isHost                 Boolean       @default(false)
+  activeSegmentStartSeconds Int?
   currentPositionSeconds Int           @default(0)
   joinedAt               DateTime?
   leftAt                 DateTime?
@@ -365,6 +377,30 @@ model WatchSessionMember {
   user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([watchSessionId, userId])
+}
+
+model MovieWatchProgress {
+  id                  String             @id @default(cuid())
+  listItemId          String
+  movieId             String
+  userId              String
+  completionState     WatchProgressState @default(NOT_STARTED)
+  lastPositionSeconds Int                @default(0)
+  coveredRanges       Json?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  lastWatchedAt       DateTime?
+  lastWatchSessionId  String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  listItem            MovieListItem      @relation(fields: [listItemId], references: [id], onDelete: Cascade)
+  movie               Movie              @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastWatchSession    WatchSession?      @relation("MovieWatchProgressLastSession", fields: [lastWatchSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([listItemId, userId])
+  @@index([listItemId, completionState])
+  @@index([userId, lastWatchedAt])
 }
 
 model PlaybackCheckpoint {
@@ -412,6 +448,9 @@ model SystemConfig {
   authPasskeyEnabled      Boolean  @default(false)
   authTwoFactorEnabled    Boolean  @default(false)
   pushNotificationsEnabled Boolean @default(false)
+  vapidPublicKey          String?
+  vapidPrivateKey         String?
+  vapidSubject            String?
   notes                   String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
@@ -545,11 +584,9 @@ model Account {
 
 model Verification {
   id         String   @id
-  identifier String
+  identifier String   @unique
   value      String
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  @@unique([identifier, value])
 }

@@ -2,10 +2,25 @@ import { expect, type Page } from "@playwright/test";
 
 const ignoredRequestFailurePatterns = [/ERR_ABORTED/i, /aborted/i];
 
-export function monitorClientErrors(page: Page, label: string) {
+type ClientErrorMonitorOptions = {
+  ignoreConsolePatterns?: RegExp[];
+  ignorePageErrorPatterns?: RegExp[];
+};
+
+export function monitorClientErrors(
+  page: Page,
+  label: string,
+  options: ClientErrorMonitorOptions = {},
+) {
   const errors: string[] = [];
+  const ignoreConsolePatterns = options.ignoreConsolePatterns ?? [];
+  const ignorePageErrorPatterns = options.ignorePageErrorPatterns ?? [];
 
   page.on("pageerror", (error) => {
+    if (ignorePageErrorPatterns.some((pattern) => pattern.test(error.message))) {
+      return;
+    }
+
     errors.push(`pageerror: ${error.message}`);
   });
 
@@ -14,7 +29,13 @@ export function monitorClientErrors(page: Page, label: string) {
       return;
     }
 
-    errors.push(`console: ${message.text()}`);
+    const text = message.text();
+
+    if (ignoreConsolePatterns.some((pattern) => pattern.test(text))) {
+      return;
+    }
+
+    errors.push(`console: ${text}`);
   });
 
   page.on("requestfailed", (request) => {

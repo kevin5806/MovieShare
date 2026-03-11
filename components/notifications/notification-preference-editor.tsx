@@ -39,6 +39,9 @@ type NotificationPreferenceEditorProps = {
   pushRuntime: {
     isEnabled: boolean;
     vapidConfigured: boolean;
+    publicKey?: string | null;
+    privateKey?: string | null;
+    subject?: string | null;
     source?: "database" | "environment" | "missing";
   };
 };
@@ -65,7 +68,7 @@ export function NotificationPreferenceEditor({
 
   const pushCopy = useMemo(() => {
     if (!pushRuntime.vapidConfigured) {
-      return "Push needs VAPID keys in the server environment before the app can offer device subscriptions.";
+      return "Push needs VAPID keys from system settings or environment before the app can offer device subscriptions.";
     }
 
     return pushNotificationsEnabled
@@ -147,8 +150,8 @@ export function NotificationPreferenceEditor({
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">{pushCopy}</p>
                 <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-3 text-xs leading-5 text-muted-foreground">
-                  Setup order: `VAPID_*` in env, enable push here in admin, then each user
-                  subscribes from their own profile.
+                  Setup order: add VAPID keys in the admin panel or env, enable push here,
+                  then each user subscribes from their own profile.
                 </div>
               </div>
             <div className="flex items-center gap-3">
