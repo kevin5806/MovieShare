@@ -1,0 +1,204 @@
+﻿Diagnose log at 2026-03-12T09:00:01Z
+
+AppPath: C:\Program Files\Git\mingw64\bin\git-credential-manager.exe
+InstallDir: C:\Program Files\Git\mingw64\bin\
+Version: 2.7.0+d1dd8a4ded75a2b1faae653157ac1699609442ad
+
+------------
+Diagnostic: Environment
+Skipped: False
+Success: True
+Exception: None
+Log:
+OSType: Windows
+OSVersion: 10.0 (build 22631)
+Reading environment variables... OK
+ Variables:
+SESSIONNAME=Console
+ProgramFiles(x86)=C:\Program Files (x86)
+MSYSTEM=MINGW64
+ProgramW6432=C:\Program Files
+windir=C:\Windows
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 158 Stepping 10, GenuineIntel
+TMP=C:\Users\kevin\AppData\Local\Temp
+CODEX_INTERNAL_ORIGINATOR_OVERRIDE=codex_vscode
+PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL
+RUST_LOG=warn
+VSCODE_CWD=C:\Users\kevin\AppData\Local\GitHubDesktop\app-3.5.6
+USERPROFILE=C:\Users\kevin
+PROCESSOR_REVISION=9e0a
+EFC_37900=1
+TEMP=C:\Users\kevin\AppData\Local\Temp
+FPS_BROWSER_APP_PROFILE_STRING=Internet Explorer
+FPS_BROWSER_USER_PROFILE_STRING=Default
+LOGONSERVER=\\SERVER
+TERM=xterm-256color
+USERNAME=kevin
+SystemRoot=C:\Windows
+CHROME_CRASHPAD_PIPE_NAME=\\.\pipe\crashpad_5176_DVPEDNXYZNFHJRSU
+CODEX_THREAD_ID=019cd2e5-8a73-7271-87ea-1884810475ec
+PLINK_PROTOCOL=ssh
+USERDNSDOMAIN=TESIA-DOM.LOCAL
+PATH=C:/Program Files/Git/mingw64/libexec/git-core;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\kevin\bin;C:\Users\kevin\.codex\tmp\arg0\codex-arg0Dg2958;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;C:\Program Files\nodejs\;C:\Program Files\Neovim\bin;C:\Program Files\OpenSSL-Win64\bin;C:\Program Files (x86)\ZeroTier\One\;C:\Program Files\Git\cmd;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Users\kevin\AppData\Local\Programs\Eclipse Adoptium\jdk-11.0.29.7-hotspot\bin;C:\Users\kevin\AppData\Local\Programs\Python\Python314\Scripts\;C:\Users\kevin\AppData\Local\Programs\Python\Python314\;C:\Users\kevin\AppData\Local\Microsoft\WindowsApps;C:\Users\kevin\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files (x86)\Nmap;C:\Users\kevin\AppData\Roaming\npm;C:\Program Files\7-Zip;C:\Users\kevin\AppData\Local\GitHubDesktop\bin;C:\Program Files\OpenSSL-Win64\bin;C:\Users\kevin\AppData\Local\PowerToys\DSCModules\;C:\Users\kevin\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\kevin\.dotnet\tools;c:\Users\kevin\.vscode\extensions\openai.chatgpt-26.304.20706-win32-x64\bin\windows-x86_64
+OneDrive=C:\Users\kevin\OneDrive
+PROCESSOR_ARCHITECTURE=AMD64
+CommonProgramFiles=C:\Program Files\Common Files
+ZES_ENABLE_SYSMAN=1
+PROCESSOR_LEVEL=6
+ProgramData=C:\ProgramData
+APPLICATION_INSIGHTS_NO_STATSBEAT=true
+HOMEPATH=\Users\kevin
+LOCAL_GIT_DIRECTORY=C:\Users\kevin\AppData\Local\GitHubDesktop\app-3.5.6\resources\app\git
+VSCODE_NLS_CONFIG={"userLocale":"en-us","osLocale":"it-it","resolvedLanguage":"en","defaultMessagesFile":"C:\\Users\\kevin\\AppData\\Local\\Programs\\Microsoft VS Code\\ce099c1ed2\\resources\\app\\out\\nls.messages.json","locale":"en-us","availableLanguages":{}}
+VSCODE_HANDLES_UNCAUGHT_ERRORS=true
+ALLUSERSPROFILE=C:\ProgramData
+CommonProgramW6432=C:\Program Files\Common Files
+VSCODE_ESM_ENTRYPOINT=vs/workbench/api/node/extensionHostProcess
+GIT_EXEC_PATH=C:/Program Files/Git/mingw64/libexec/git-core
+DriverData=C:\Windows\System32\Drivers\DriverData
+HOMEDRIVE=C:
+VSCODE_PID=5176
+VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost
+GIT_TRACE2_PARENT_SID=0b9d1465-4270-40b6-8c80-e7fbf625083c
+SystemDrive=C:
+NUMBER_OF_PROCESSORS=12
+OS=Windows_NT
+ProgramFiles=C:\Program Files
+ComSpec=C:\Windows\system32\cmd.exe
+USERDOMAIN_ROAMINGPROFILE=TESIA-DOM
+HOME=C:\Users\kevin
+VSCODE_IPC_HOOK=\\.\pipe\4443f03b-1.111.0-main-sock
+ELECTRON_RUN_AS_NODE=1
+PSModulePath=C:\Users\kevin\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules
+TMPDIR=C:\Users\kevin\AppData\Local\Temp
+APPDATA=C:\Users\kevin\AppData\Roaming
+USERDOMAIN=TESIA-DOM
+COMPUTERNAME=PC-SVIL4-W11
+LC_CTYPE=C.UTF-8
+LOCALAPPDATA=C:\Users\kevin\AppData\Local
+DEBUG=release
+CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+COLORTERM=truecolor
+VSCODE_CODE_CACHE_PATH=C:\Users\kevin\AppData\Roaming\Code\CachedData\ce099c1ed25d9eb3076c11e4a280f3eb52b4fbeb
+PUBLIC=C:\Users\Public
+
+
+------------
+Diagnostic: File system
+Skipped: False
+Success: True
+Exception: None
+Log:
+Temporary directory is 'C:\Users\kevin\AppData\Local\Temp\'...
+Checking basic file I/O...
+Writing to temporary file 'C:\Users\kevin\AppData\Local\Temp\8a074034b2d92f9b609a3ca8'... OK
+Reading from temporary file 'C:\Users\kevin\AppData\Local\Temp\8a074034b2d92f9b609a3ca8'... OK
+Deleting temporary file 'C:\Users\kevin\AppData\Local\Temp\8a074034b2d92f9b609a3ca8'... OK
+Testing IFileSystem instance...
+UserHomePath: C:\Users\kevin
+UserDataDirectoryPath: C:\Users\kevin\.gcm
+GetCurrentDirectory(): C:\GitHub\FilmShare
+
+------------
+Diagnostic: Networking
+Skipped: False
+Success: True
+Exception: None
+Log:
+Checking networking and HTTP stack...
+Creating HTTP client... OK
+IsNetworkAvailable: True
+Sending HEAD request to http://example.com...Sending HEAD request to https://example.com... OK
+ OK
+Acquiring free TCP port... OK
+Testing local HTTP loopback connections...
+Creating new HTTP listener for http://localhost:41246/... OK
+Waiting for loopback connection... OK
+Writing response... OK
+Waiting for response data... OK
+Loopback connection data OK
+
+------------
+Diagnostic: Git
+Skipped: False
+Success: True
+Exception: None
+Log:
+Getting Git version... OK
+Git version is '2.53.0.windows.1'
+Locating current repository...Git repository at 'C:/GitHub/FilmShare/.git'
+ OK
+Listing all Git configuration... OK
+Git configuration:
+file:C:/Program Files/Git/etc/gitconfig	diff.astextplain.textconv=astextplain
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.required=true
+file:C:/Program Files/Git/etc/gitconfig	http.sslbackend=schannel
+file:C:/Program Files/Git/etc/gitconfig	core.autocrlf=true
+file:C:/Program Files/Git/etc/gitconfig	core.fscache=true
+file:C:/Program Files/Git/etc/gitconfig	core.symlinks=true
+file:C:/Program Files/Git/etc/gitconfig	pull.rebase=true
+file:C:/Program Files/Git/etc/gitconfig	credential.helper=manager
+file:C:/Program Files/Git/etc/gitconfig	credential.https://dev.azure.com.usehttppath=true
+file:C:/Program Files/Git/etc/gitconfig	init.defaultbranch=main
+file:C:/Users/kevin/.gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Users/kevin/.gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Users/kevin/.gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Users/kevin/.gitconfig	filter.lfs.required=true
+file:C:/Users/kevin/.gitconfig	user.name=Kevin Leoni
+file:C:/Users/kevin/.gitconfig	user.email=kevinleoni58@gmail.com
+file:C:/Users/kevin/.gitconfig	core.editor="C:\Users\kevin\AppData\Local\Programs\Microsoft VS Code\bin\code" --wait
+file:.git/config	core.repositoryformatversion=0
+file:.git/config	core.filemode=false
+file:.git/config	core.bare=false
+file:.git/config	core.logallrefupdates=true
+file:.git/config	core.symlinks=false
+file:.git/config	core.ignorecase=true
+file:.git/config	lfs.repositoryformatversion=0
+file:.git/config	remote.origin.url=https://github.com/kevin5806/MovieShare.git
+file:.git/config	remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+file:.git/config	branch.main.remote=origin
+file:.git/config	branch.main.merge=refs/heads/main
+file:.git/config	branch.main.vscode-merge-base=origin/main
+file:.git/config	branch.chore/branch-first-release-flow.vscode-merge-base=origin/main
+file:.git/config	branch.chore/branch-first-release-flow.remote=origin
+file:.git/config	branch.chore/branch-first-release-flow.merge=refs/heads/chore/branch-first-release-flow
+
+
+------------
+Diagnostic: Credential storage
+Skipped: False
+Success: True
+Exception: None
+Log:
+ICredentialStore instance is of type: CredentialStore
+Writing test credential... OK
+Reading test credential... OK
+Deleting test credential... OK
+
+------------
+Diagnostic: Microsoft authentication (AAD/MSA)
+Skipped: False
+Success: True
+Exception: None
+Log:
+Broker is not enabled.
+Flow type is: Auto
+Gathering MSAL token cache data... OK
+CacheDirectory: C:\Users\kevin\AppData\Local\.IdentityService
+CacheFileName: msal.cache
+CacheFilePath: C:\Users\kevin\AppData\Local\.IdentityService\msal.cache
+Creating cache helper... OK
+Verifying MSAL token cache persistence... OK
+
+------------
+Diagnostic: GitHub API
+Skipped: False
+Success: True
+Exception: None
+Log:
+Using 'https://github.com/' as API target.
+Querying '/meta' endpoint... OK
+
