@@ -57,6 +57,11 @@ jobs:
           AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
           git config --global --add safe.directory "${PWD}"
           git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          while IFS='=' read -r name _; do
+            case "${name}" in
+              GIT_CONFIG_*) unset "${name}" ;;
+            esac
+          done < <(env)
           if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             git remote remove origin >/dev/null 2>&1 || true
             git clean -ffdx
@@ -99,6 +104,11 @@ jobs:
           AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
           git config --global --add safe.directory "${PWD}"
           git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          while IFS='=' read -r name _; do
+            case "${name}" in
+              GIT_CONFIG_*) unset "${name}" ;;
+            esac
+          done < <(env)
           if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             git remote remove origin >/dev/null 2>&1 || true
             git clean -ffdx
@@ -214,6 +224,11 @@ jobs:
           AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
           git config --global --add safe.directory "${PWD}"
           git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          while IFS='=' read -r name _; do
+            case "${name}" in
+              GIT_CONFIG_*) unset "${name}" ;;
+            esac
+          done < <(env)
           if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             git remote remove origin >/dev/null 2>&1 || true
             git clean -ffdx
@@ -240,6 +255,11 @@ jobs:
           set -euo pipefail
           AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
           git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          while IFS='=' read -r name _; do
+            case "${name}" in
+              GIT_CONFIG_*) unset "${name}" ;;
+            esac
+          done < <(env)
 
           if [ "${PR_HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]; then
             echo "Merged PR came from a fork, so there is no trusted candidate image to promote."
@@ -370,6 +390,11 @@ jobs:
           AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
           git config --global --add safe.directory "${PWD}"
           git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          while IFS='=' read -r name _; do
+            case "${name}" in
+              GIT_CONFIG_*) unset "${name}" ;;
+            esac
+          done < <(env)
           if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             git remote remove origin >/dev/null 2>&1 || true
             git clean -ffdx
@@ -406,6 +431,11 @@ jobs:
           AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
           git config --global --add safe.directory "${PWD}"
           git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
+          while IFS='=' read -r name _; do
+            case "${name}" in
+              GIT_CONFIG_*) unset "${name}" ;;
+            esac
+          done < <(env)
           if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             git remote remove origin >/dev/null 2>&1 || true
             git clean -ffdx
