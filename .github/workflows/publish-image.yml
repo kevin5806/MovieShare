@@ -48,7 +48,8 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
+          CHECKOUT_REMOTE: https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git
+          CHECKOUT_REF: refs/heads/${{ github.event.pull_request.head.ref }}
           FETCH_DEPTH: "1"
         run: |
           set -euo pipefail
@@ -60,7 +61,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "${CHECKOUT_REMOTE}"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -86,7 +87,8 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
+          CHECKOUT_REMOTE: https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git
+          CHECKOUT_REF: refs/heads/${{ github.event.pull_request.head.ref }}
           FETCH_DEPTH: "1"
         run: |
           set -euo pipefail
@@ -98,7 +100,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "${CHECKOUT_REMOTE}"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -197,7 +199,8 @@ jobs:
       - name: Check out merged revision
         shell: bash
         env:
-          CHECKOUT_REF: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          CHECKOUT_REMOTE: https://github.com/${GITHUB_REPOSITORY}.git
+          CHECKOUT_REF: refs/pull/${{ github.event.pull_request.number }}/merge
           FETCH_DEPTH: "2"
         run: |
           set -euo pipefail
@@ -209,7 +212,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "${CHECKOUT_REMOTE}"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -220,7 +223,7 @@ jobs:
           DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: refs/pull/${{ github.event.pull_request.number }}/head
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
@@ -250,7 +253,7 @@ jobs:
             fi
           fi
 
-          git fetch --no-tags --depth=1 origin "${PR_HEAD_SHA}"
+          git fetch --no-tags --depth=1 origin "${PR_HEAD_REF}"
 
           MERGED_TREE="$(git rev-parse 'HEAD^{tree}')"
           PR_TREE="$(git rev-parse 'FETCH_HEAD^{tree}')"
@@ -346,7 +349,8 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          CHECKOUT_REF: ${{ github.sha }}
+          CHECKOUT_REMOTE: https://github.com/${GITHUB_REPOSITORY}.git
+          CHECKOUT_REF: ${{ github.ref }}
           FETCH_DEPTH: "1"
         run: |
           set -euo pipefail
@@ -358,7 +362,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "${CHECKOUT_REMOTE}"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -378,7 +382,8 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          CHECKOUT_REF: ${{ github.sha }}
+          CHECKOUT_REMOTE: https://github.com/${GITHUB_REPOSITORY}.git
+          CHECKOUT_REF: ${{ github.ref }}
           FETCH_DEPTH: "1"
         run: |
           set -euo pipefail
@@ -390,7 +395,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "${CHECKOUT_REMOTE}"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
