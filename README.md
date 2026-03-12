@@ -392,8 +392,8 @@ Publishing behavior:
 - the merge still checks that the merged tree matches the verified PR tree before promotion; if they differ, the workflow stops and you must republish manually
 - direct pushes to `main` are no longer the normal release path
 - merges to `main` are treated as publish events, so the branch must bump `package.json` version before merge
-- the release workflow now prefers the self-hosted runner labeled `movieshare-runner`
-- that label must exist on the runner itself; GitHub routes `runs-on` by labels, not by the runner display name
+- the release workflow now targets the self-hosted runner labels `self-hosted`, `linux`, `arm64`, and `docker`
+- `movieshare-runner` is only the runner name; GitHub routes `runs-on` by labels, not by the runner display name
 - manual publish through GitHub Actions `workflow_dispatch`
 - manual publish now keeps `publish_latest=false` by default
 - manual publish now defaults to `linux/amd64`

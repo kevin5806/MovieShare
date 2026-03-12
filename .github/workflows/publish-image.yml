@@ -42,8 +42,8 @@ jobs:
     runs-on:
       - self-hosted
       - linux
-      - x64
-      - movieshare-runner
+      - arm64
+      - docker
     services:
       postgres:
         image: postgres:17-alpine
@@ -179,8 +179,8 @@ jobs:
     runs-on:
       - self-hosted
       - linux
-      - x64
-      - movieshare-runner
+      - arm64
+      - docker
     steps:
       - name: Check out merged revision
         uses: actions/checkout@v4
@@ -315,8 +315,8 @@ jobs:
     runs-on:
       - self-hosted
       - linux
-      - x64
-      - movieshare-runner
+      - arm64
+      - docker
     services:
       postgres:
         image: postgres:17-alpine

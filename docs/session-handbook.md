@@ -95,8 +95,8 @@ Last updated: March 12, 2026
 - keep Docker image publish cache under a fixed GitHub Actions scope and prefer `mode=min` to avoid cache sprawl
 - after successful image publishes, prune older caches for the publish scope instead of disabling caching entirely
 - PRs to `main` are now the automatic verification gate and candidate-image build; merged PRs should promote that verified candidate without rebuilding, but only when the merged tree still matches the verified PR tree
-- the publish workflow now targets the self-hosted runner label `movieshare-runner`; remember GitHub matches `runs-on` via labels/group, not by the runner display name alone
-- `.github/actionlint.yaml` now declares the custom `movieshare-runner` label so local workflow linting stays green after self-hosted runner changes
+- the publish workflow now targets the self-hosted runner labels `self-hosted`, `linux`, `arm64`, and `docker`; remember GitHub matches `runs-on` via labels/group, not by the runner display name alone
+- `.github/actionlint.yaml` now declares the custom `docker` runner label so local workflow linting stays green after self-hosted runner changes
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -199,5 +199,5 @@ Before finishing:
 - March 12, 2026: constrained Docker BuildKit caching in the publish workflow to a fixed GHA scope with `mode=min` so repeated publish runs stop generating excessive cache entries
 - March 12, 2026: added post-publish cache pruning so the workflow keeps a small recent set of Docker publish caches instead of accumulating every stale cache forever
 - March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification and build a candidate image, merged PRs promote that candidate without rebuilding when the trees still match, and concurrency auto-cancels superseded runs
-- March 12, 2026: moved the release workflow to the self-hosted runner label `movieshare-runner`, with docs clarifying that the label must exist on the runner for GitHub to schedule jobs there
-- March 12, 2026: added `.github/actionlint.yaml` for the custom self-hosted runner label so workflow linting no longer reports `movieshare-runner` as unknown
+- March 12, 2026: moved the release workflow to the self-hosted runner labels `self-hosted`, `linux`, `arm64`, and `docker`, with docs clarifying that GitHub schedules by labels rather than the runner name
+- March 12, 2026: added `.github/actionlint.yaml` for the custom self-hosted runner label `docker` so workflow linting stays aligned with the runner registration
