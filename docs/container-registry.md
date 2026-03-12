@@ -22,9 +22,9 @@ and network integration.
 - `.github/workflows/publish-image.yml`
   publishes prebuilt images from GitHub Actions
 - publish is limited to:
-  - semver tag pushes like `v1.2.3`
+  - merged pull requests into `main`
   - manual workflow dispatch
-- development builds are not pushed automatically
+- development builds are not pushed automatically; they only build a candidate image on the PR branch
 - `docker-compose.registry.yml`
   deploys from a prebuilt image instead of building from source
 - `.env.production.example`
@@ -39,7 +39,8 @@ and network integration.
 What happens automatically:
 
 - the workflow starts on the PR
-- it runs migration drift checks, lint, typecheck and production build validation
+- it runs migration drift checks, lint, typecheck and production build validation in a Node job container on the self-hosted runner, with Postgres reached through the service hostname instead of `127.0.0.1`
+- if the PR comes from this repository, it also builds and pushes a native `linux/arm64` candidate image tagged `ghcr.io/<owner>/movieshare:pr-<number>-candidate`
 - if you push new commits to the same PR, the older run is auto-cancelled
 
 2. Merge the PR into `main`.
@@ -47,10 +48,11 @@ What happens automatically:
 What happens automatically after merge:
 
 - the workflow reads the semver from `package.json`
-- it publishes `ghcr.io/<owner>/movieshare:<version>`
+- it verifies that the merged tree matches the already-verified PR tree
+- it promotes the candidate image to `ghcr.io/<owner>/movieshare:<version>` without rebuilding it
 - it also publishes `<major>`, `<major>.<minor>` and `latest`
 - the merge must therefore include a package version bump
-- the default publish on `main` is multi-arch because `main` is now the deliberate release path
+- the automatic publish path now targets the runner-native `linux/arm64` image; use the manual workflow when you need `linux/amd64` or explicit multi-arch republishing
 
 3. Manual publish remains available when you explicitly want to rerun or republish:
 
@@ -65,9 +67,8 @@ workflow_dispatch -> choose version -> optional latest -> optional platforms
 - `ghcr.io/<owner>/movieshare:1`
 - `ghcr.io/<owner>/movieshare:latest`
 
-For semver tag pushes, `latest` is published automatically. For manual workflow runs,
-`publish_latest` now defaults to `false`, and manual runs default to `linux/amd64`
-unless you explicitly request more platforms.
+For manual workflow runs, `publish_latest` now defaults to `false`, and manual runs default
+to `linux/arm64` unless you explicitly request `linux/amd64` or more platforms.
 
 The workflow also keeps Docker build cache under one fixed GitHub Actions cache scope with
 `mode=min`, so repeated publishes do not keep exploding into a large number of stored caches.
@@ -121,22 +122,22 @@ an image such as `ghcr.io/<owner>/movieshare:1.0.0`.
 
 Use one of these flows:
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
+1. Push your changes to the shared `kevin` branch.
+2. Open a PR from `kevin` to `main`.
+3. Let the PR validation build the candidate image.
+4. Merge the PR once it is approved.
 
 Or run `Publish container image` manually from GitHub Actions with version `1.0.0`.
 If you do this for production, leave `publish_latest` disabled unless you intentionally want
 automation that follows `latest` to move immediately. Manual runs now default to
-`linux/amd64`; request `linux/amd64,linux/arm64` only when you actually need a multi-arch image.
+`linux/arm64`; request `linux/amd64` or `linux/amd64,linux/arm64` only when you actually need a different target.
 If GitHub shows a large number of Actions caches from older runs, those are usually stale
 BuildKit caches created before the fixed-scope/min-mode policy and the automatic post-publish
 cache pruning step.
 
 Branch discipline note:
 
-- day-to-day work should happen on branches
+- day-to-day work should happen on the shared `kevin` branch unless a temporary hotfix branch is truly necessary
 - PRs to `main` are the automatic validation gate
 - merges to `main` are the automatic publish event
 - a branch must bump `package.json` before merge, because `main` publishes that semver automatically
