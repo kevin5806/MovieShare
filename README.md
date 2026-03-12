@@ -387,7 +387,7 @@ This repository now includes:
 
 Publishing behavior:
 
-- pull requests targeting `main` now start automatically on the self-hosted runner, run verification in a Node job container with a reachable Postgres service, and build a native `linux/arm64` candidate image
+- pull requests targeting `main` now start automatically on the self-hosted runner, run verification in Docker against a temporary Postgres container, and build a native `linux/arm64` candidate image
 - merged pull requests to `main` now publish by promoting that already-verified candidate image instead of rebuilding it
 - merges to `main` are treated as publish events, so the branch must bump `package.json` version before merge
 - manual publish through GitHub Actions `workflow_dispatch`

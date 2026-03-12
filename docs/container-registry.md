@@ -39,7 +39,7 @@ and network integration.
 What happens automatically:
 
 - the workflow starts on the PR
-- it runs migration drift checks, lint, typecheck and production build validation in a Node job container on the self-hosted runner, with Postgres reached through the service hostname instead of `127.0.0.1`
+- it runs migration drift checks, lint, typecheck and production build validation inside a disposable Node container on the self-hosted runner, alongside a temporary Postgres container on the same Docker network
 - if the PR comes from this repository, it also builds and pushes a native `linux/arm64` candidate image tagged `ghcr.io/<owner>/movieshare:pr-<number>-candidate`
 - if you push new commits to the same PR, the older run is auto-cancelled
 
