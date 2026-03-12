@@ -44,7 +44,9 @@ RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
 FROM deps AS builder
 
-ENV BUILD_STANDALONE=1
+ENV BUILD_STANDALONE=1 \
+    CONTAINER_BUILD=1 \
+    NODE_OPTIONS=--max-old-space-size=1536
 
 COPY . .
 

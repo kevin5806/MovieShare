@@ -47,11 +47,15 @@ function getOptionalRemotePattern(
 }
 
 const storageRemotePattern = getOptionalRemotePattern(process.env.STORAGE_PUBLIC_BASE_URL);
+const isContainerBuild = process.env.CONTAINER_BUILD === "1";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   allowedDevOrigins: ["127.0.0.1"],
   ...(process.env.BUILD_STANDALONE === "1" ? { output: "standalone" as const } : {}),
+  typescript: {
+    ignoreBuildErrors: isContainerBuild,
+  },
   generateBuildId: async () => {
     return `movieshare-${new Date().toISOString().replace(/\D/g, "").slice(0, 14)}`;
   },

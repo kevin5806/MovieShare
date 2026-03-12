@@ -56,6 +56,7 @@ Last updated: March 12, 2026
 - branded app polish now includes generated app icons, apple icon, Open Graph/Twitter preview images, custom 404/error surfaces, and basic `robots.txt` plus `sitemap.xml` routes
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
 - production container boot now uses Prisma migrations instead of `db push`, and legacy installs are repaired against the live Prisma schema before migrations continue, even if an older image already wrote `_prisma_migrations` too early
+- candidate/release Docker builds now run with `CONTAINER_BUILD=1` and a capped Node heap so the self-hosted runner can finish `next build` without redoing type validation that `verify-pr` already enforced
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
 - deployment notes now also call out that `minio-init` should wait on `mc ready`, not only `mc alias set`, to avoid early bucket-bootstrap failures on Linux/Portainer stacks
@@ -103,6 +104,7 @@ Last updated: March 12, 2026
 - the self-hosted runner is containerized, so sibling Docker validation containers must ingest source via `git archive` or similar streaming instead of bind-mounting `${PWD}` directly
 - the self-hosted release workflow now prefers shell-based Git checkout over `actions/checkout`, and that bootstrap checkout must stay inline in the workflow because repository scripts are not available until the first fetch has already succeeded
 - the self-hosted release workflow should prefer source archives and GitHub HTTP APIs over runner-local Git checkout whenever possible; this runner has been unreliable with URL credentials, anonymous fetches, raw SHA fetches, and inherited GitHub auth headers across jobs
+- the self-hosted release runner currently has only about `2 CPU / 3.2 GiB`, so Docker image builds should avoid duplicating type validation inside `next build` and should keep Node heap usage explicitly bounded
 - keep `vitest` and `@vitest/coverage-v8` on the same major/minor line; partial Dependabot merges left the lockfile in a state where `npm ci` could no longer resolve peers on the release runner
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
@@ -218,4 +220,5 @@ Before finishing:
 - March 12, 2026: realigned `@vitest/coverage-v8` to `4.0.18` after a partial dependency update on `main` left the release workflow unable to complete `npm ci`
 - March 12, 2026: recreated the shared `kevin` integration branch from `main`, pinned the root ESLint dependency back to `9.39.4` after clean Docker validation exposed an `eslint-config-next` crash under ESLint 10, taught `scripts/run-ci-validation.sh` to inject minimal Better Auth env vars for clean builds, and noted that local Playwright auth runs must target `localhost` rather than `127.0.0.1`
 - March 12, 2026: stabilized the self-hosted workflow checkout around header-authenticated Git fetches against advertised refs after URL-embedded credentials, anonymous fetches, and raw SHA fetches all proved unreliable on the runner
+- March 12, 2026: reduced candidate-image build pressure on the self-hosted runner by making container builds skip duplicate TypeScript validation and capping `NODE_OPTIONS` during Docker `next build`, after PR candidate images were dying silently inside the Buildx builder on the 3.2 GiB runner
 - March 12, 2026: switched the self-hosted workflow toward codeload/API-based source acquisition, taught `scripts/run-ci-validation.sh` to validate plain extracted source trees without `.git`, and stopped relying on runner-local Git fetch for PR/manual verification because checkout auth state on the runner remained unreliable
