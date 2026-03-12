@@ -96,6 +96,7 @@ Last updated: March 12, 2026
 - after successful image publishes, prune older caches for the publish scope instead of disabling caching entirely
 - PRs to `main` are now the automatic verification gate, while merges to `main` are the automatic publish event; bump `package.json` in the branch before merging and keep auto-cancel enabled so superseded runs do not pile up
 - the shared day-to-day integration branch is now `kevin`; avoid spinning up extra long-lived branches unless there is a real hotfix or isolation need
+- release-workflow shell snippets now execute on the runner host, so any inline `node -e` compatibility logic must stay compatible with the runner's installed Node version instead of assuming modern syntax such as `??`
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -202,3 +203,4 @@ Before finishing:
 - March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification, merges to `main` auto-publish the semver from `package.json`, and concurrency auto-cancels superseded runs
 - March 12, 2026: replaced the optimistic legacy migration bridge with Prisma diff-based schema repair so older installs and mis-baselined production databases both recover missing columns before the app boots
 - March 12, 2026: moved release validation onto an explicit Docker-based validation script on the self-hosted runner so Prisma checks always run beside a temporary Postgres container, switched the automatic candidate/release path to native `linux/arm64`, and standardized day-to-day branch work on `kevin`
+- March 12, 2026: kept the merged release workflow compatible with the runner host's older Node runtime by removing nullish-coalescing syntax from inline `node -e` release metadata parsing

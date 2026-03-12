@@ -196,7 +196,7 @@ jobs:
           fi
 
           if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
-            PREVIOUS_VERSION="$(git show HEAD^:package.json 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(parsed.version ?? ''); });")"
+            PREVIOUS_VERSION="$(git show HEAD^:package.json 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(typeof parsed.version === 'string' ? parsed.version : ''); });")"
 
             if [ -n "${PREVIOUS_VERSION}" ] && [ "${PREVIOUS_VERSION}" = "${VERSION}" ]; then
               echo "package.json version is still ${VERSION}."
