@@ -98,6 +98,7 @@ Last updated: March 12, 2026
 - the shared day-to-day integration branch is now `kevin`; avoid spinning up extra long-lived branches unless there is a real hotfix or isolation need
 - release-workflow shell snippets now execute on the runner host, so any inline `node -e` compatibility logic must stay compatible with the runner's installed Node version instead of assuming modern syntax such as `??`
 - the self-hosted runner is containerized, so sibling Docker validation containers must ingest source via `git archive` or similar streaming instead of bind-mounting `${PWD}` directly
+- the self-hosted release workflow now prefers shell-based Git checkout over `actions/checkout`, because the runner has intermittently failed JS action file-command bookkeeping during checkout on both PR and manual runs
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -206,3 +207,4 @@ Before finishing:
 - March 12, 2026: moved release validation onto an explicit Docker-based validation script on the self-hosted runner so Prisma checks always run beside a temporary Postgres container, switched the automatic candidate/release path to native `linux/arm64`, and standardized day-to-day branch work on `kevin`
 - March 12, 2026: kept the merged release workflow compatible with the runner host's older Node runtime by removing nullish-coalescing syntax from inline `node -e` release metadata parsing
 - March 12, 2026: updated the Docker-based validation script to stream the repository into sibling containers with `git archive`, because bind-mounting `${PWD}` from the containerized self-hosted runner exposed an empty host path to Docker and broke `npm ci`
+- March 12, 2026: replaced `actions/checkout` with a shell-based `git fetch` helper in the self-hosted release workflow after checkout started failing on missing runner file-command paths during manual and PR-triggered runs

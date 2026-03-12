@@ -46,7 +46,9 @@ jobs:
       - docker
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci-checkout.sh "${{ github.event.pull_request.head.sha }}" 1
 
       - name: Note forked PR release fallback
         if: github.event.pull_request.head.repo.full_name != github.repository
@@ -68,7 +70,9 @@ jobs:
       - docker
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci-checkout.sh "${{ github.event.pull_request.head.sha }}" 1
 
       - name: Prepare candidate image metadata
         id: prep
@@ -163,10 +167,9 @@ jobs:
       - docker
     steps:
       - name: Check out merged revision
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
-          fetch-depth: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci-checkout.sh "${{ github.event.pull_request.merge_commit_sha || github.sha }}" 2
 
       - name: Prepare release metadata
         id: prep
@@ -299,7 +302,9 @@ jobs:
       - docker
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci-checkout.sh "${{ github.sha }}" 1
 
       - name: Run application validation in Docker
         run: bash scripts/run-ci-validation.sh
@@ -315,7 +320,9 @@ jobs:
       - docker
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci-checkout.sh "${{ github.sha }}" 1
 
       - name: Prepare image metadata
         id: prep
