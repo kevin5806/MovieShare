@@ -93,33 +93,7 @@ jobs:
           OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           {
             echo "candidate_image=ghcr.io/${OWNER_LC}/movieshare:pr-${PR_NUMBER}-candidate"
-            echo "cache_scope=publish-image"
           } >> "${GITHUB_OUTPUT}"
-
-      - name: Detect runner Docker platform
-        id: platform
-        shell: bash
-        run: |
-          set -euo pipefail
-          arch="$(docker info --format '{{.Architecture}}')"
-
-          case "${arch}" in
-            amd64|x86_64)
-              platform="linux/amd64"
-              ;;
-            arm64|aarch64)
-              platform="linux/arm64"
-              ;;
-            *)
-              echo "Unsupported Docker architecture: ${arch}" >&2
-              exit 1
-              ;;
-          esac
-
-          echo "platform=${platform}" >> "${GITHUB_OUTPUT}"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -129,64 +103,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push candidate image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: ${{ steps.platform.outputs.platform }}
-          tags: ${{ steps.prep.outputs.candidate_image }}
-          labels: |
-            org.opencontainers.image.title=movieshare
-            org.opencontainers.image.description=Self-hosted collaborative movie planning workspace
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
-            org.opencontainers.image.version=pr-${{ github.event.pull_request.number }}
-          cache-from: type=gha,scope=${{ steps.prep.outputs.cache_scope }}
-          cache-to: type=gha,mode=min,scope=${{ steps.prep.outputs.cache_scope }},ignore-error=true
-
-      - name: Prune stale publish caches
-        if: success()
-        uses: actions/github-script@v7
+        shell: bash
         env:
-          CACHE_KEY_PREFIX: ${{ steps.prep.outputs.cache_scope }}
-          CACHE_KEEP_COUNT: "6"
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const key = process.env.CACHE_KEY_PREFIX;
-            const keepCount = Number.parseInt(process.env.CACHE_KEEP_COUNT ?? "6", 10);
-            const caches = [];
+          CANDIDATE_IMAGE: ${{ steps.prep.outputs.candidate_image }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
 
-            for (let page = 1; ; page += 1) {
-              const response = await github.request("GET /repos/{owner}/{repo}/actions/caches", {
-                owner,
-                repo,
-                key,
-                sort: "last_accessed_at",
-                direction: "desc",
-                per_page: 100,
-                page,
-              });
+          docker build \
+            --label "org.opencontainers.image.title=movieshare" \
+            --label "org.opencontainers.image.description=Self-hosted collaborative movie planning workspace" \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${PR_HEAD_SHA}" \
+            --label "org.opencontainers.image.version=pr-${PR_NUMBER}" \
+            -t "${CANDIDATE_IMAGE}" \
+            .
 
-              caches.push(...response.data.actions_caches);
-
-              if (response.data.actions_caches.length < 100) {
-                break;
-              }
-            }
-
-            core.info(`Found ${caches.length} caches matching '${key}'. Keeping the ${Math.min(caches.length, keepCount)} most recent entries.`);
-
-            for (const cache of caches.slice(keepCount)) {
-              await github.request("DELETE /repos/{owner}/{repo}/actions/caches/{cache_id}", {
-                owner,
-                repo,
-                cache_id: cache.id,
-              });
-
-              core.info(`Deleted cache ${cache.id} (${cache.key}) last used ${cache.last_accessed_at}.`);
-            }
+          docker push "${CANDIDATE_IMAGE}"
 
   publish-merged-pr:
     if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
