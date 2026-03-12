@@ -82,7 +82,7 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.1.6",
     "prisma": "^7.4.2",
     "shadcn": "^4.0.5",
