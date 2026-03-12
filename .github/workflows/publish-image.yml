@@ -45,33 +45,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REMOTE: https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git
-          CHECKOUT_REF: refs/heads/${{ github.event.pull_request.head.ref }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${{ github.event.pull_request.head.repo.full_name }}/tar.gz/${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
-          git config --global --add safe.directory "${PWD}"
-          git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
-          while IFS='=' read -r name _; do
-            case "${name}" in
-              GIT_CONFIG_*) unset "${name}" ;;
-            esac
-          done < <(env)
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "${CHECKOUT_REMOTE}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Note forked PR release fallback
         if: github.event.pull_request.head.repo.full_name != github.repository
@@ -92,33 +73,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REMOTE: https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git
-          CHECKOUT_REF: refs/heads/${{ github.event.pull_request.head.ref }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${{ github.event.pull_request.head.repo.full_name }}/tar.gz/${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
-          git config --global --add safe.directory "${PWD}"
-          git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
-          while IFS='=' read -r name _; do
-            case "${name}" in
-              GIT_CONFIG_*) unset "${name}" ;;
-            esac
-          done < <(env)
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "${CHECKOUT_REMOTE}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Prepare candidate image metadata
         id: prep
@@ -212,34 +174,6 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out merged revision
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REMOTE: https://github.com/${GITHUB_REPOSITORY}.git
-          CHECKOUT_REF: refs/pull/${{ github.event.pull_request.number }}/merge
-          FETCH_DEPTH: "2"
-        run: |
-          set -euo pipefail
-          AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
-          git config --global --add safe.directory "${PWD}"
-          git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
-          while IFS='=' read -r name _; do
-            case "${name}" in
-              GIT_CONFIG_*) unset "${name}" ;;
-            esac
-          done < <(env)
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "${CHECKOUT_REMOTE}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
-
       - name: Prepare release metadata
         id: prep
         shell: bash
@@ -247,19 +181,26 @@ jobs:
           DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD_REF: refs/pull/${{ github.event.pull_request.number }}/head
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
-          AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
-          git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
-          while IFS='=' read -r name _; do
-            case "${name}" in
-              GIT_CONFIG_*) unset "${name}" ;;
-            esac
-          done < <(env)
+
+          read_json_version() {
+            node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(typeof parsed.version === 'string' ? parsed.version : ''); });"
+          }
+
+          read_commit_field() {
+            local commit_sha="$1"
+            local field="$2"
+
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${commit_sha}" |
+              JSON_FIELD="${field}" node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const payload = JSON.parse(data); let value = ''; if (process.env.JSON_FIELD === 'tree') { value = payload && payload.commit && payload.commit.tree && typeof payload.commit.tree.sha === 'string' ? payload.commit.tree.sha : ''; } else if (process.env.JSON_FIELD === 'parent') { const parents = payload && Array.isArray(payload.parents) ? payload.parents : []; value = parents[0] && typeof parents[0].sha === 'string' ? parents[0].sha : ''; } process.stdout.write(value); });"
+          }
 
           if [ "${PR_HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]; then
             echo "Merged PR came from a fork, so there is no trusted candidate image to promote."
@@ -267,7 +208,7 @@ jobs:
             exit 1
           fi
 
-          VERSION="$(node -p "require('./package.json').version")"
+          VERSION="$(curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${MERGE_SHA}/package.json" | read_json_version)"
           VERSION="${VERSION#v}"
 
           if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -275,8 +216,10 @@ jobs:
             exit 1
           fi
 
-          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
-            PREVIOUS_VERSION="$(git show HEAD^:package.json 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(typeof parsed.version === 'string' ? parsed.version : ''); });")"
+          PREVIOUS_SHA="$(read_commit_field "${MERGE_SHA}" parent)"
+
+          if [ -n "${PREVIOUS_SHA}" ]; then
+            PREVIOUS_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${PREVIOUS_SHA}/package.json" | read_json_version)"
 
             if [ -n "${PREVIOUS_VERSION}" ] && [ "${PREVIOUS_VERSION}" = "${VERSION}" ]; then
               echo "package.json version is still ${VERSION}."
@@ -285,10 +228,8 @@ jobs:
             fi
           fi
 
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" fetch --no-tags --depth=1 origin "${PR_HEAD_REF}"
-
-          MERGED_TREE="$(git rev-parse 'HEAD^{tree}')"
-          PR_TREE="$(git rev-parse 'FETCH_HEAD^{tree}')"
+          MERGED_TREE="$(read_commit_field "${MERGE_SHA}" tree)"
+          PR_TREE="$(read_commit_field "${PR_HEAD_SHA}" tree)"
 
           if [ "${MERGED_TREE}" != "${PR_TREE}" ]; then
             echo "The merged tree differs from the verified PR head tree."
@@ -378,33 +319,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REMOTE: https://github.com/${GITHUB_REPOSITORY}.git
-          CHECKOUT_REF: ${{ github.ref }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${GITHUB_REPOSITORY}/tar.gz/${GITHUB_SHA}
         run: |
           set -euo pipefail
-          AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
-          git config --global --add safe.directory "${PWD}"
-          git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
-          while IFS='=' read -r name _; do
-            case "${name}" in
-              GIT_CONFIG_*) unset "${name}" ;;
-            esac
-          done < <(env)
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "${CHECKOUT_REMOTE}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Run application validation in Docker
         run: bash scripts/run-ci-validation.sh
@@ -419,33 +341,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REMOTE: https://github.com/${GITHUB_REPOSITORY}.git
-          CHECKOUT_REF: ${{ github.ref }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${GITHUB_REPOSITORY}/tar.gz/${GITHUB_SHA}
         run: |
           set -euo pipefail
-          AUTH_HEADER="$(printf "x-access-token:%s" "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
-          git config --global --add safe.directory "${PWD}"
-          git config --global --unset-all http.https://github.com/.extraheader >/dev/null 2>&1 || true
-          while IFS='=' read -r name _; do
-            case "${name}" in
-              GIT_CONFIG_*) unset "${name}" ;;
-            esac
-          done < <(env)
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "${CHECKOUT_REMOTE}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Prepare image metadata
         id: prep

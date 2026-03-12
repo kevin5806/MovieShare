@@ -38,7 +38,13 @@ done
 
 docker volume create "${npm_cache_volume}" >/dev/null
 
-git archive --format=tar HEAD | docker run --rm -i \
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  archive_source=(git archive --format=tar HEAD)
+else
+  archive_source=(tar --exclude=.git -cf - .)
+fi
+
+"${archive_source[@]}" | docker run --rm -i \
   --network "${validation_network}" \
   -e DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/movieshare?schema=public" \
   -e SHADOW_DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/postgres?schema=public" \
