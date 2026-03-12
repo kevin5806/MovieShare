@@ -99,6 +99,7 @@ Last updated: March 12, 2026
 - release-workflow shell snippets now execute on the runner host, so any inline `node -e` compatibility logic must stay compatible with the runner's installed Node version instead of assuming modern syntax such as `??`
 - the self-hosted runner is containerized, so sibling Docker validation containers must ingest source via `git archive` or similar streaming instead of bind-mounting `${PWD}` directly
 - the self-hosted release workflow now prefers shell-based Git checkout over `actions/checkout`, because the runner has intermittently failed JS action file-command bookkeeping during checkout on both PR and manual runs
+- keep `vitest` and `@vitest/coverage-v8` on the same major/minor line; partial Dependabot merges left the lockfile in a state where `npm ci` could no longer resolve peers on the release runner
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -208,3 +209,4 @@ Before finishing:
 - March 12, 2026: kept the merged release workflow compatible with the runner host's older Node runtime by removing nullish-coalescing syntax from inline `node -e` release metadata parsing
 - March 12, 2026: updated the Docker-based validation script to stream the repository into sibling containers with `git archive`, because bind-mounting `${PWD}` from the containerized self-hosted runner exposed an empty host path to Docker and broke `npm ci`
 - March 12, 2026: replaced `actions/checkout` with a shell-based `git fetch` helper in the self-hosted release workflow after checkout started failing on missing runner file-command paths during manual and PR-triggered runs
+- March 12, 2026: realigned `@vitest/coverage-v8` to `4.0.18` after a partial dependency update on `main` left the release workflow unable to complete `npm ci`
