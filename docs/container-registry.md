@@ -34,14 +34,31 @@ and network integration.
 
 ## GitHub Container Registry flow
 
-1. Push a release tag:
+1. Open a pull request to `main`.
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
+What happens automatically:
+
+- the workflow starts on the PR
+- it runs migration drift checks, lint, typecheck and production build validation
+- if you push new commits to the same PR, the older run is auto-cancelled
+
+2. Merge the PR into `main`.
+
+What happens automatically after merge:
+
+- the workflow reads the semver from `package.json`
+- it publishes `ghcr.io/<owner>/movieshare:<version>`
+- it also publishes `<major>`, `<major>.<minor>` and `latest`
+- the merge must therefore include a package version bump
+- the default publish on `main` is multi-arch because `main` is now the deliberate release path
+
+3. Manual publish remains available when you explicitly want to rerun or republish:
+
+```text
+workflow_dispatch -> choose version -> optional latest -> optional platforms
 ```
 
-2. GitHub Actions publishes:
+4. GitHub Actions publishes:
 
 - `ghcr.io/<owner>/movieshare:1.0.0`
 - `ghcr.io/<owner>/movieshare:1.0`
@@ -52,8 +69,13 @@ For semver tag pushes, `latest` is published automatically. For manual workflow 
 `publish_latest` now defaults to `false`, and manual runs default to `linux/amd64`
 unless you explicitly request more platforms.
 
-3. On the production server, create an env file from `.env.production.example`.
-4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
+The workflow also keeps Docker build cache under one fixed GitHub Actions cache scope with
+`mode=min`, so repeated publishes do not keep exploding into a large number of stored caches.
+After each successful publish, it also prunes older cache entries for that publish scope and
+keeps only a small recent set.
+
+5. On the production server, create an env file from `.env.production.example`.
+6. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
    deployment bundle.
 
 5. Pull and run the image:
@@ -108,6 +130,16 @@ Or run `Publish container image` manually from GitHub Actions with version `1.0.
 If you do this for production, leave `publish_latest` disabled unless you intentionally want
 automation that follows `latest` to move immediately. Manual runs now default to
 `linux/amd64`; request `linux/amd64,linux/arm64` only when you actually need a multi-arch image.
+If GitHub shows a large number of Actions caches from older runs, those are usually stale
+BuildKit caches created before the fixed-scope/min-mode policy and the automatic post-publish
+cache pruning step.
+
+Branch discipline note:
+
+- day-to-day work should happen on branches
+- PRs to `main` are the automatic validation gate
+- merges to `main` are the automatic publish event
+- a branch must bump `package.json` before merge, because `main` publishes that semver automatically
 
 ### 2. Confirm the package exists
 
