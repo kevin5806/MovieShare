@@ -91,10 +91,11 @@ Last updated: March 12, 2026
 - when a server component needs button class variants, import `buttonVariants` from `components/ui/button-styles`, not from the client `components/ui/button` module
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
 - schema changes intended for shipped images must include a Prisma migration; `db push` remains a local/dev convenience only
-- manual `Publish container image` runs should default to `linux/amd64`; keep `linux/amd64,linux/arm64` for explicit multi-arch republish needs
+- manual `Publish container image` runs should default to `linux/arm64`; request `linux/amd64` or `linux/amd64,linux/arm64` only when a target host actually needs it
 - keep Docker image publish cache under a fixed GitHub Actions scope and prefer `mode=min` to avoid cache sprawl
 - after successful image publishes, prune older caches for the publish scope instead of disabling caching entirely
 - PRs to `main` are now the automatic verification gate, while merges to `main` are the automatic publish event; bump `package.json` in the branch before merging and keep auto-cancel enabled so superseded runs do not pile up
+- the shared day-to-day integration branch is now `kevin`; avoid spinning up extra long-lived branches unless there is a real hotfix or isolation need
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -106,6 +107,7 @@ Before changing code:
 - read `docs/integration-playbook.md` when the task introduces or changes an external integration seam
 - read `docs/public-surface.md` when the task changes public pages, metadata, previews, icons, or error/not-found UX
 - inspect `git status`
+- prefer working from `kevin` unless the task genuinely needs a short-lived side branch
 - inspect the affected module instead of guessing from memory
 
 While implementing:
@@ -194,8 +196,9 @@ Before finishing:
 - March 11, 2026: added branded app metadata polish with generated icons, social preview images, custom 404/error states, public-route invite metadata, robots/sitemap routes, and smoke coverage for metadata plus missing-route recovery
 - March 11, 2026: consolidated the new metadata/error/icon work into `docs/public-surface.md` and linked it from the README so future sessions treat public-surface polish as a maintained part of the product, not as optional cleanup
 - March 12, 2026: replaced production `prisma db push` bootstrapping with migration-based deploys, added a legacy baseline bridge for older installs without `_prisma_migrations`, and added a workflow check to block image publishes when Prisma schema changes are missing migrations
-- March 12, 2026: changed manual image-publish runs to default to `linux/amd64` so one-off publishes stop paying the full multi-arch `buildx` cost unless explicitly requested
+- March 12, 2026: changed manual image-publish runs to default to the runner-native `linux/arm64` platform so one-off publishes stay cheap on the self-hosted arm64 runner unless another target is explicitly requested
 - March 12, 2026: constrained Docker BuildKit caching in the publish workflow to a fixed GHA scope with `mode=min` so repeated publish runs stop generating excessive cache entries
 - March 12, 2026: added post-publish cache pruning so the workflow keeps a small recent set of Docker publish caches instead of accumulating every stale cache forever
 - March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification, merges to `main` auto-publish the semver from `package.json`, and concurrency auto-cancels superseded runs
 - March 12, 2026: replaced the optimistic legacy migration bridge with Prisma diff-based schema repair so older installs and mis-baselined production databases both recover missing columns before the app boots
+- March 12, 2026: moved release validation onto an explicit Docker-based validation script on the self-hosted runner so Prisma checks always run beside a temporary Postgres container, switched the automatic candidate/release path to native `linux/arm64`, and standardized day-to-day branch work on `kevin`
