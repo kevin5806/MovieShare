@@ -56,4 +56,4 @@ fi
   -e NEXT_TELEMETRY_DISABLED=1 \
   -v "${npm_cache_volume}:/npm-cache" \
   node:22-bookworm \
-  bash -lc "mkdir -p /workspace && tar -xf - -C /workspace && cd /workspace && npm ci --cache /npm-cache --no-audit --no-fund --ignore-scripts && npm run db:generate && npm run db:check-migrations && npm run lint && npm run typecheck && npm run build"
+  bash -lc "mkdir -p /workspace && tar -xf - -C /workspace && cd /workspace && npm ci --cache /npm-cache --no-audit --no-fund --ignore-scripts && npm run db:generate && npm run db:check-migrations && npm run lint && npm run typecheck && CONTAINER_BUILD=1 npm run build"
