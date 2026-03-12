@@ -46,15 +46,16 @@ What happens automatically:
 
 What happens automatically after merge:
 
-- the workflow publishes `ghcr.io/<owner>/movieshare:main`
-- it also publishes an immutable `ghcr.io/<owner>/movieshare:sha-<commit>` tag
-- for normal main merges, the publish defaults to `linux/amd64`
+- the workflow reads the semver from `package.json`
+- it publishes `ghcr.io/<owner>/movieshare:<version>`
+- it also publishes `<major>`, `<major>.<minor>` and `latest`
+- the merge must therefore include a package version bump
+- the default publish on `main` is multi-arch because `main` is now the deliberate release path
 
-3. For a stable multi-arch release tag, push a semver tag:
+3. Manual publish remains available when you explicitly want to rerun or republish:
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
+```text
+workflow_dispatch -> choose version -> optional latest -> optional platforms
 ```
 
 4. GitHub Actions publishes:
@@ -138,7 +139,7 @@ Branch discipline note:
 - day-to-day work should happen on branches
 - PRs to `main` are the automatic validation gate
 - merges to `main` are the automatic publish event
-- stable semver tags remain the explicit release channel when you want versioned `1.2.3`, `1.2`, `1`, and `latest` tags
+- a branch must bump `package.json` before merge, because `main` publishes that semver automatically
 
 ### 2. Confirm the package exists
 

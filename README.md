@@ -388,11 +388,11 @@ This repository now includes:
 Publishing behavior:
 
 - pull requests targeting `main` now start automatically and run verification only
-- merges or direct pushes to `main` now publish automatically with `:main` and immutable `:sha-<commit>` tags
-- semver tags like `v1.2.3` still publish stable release tags automatically
+- merges or direct pushes to `main` now publish automatically using the semver in `package.json`
+- merges to `main` are treated as publish events, so the branch must bump `package.json` version before merge
 - manual publish through GitHub Actions `workflow_dispatch`
 - manual publish now keeps `publish_latest=false` by default
-- manual publish now defaults to `linux/amd64`; semver tag publishes still build `linux/amd64,linux/arm64`
+- manual publish now defaults to `linux/amd64`
 - no automatic push for normal development builds
 - the publish workflow now installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before any image is pushed
 - the Docker layer cache now uses one fixed GitHub Actions cache scope with `mode=min` to limit cache sprawl on repeated publish runs

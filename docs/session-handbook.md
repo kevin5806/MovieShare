@@ -91,10 +91,10 @@ Last updated: March 12, 2026
 - when a server component needs button class variants, import `buttonVariants` from `components/ui/button-styles`, not from the client `components/ui/button` module
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
 - schema changes intended for shipped images must include a Prisma migration; `db push` remains a local/dev convenience only
-- manual `Publish container image` runs should default to `linux/amd64`; keep `linux/amd64,linux/arm64` for explicit multi-arch needs and semver tag releases
+- manual `Publish container image` runs should default to `linux/amd64`; keep `linux/amd64,linux/arm64` for explicit multi-arch republish needs
 - keep Docker image publish cache under a fixed GitHub Actions scope and prefer `mode=min` to avoid cache sprawl
 - after successful image publishes, prune older caches for the publish scope instead of disabling caching entirely
-- PRs to `main` are now the automatic verification gate, while merges to `main` are the automatic publish event; keep auto-cancel enabled so superseded runs do not pile up
+- PRs to `main` are now the automatic verification gate, while merges to `main` are the automatic publish event; bump `package.json` in the branch before merging and keep auto-cancel enabled so superseded runs do not pile up
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -196,4 +196,4 @@ Before finishing:
 - March 12, 2026: changed manual image-publish runs to default to `linux/amd64` so one-off publishes stop paying the full multi-arch `buildx` cost unless explicitly requested
 - March 12, 2026: constrained Docker BuildKit caching in the publish workflow to a fixed GHA scope with `mode=min` so repeated publish runs stop generating excessive cache entries
 - March 12, 2026: added post-publish cache pruning so the workflow keeps a small recent set of Docker publish caches instead of accumulating every stale cache forever
-- March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification, merges to `main` auto-publish `main` plus `sha-*` images, and concurrency auto-cancels superseded runs
+- March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification, merges to `main` auto-publish the semver from `package.json`, and concurrency auto-cancels superseded runs

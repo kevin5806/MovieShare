@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*.*.*"
   pull_request:
     branches:
       - main
@@ -106,10 +104,13 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/movieshare?schema=public
       SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public
+      PREVIOUS_SHA: ${{ github.event.before }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Prepare image metadata
         id: prep
@@ -129,17 +130,11 @@ jobs:
             RAW_VERSION="${INPUT_VERSION}"
             PLATFORMS="${INPUT_PLATFORMS}"
             PUBLISH_LATEST="${INPUT_PUBLISH_LATEST}"
-          elif [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
-            RELEASE_KIND="tag"
-            RAW_VERSION="${GITHUB_REF_NAME}"
-            PLATFORMS="linux/amd64,linux/arm64"
-            PUBLISH_LATEST="true"
           else
             RELEASE_KIND="main"
             RAW_VERSION="$(node -p "require('./package.json').version")"
-            SHORT_SHA="$(printf '%s' "${GITHUB_SHA}" | cut -c1-12)"
-            PLATFORMS="linux/amd64"
-            PUBLISH_LATEST="false"
+            PLATFORMS="linux/amd64,linux/arm64"
+            PUBLISH_LATEST="true"
           fi
 
           VERSION="${RAW_VERSION#v}"
@@ -147,48 +142,46 @@ jobs:
           GHCR_IMAGE="ghcr.io/${OWNER_LC}/movieshare"
           DOCKERHUB_ENABLED="false"
 
-          if [ "${RELEASE_KIND}" = "main" ]; then
-            VERSION_LABEL="${VERSION}+sha.${SHORT_SHA}"
-            TAGS="${GHCR_IMAGE}:main
-            ${GHCR_IMAGE}:sha-${SHORT_SHA}"
-          else
-            if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Only stable semver tags are published by this workflow."
-              echo "Examples: v1.2.3 or 1.2.3"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Only stable semver versions are published by this workflow."
+            echo "Examples: 1.2.3 or v1.2.3"
+            exit 1
+          fi
+
+          if [ "${RELEASE_KIND}" = "main" ] && [ -n "${PREVIOUS_SHA:-}" ] && [ "${PREVIOUS_SHA}" != "0000000000000000000000000000000000000000" ]; then
+            PREVIOUS_VERSION="$(git show "${PREVIOUS_SHA}:package.json" 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(parsed.version ?? ''); });")"
+
+            if [ -n "${PREVIOUS_VERSION}" ] && [ "${PREVIOUS_VERSION}" = "${VERSION}" ]; then
+              echo "package.json version is still ${VERSION}."
+              echo "Merge to main is treated as a publish event, so bump package.json version in the branch before merging."
               exit 1
             fi
+          fi
 
-            VERSION_LABEL="${VERSION}"
-            MAJOR="${VERSION%%.*}"
-            MINOR="${VERSION%.*}"
+          VERSION_LABEL="${VERSION}"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION%.*}"
 
-            TAGS="${GHCR_IMAGE}:${VERSION}
-            ${GHCR_IMAGE}:${MINOR}
-            ${GHCR_IMAGE}:${MAJOR}"
+          TAGS="${GHCR_IMAGE}:${VERSION}
+          ${GHCR_IMAGE}:${MINOR}
+          ${GHCR_IMAGE}:${MAJOR}"
 
-            if [ "${PUBLISH_LATEST}" = "true" ]; then
-              TAGS="${TAGS}
-              ${GHCR_IMAGE}:latest"
-            fi
+          if [ "${PUBLISH_LATEST}" = "true" ]; then
+            TAGS="${TAGS}
+            ${GHCR_IMAGE}:latest"
           fi
 
           if [ -n "${DOCKERHUB_NAMESPACE}" ] && [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
             DOCKERHUB_IMAGE="docker.io/${DOCKERHUB_NAMESPACE}/movieshare"
 
-            if [ "${RELEASE_KIND}" = "main" ]; then
-              TAGS="${TAGS}
-              ${DOCKERHUB_IMAGE}:main
-              ${DOCKERHUB_IMAGE}:sha-${SHORT_SHA}"
-            else
-              TAGS="${TAGS}
-              ${DOCKERHUB_IMAGE}:${VERSION}
-              ${DOCKERHUB_IMAGE}:${MINOR}
-              ${DOCKERHUB_IMAGE}:${MAJOR}"
+            TAGS="${TAGS}
+            ${DOCKERHUB_IMAGE}:${VERSION}
+            ${DOCKERHUB_IMAGE}:${MINOR}
+            ${DOCKERHUB_IMAGE}:${MAJOR}"
 
-              if [ "${PUBLISH_LATEST}" = "true" ]; then
-                TAGS="${TAGS}
-                ${DOCKERHUB_IMAGE}:latest"
-              fi
+            if [ "${PUBLISH_LATEST}" = "true" ]; then
+              TAGS="${TAGS}
+              ${DOCKERHUB_IMAGE}:latest"
             fi
 
             DOCKERHUB_ENABLED="true"
