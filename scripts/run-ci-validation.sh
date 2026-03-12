@@ -38,13 +38,11 @@ done
 
 docker volume create "${npm_cache_volume}" >/dev/null
 
-docker run --rm \
+git archive --format=tar HEAD | docker run --rm -i \
   --network "${validation_network}" \
   -e DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/movieshare?schema=public" \
   -e SHADOW_DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/postgres?schema=public" \
   -e NEXT_TELEMETRY_DISABLED=1 \
-  -v "${PWD}:/workspace" \
   -v "${npm_cache_volume}:/npm-cache" \
-  -w /workspace \
   node:22-bookworm \
-  bash -lc "npm ci --cache /npm-cache && npm run db:check-migrations && npm run lint && npm run typecheck && npm run build"
+  bash -lc "mkdir -p /workspace && tar -xf - -C /workspace && cd /workspace && npm ci --cache /npm-cache && npm run db:check-migrations && npm run lint && npm run typecheck && npm run build"
