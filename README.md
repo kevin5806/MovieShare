@@ -390,6 +390,7 @@ Publishing behavior:
 - automatic publish only on semver tags like `v1.2.3`
 - manual publish through GitHub Actions `workflow_dispatch`
 - manual publish now keeps `publish_latest=false` by default
+- manual publish now defaults to `linux/amd64`; semver tag publishes still build `linux/amd64,linux/arm64`
 - no automatic push for normal development builds
 - the publish workflow now installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before any image is pushed
 - production auto-updaters should track explicit version tags, not `latest`

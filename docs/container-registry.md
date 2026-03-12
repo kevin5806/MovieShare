@@ -49,7 +49,8 @@ git push origin v1.0.0
 - `ghcr.io/<owner>/movieshare:latest`
 
 For semver tag pushes, `latest` is published automatically. For manual workflow runs,
-`publish_latest` now defaults to `false`.
+`publish_latest` now defaults to `false`, and manual runs default to `linux/amd64`
+unless you explicitly request more platforms.
 
 3. On the production server, create an env file from `.env.production.example`.
 4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
@@ -105,7 +106,8 @@ git push origin v1.0.0
 
 Or run `Publish container image` manually from GitHub Actions with version `1.0.0`.
 If you do this for production, leave `publish_latest` disabled unless you intentionally want
-automation that follows `latest` to move immediately.
+automation that follows `latest` to move immediately. Manual runs now default to
+`linux/amd64`; request `linux/amd64,linux/arm64` only when you actually need a multi-arch image.
 
 ### 2. Confirm the package exists
 

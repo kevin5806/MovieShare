@@ -91,6 +91,7 @@ Last updated: March 12, 2026
 - when a server component needs button class variants, import `buttonVariants` from `components/ui/button-styles`, not from the client `components/ui/button` module
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
 - schema changes intended for shipped images must include a Prisma migration; `db push` remains a local/dev convenience only
+- manual `Publish container image` runs should default to `linux/amd64`; keep `linux/amd64,linux/arm64` for explicit multi-arch needs and semver tag releases
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -189,3 +190,4 @@ Before finishing:
 - March 11, 2026: added branded app metadata polish with generated icons, social preview images, custom 404/error states, public-route invite metadata, robots/sitemap routes, and smoke coverage for metadata plus missing-route recovery
 - March 11, 2026: consolidated the new metadata/error/icon work into `docs/public-surface.md` and linked it from the README so future sessions treat public-surface polish as a maintained part of the product, not as optional cleanup
 - March 12, 2026: replaced production `prisma db push` bootstrapping with migration-based deploys, added a legacy baseline bridge for older installs without `_prisma_migrations`, and added a workflow check to block image publishes when Prisma schema changes are missing migrations
+- March 12, 2026: changed manual image-publish runs to default to `linux/amd64` so one-off publishes stop paying the full multi-arch `buildx` cost unless explicitly requested

@@ -10,6 +10,11 @@ on:
         description: "Stable semver to publish, for example 1.2.3 or v1.2.3"
         required: true
         type: string
+      platforms:
+        description: "Comma-separated Docker platforms to publish for manual runs"
+        required: true
+        type: string
+        default: "linux/amd64"
       publish_latest:
         description: "Also publish the latest tag"
         required: true
@@ -54,6 +59,7 @@ jobs:
         shell: bash
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PLATFORMS: ${{ inputs.platforms }}
           INPUT_PUBLISH_LATEST: ${{ inputs.publish_latest }}
           DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -63,9 +69,11 @@ jobs:
 
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             RAW_VERSION="${INPUT_VERSION}"
+            PLATFORMS="${INPUT_PLATFORMS}"
             PUBLISH_LATEST="${INPUT_PUBLISH_LATEST}"
           else
             RAW_VERSION="${GITHUB_REF_NAME}"
+            PLATFORMS="linux/amd64,linux/arm64"
             PUBLISH_LATEST="true"
           fi
 
@@ -112,6 +120,7 @@ jobs:
             echo "version=${VERSION}"
             echo "ghcr_image=${GHCR_IMAGE}"
             echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
+            echo "platforms=${PLATFORMS}"
             echo "tags<<EOF"
             echo "${TAGS}" | sed 's/^[[:space:]]*//'
             echo "EOF"
@@ -154,7 +163,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.prep.outputs.platforms }}
           tags: ${{ steps.prep.outputs.tags }}
           labels: |
             org.opencontainers.image.title=movieshare
