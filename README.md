@@ -387,14 +387,16 @@ This repository now includes:
 
 Publishing behavior:
 
-- pull requests targeting `main` now start automatically and run verification only
-- merges or direct pushes to `main` now publish automatically using the semver in `package.json`
+- pull requests targeting `main` now start automatically, run verification, and build a GHCR candidate image for that PR
+- merging a PR to `main` now promotes that already-built candidate image to the semver tags from `package.json`, without rebuilding it
+- the merge still checks that the merged tree matches the verified PR tree before promotion; if they differ, the workflow stops and you must republish manually
+- direct pushes to `main` are no longer the normal release path
 - merges to `main` are treated as publish events, so the branch must bump `package.json` version before merge
 - manual publish through GitHub Actions `workflow_dispatch`
 - manual publish now keeps `publish_latest=false` by default
 - manual publish now defaults to `linux/amd64`
 - no automatic push for normal development builds
-- the publish workflow now installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before any image is pushed
+- the PR workflow installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before the candidate image is built
 - the Docker layer cache now uses one fixed GitHub Actions cache scope with `mode=min` to limit cache sprawl on repeated publish runs
 - after a successful image publish, the workflow keeps only the newest few Docker publish caches for that scope and deletes older ones automatically
 - the workflow now auto-cancels superseded runs for the same PR or ref

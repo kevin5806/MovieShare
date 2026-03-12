@@ -90,6 +90,7 @@ Last updated: March 12, 2026
 - completed: Playwright runtime coverage aligned with the current UI copy and flows against the Dockerized app
 - completed: public app polish for metadata, social previews, missing-route recovery and crawlable sitemap/robots endpoints
 - completed: registry-first image publishing and source-free production deployment path
+- completed: branch-first image promotion flow where PRs build the candidate image and merged PRs publish it without rebuilding when the tree still matches
 - completed: Prisma migration bootstrap for production images, including legacy `db push` baselining and workflow drift checks
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods

@@ -137,8 +137,10 @@ cache pruning step.
 Branch discipline note:
 
 - day-to-day work should happen on branches
-- PRs to `main` are the automatic validation gate
+- PRs to `main` are the automatic validation gate and now also build the candidate image that will later be promoted
 - merges to `main` are the automatic publish event
+- merge-time publish no longer rebuilds the image; it promotes the verified PR candidate instead
+- if the merged tree differs from the verified PR tree, auto-publish stops and `workflow_dispatch` is the fallback
 - a branch must bump `package.json` before merge, because `main` publishes that semver automatically
 
 ### 2. Confirm the package exists

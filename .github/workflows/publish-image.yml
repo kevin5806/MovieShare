@@ -1,9 +1,6 @@
 name: Publish container image
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -12,6 +9,7 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+      - closed
   workflow_dispatch:
     inputs:
       version:
@@ -40,7 +38,7 @@ concurrency:
 
 jobs:
   verify-pr:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -62,6 +60,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Note forked PR release fallback
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "Fork-based PR detected."
+          echo "Validation will continue, but candidate image publishing is skipped and any later release must use the manual workflow."
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -81,11 +85,225 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build application
-        run: npm run build
+      - name: Prepare candidate image metadata
+        id: prep
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
 
-  publish:
-    if: github.event_name != 'pull_request'
+          OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          {
+            echo "candidate_image=ghcr.io/${OWNER_LC}/movieshare:pr-${PR_NUMBER}-candidate"
+            echo "cache_scope=publish-image"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push candidate image
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.prep.outputs.candidate_image }}
+          labels: |
+            org.opencontainers.image.title=movieshare
+            org.opencontainers.image.description=Self-hosted collaborative movie planning workspace
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
+            org.opencontainers.image.version=pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha,scope=${{ steps.prep.outputs.cache_scope }}
+          cache-to: type=gha,mode=min,scope=${{ steps.prep.outputs.cache_scope }},ignore-error=true
+
+      - name: Prune stale publish caches
+        if: success() && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          CACHE_KEY_PREFIX: ${{ steps.prep.outputs.cache_scope }}
+          CACHE_KEEP_COUNT: "6"
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const key = process.env.CACHE_KEY_PREFIX;
+            const keepCount = Number.parseInt(process.env.CACHE_KEEP_COUNT ?? "6", 10);
+            const caches = [];
+
+            for (let page = 1; ; page += 1) {
+              const response = await github.request("GET /repos/{owner}/{repo}/actions/caches", {
+                owner,
+                repo,
+                key,
+                sort: "last_accessed_at",
+                direction: "desc",
+                per_page: 100,
+                page,
+              });
+
+              caches.push(...response.data.actions_caches);
+
+              if (response.data.actions_caches.length < 100) {
+                break;
+              }
+            }
+
+            core.info(`Found ${caches.length} caches matching '${key}'. Keeping the ${Math.min(caches.length, keepCount)} most recent entries.`);
+
+            for (const cache of caches.slice(keepCount)) {
+              await github.request("DELETE /repos/{owner}/{repo}/actions/caches/{cache_id}", {
+                owner,
+                repo,
+                cache_id: cache.id,
+              });
+
+              core.info(`Deleted cache ${cache.id} (${cache.key}) last used ${cache.last_accessed_at}.`);
+            }
+
+  publish-merged-pr:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merged revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Prepare release metadata
+        id: prep
+        shell: bash
+        env:
+          DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+
+          if [ "${PR_HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]; then
+            echo "Merged PR came from a fork, so there is no trusted candidate image to promote."
+            echo "Use the manual publish workflow for this release."
+            exit 1
+          fi
+
+          VERSION="$(node -p "require('./package.json').version")"
+          VERSION="${VERSION#v}"
+
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Only stable semver versions are published by this workflow."
+            exit 1
+          fi
+
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            PREVIOUS_VERSION="$(git show HEAD^:package.json 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(parsed.version ?? ''); });")"
+
+            if [ -n "${PREVIOUS_VERSION}" ] && [ "${PREVIOUS_VERSION}" = "${VERSION}" ]; then
+              echo "package.json version is still ${VERSION}."
+              echo "Merge to main is treated as a publish event, so bump package.json version in the branch before merging."
+              exit 1
+            fi
+          fi
+
+          git fetch --no-tags --depth=1 origin "${PR_HEAD_SHA}"
+
+          MERGED_TREE="$(git rev-parse 'HEAD^{tree}')"
+          PR_TREE="$(git rev-parse 'FETCH_HEAD^{tree}')"
+
+          if [ "${MERGED_TREE}" != "${PR_TREE}" ]; then
+            echo "The merged tree differs from the verified PR head tree."
+            echo "Refusing to promote the candidate image without a rebuild."
+            echo "Update the branch so the verified PR tree matches what gets merged, or use workflow_dispatch."
+            exit 1
+          fi
+
+          OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          GHCR_IMAGE="ghcr.io/${OWNER_LC}/movieshare"
+          CANDIDATE_IMAGE="${GHCR_IMAGE}:pr-${PR_NUMBER}-candidate"
+          DOCKERHUB_ENABLED="false"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION%.*}"
+
+          printf -v TAGS '%s\n%s\n%s\n%s' \
+            "${GHCR_IMAGE}:${VERSION}" \
+            "${GHCR_IMAGE}:${MINOR}" \
+            "${GHCR_IMAGE}:${MAJOR}" \
+            "${GHCR_IMAGE}:latest"
+
+          if [ -n "${DOCKERHUB_NAMESPACE}" ] && [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            DOCKERHUB_IMAGE="docker.io/${DOCKERHUB_NAMESPACE}/movieshare"
+
+            printf -v TAGS '%s\n%s\n%s\n%s\n%s' \
+              "${TAGS}" \
+              "${DOCKERHUB_IMAGE}:${VERSION}" \
+              "${DOCKERHUB_IMAGE}:${MINOR}" \
+              "${DOCKERHUB_IMAGE}:${MAJOR}" \
+              "${DOCKERHUB_IMAGE}:latest"
+
+            DOCKERHUB_ENABLED="true"
+          fi
+
+          {
+            echo "candidate_image=${CANDIDATE_IMAGE}"
+            echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
+            echo "version=${VERSION}"
+            echo "version_label=${VERSION}"
+            echo "tags<<EOF"
+            echo "${TAGS}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: steps.prep.outputs.dockerhub_enabled == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Ensure candidate image exists
+        run: docker buildx imagetools inspect "${{ steps.prep.outputs.candidate_image }}"
+
+      - name: Promote candidate image to release tags
+        shell: bash
+        env:
+          CANDIDATE_IMAGE: ${{ steps.prep.outputs.candidate_image }}
+          TAGS: ${{ steps.prep.outputs.tags }}
+        run: |
+          set -euo pipefail
+
+          PROMOTE_ARGS=()
+
+          while IFS= read -r tag; do
+            [ -z "${tag}" ] && continue
+            PROMOTE_ARGS+=(-t "${tag}")
+          done <<< "${TAGS}"
+
+          docker buildx imagetools create "${PROMOTE_ARGS[@]}" "${CANDIDATE_IMAGE}"
+
+  publish-manual:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -104,13 +322,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/movieshare?schema=public
       SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public
-      PREVIOUS_SHA: ${{ github.event.before }}
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Prepare image metadata
         id: prep
@@ -125,19 +339,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            RELEASE_KIND="manual"
-            RAW_VERSION="${INPUT_VERSION}"
-            PLATFORMS="${INPUT_PLATFORMS}"
-            PUBLISH_LATEST="${INPUT_PUBLISH_LATEST}"
-          else
-            RELEASE_KIND="main"
-            RAW_VERSION="$(node -p "require('./package.json').version")"
-            PLATFORMS="linux/amd64,linux/arm64"
-            PUBLISH_LATEST="true"
-          fi
-
-          VERSION="${RAW_VERSION#v}"
+          VERSION="${INPUT_VERSION#v}"
+          PLATFORMS="${INPUT_PLATFORMS}"
+          PUBLISH_LATEST="${INPUT_PUBLISH_LATEST}"
           OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           GHCR_IMAGE="ghcr.io/${OWNER_LC}/movieshare"
           DOCKERHUB_ENABLED="false"
@@ -148,55 +352,47 @@ jobs:
             exit 1
           fi
 
-          if [ "${RELEASE_KIND}" = "main" ] && [ -n "${PREVIOUS_SHA:-}" ] && [ "${PREVIOUS_SHA}" != "0000000000000000000000000000000000000000" ]; then
-            PREVIOUS_VERSION="$(git show "${PREVIOUS_SHA}:package.json" 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(parsed.version ?? ''); });")"
-
-            if [ -n "${PREVIOUS_VERSION}" ] && [ "${PREVIOUS_VERSION}" = "${VERSION}" ]; then
-              echo "package.json version is still ${VERSION}."
-              echo "Merge to main is treated as a publish event, so bump package.json version in the branch before merging."
-              exit 1
-            fi
-          fi
-
           VERSION_LABEL="${VERSION}"
           MAJOR="${VERSION%%.*}"
           MINOR="${VERSION%.*}"
 
-          TAGS="${GHCR_IMAGE}:${VERSION}
-          ${GHCR_IMAGE}:${MINOR}
-          ${GHCR_IMAGE}:${MAJOR}"
+          printf -v TAGS '%s\n%s\n%s' \
+            "${GHCR_IMAGE}:${VERSION}" \
+            "${GHCR_IMAGE}:${MINOR}" \
+            "${GHCR_IMAGE}:${MAJOR}"
 
           if [ "${PUBLISH_LATEST}" = "true" ]; then
-            TAGS="${TAGS}
-            ${GHCR_IMAGE}:latest"
+            printf -v TAGS '%s\n%s' \
+              "${TAGS}" \
+              "${GHCR_IMAGE}:latest"
           fi
 
           if [ -n "${DOCKERHUB_NAMESPACE}" ] && [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
             DOCKERHUB_IMAGE="docker.io/${DOCKERHUB_NAMESPACE}/movieshare"
 
-            TAGS="${TAGS}
-            ${DOCKERHUB_IMAGE}:${VERSION}
-            ${DOCKERHUB_IMAGE}:${MINOR}
-            ${DOCKERHUB_IMAGE}:${MAJOR}"
+            printf -v TAGS '%s\n%s\n%s\n%s' \
+              "${TAGS}" \
+              "${DOCKERHUB_IMAGE}:${VERSION}" \
+              "${DOCKERHUB_IMAGE}:${MINOR}" \
+              "${DOCKERHUB_IMAGE}:${MAJOR}"
 
             if [ "${PUBLISH_LATEST}" = "true" ]; then
-              TAGS="${TAGS}
-              ${DOCKERHUB_IMAGE}:latest"
+              printf -v TAGS '%s\n%s' \
+                "${TAGS}" \
+                "${DOCKERHUB_IMAGE}:latest"
             fi
 
             DOCKERHUB_ENABLED="true"
           fi
 
           {
-            echo "release_kind=${RELEASE_KIND}"
             echo "version=${VERSION}"
             echo "version_label=${VERSION_LABEL}"
-            echo "ghcr_image=${GHCR_IMAGE}"
             echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
             echo "platforms=${PLATFORMS}"
             echo "cache_scope=publish-image"
             echo "tags<<EOF"
-            echo "${TAGS}" | sed 's/^[[:space:]]*//'
+            echo "${TAGS}"
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
