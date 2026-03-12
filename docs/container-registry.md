@@ -54,6 +54,8 @@ unless you explicitly request more platforms.
 
 The workflow also keeps Docker build cache under one fixed GitHub Actions cache scope with
 `mode=min`, so repeated publishes do not keep exploding into a large number of stored caches.
+After each successful publish, it also prunes older cache entries for that publish scope and
+keeps only a small recent set.
 
 3. On the production server, create an env file from `.env.production.example`.
 4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
@@ -112,7 +114,8 @@ If you do this for production, leave `publish_latest` disabled unless you intent
 automation that follows `latest` to move immediately. Manual runs now default to
 `linux/amd64`; request `linux/amd64,linux/arm64` only when you actually need a multi-arch image.
 If GitHub shows a large number of Actions caches from older runs, those are usually stale
-BuildKit caches created before the fixed-scope/min-mode policy.
+BuildKit caches created before the fixed-scope/min-mode policy and the automatic post-publish
+cache pruning step.
 
 ### 2. Confirm the package exists
 

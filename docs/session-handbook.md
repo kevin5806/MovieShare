@@ -93,6 +93,7 @@ Last updated: March 12, 2026
 - schema changes intended for shipped images must include a Prisma migration; `db push` remains a local/dev convenience only
 - manual `Publish container image` runs should default to `linux/amd64`; keep `linux/amd64,linux/arm64` for explicit multi-arch needs and semver tag releases
 - keep Docker image publish cache under a fixed GitHub Actions scope and prefer `mode=min` to avoid cache sprawl
+- after successful image publishes, prune older caches for the publish scope instead of disabling caching entirely
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -193,3 +194,4 @@ Before finishing:
 - March 12, 2026: replaced production `prisma db push` bootstrapping with migration-based deploys, added a legacy baseline bridge for older installs without `_prisma_migrations`, and added a workflow check to block image publishes when Prisma schema changes are missing migrations
 - March 12, 2026: changed manual image-publish runs to default to `linux/amd64` so one-off publishes stop paying the full multi-arch `buildx` cost unless explicitly requested
 - March 12, 2026: constrained Docker BuildKit caching in the publish workflow to a fixed GHA scope with `mode=min` so repeated publish runs stop generating excessive cache entries
+- March 12, 2026: added post-publish cache pruning so the workflow keeps a small recent set of Docker publish caches instead of accumulating every stale cache forever

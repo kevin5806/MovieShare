@@ -394,6 +394,7 @@ Publishing behavior:
 - no automatic push for normal development builds
 - the publish workflow now installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before any image is pushed
 - the Docker layer cache now uses one fixed GitHub Actions cache scope with `mode=min` to limit cache sprawl on repeated publish runs
+- after a successful image publish, the workflow keeps only the newest few Docker publish caches for that scope and deletes older ones automatically
 - production auto-updaters should track explicit version tags, not `latest`
 
 Recommended default registry:
