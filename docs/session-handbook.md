@@ -45,6 +45,8 @@ Last updated: March 12, 2026
 - a Playwright plus axe-core smoke harness now exists for UI/client-side regression coverage
 - the Playwright suite now covers admin, auth, collaboration, lists/watch, profile/notifications, offline and client-error monitoring end-to-end against the Dockerized app
 - Playwright coverage is now aligned with the current copy and flows, and the watch spec explicitly ignores known third-party iframe console noise from the active embed provider so app regressions remain visible without failing on external CORS chatter
+- release validation now stays aligned with `eslint@9.39.4`; allowing the root dependency to float to ESLint 10 breaks `eslint-config-next` in a clean `npm ci` environment even when an already-installed local workspace still appears green
+- the Docker-based CI validation script now injects localhost-safe Better Auth placeholders so `next build` can validate a clean checkout without depending on an untracked `.env`
 - `npm run typecheck` now goes through `scripts/typecheck.mjs` because Next 16 typegen is intermittently leaving missing `.next/types` stub files on this project
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
@@ -54,6 +56,7 @@ Last updated: March 12, 2026
 - branded app polish now includes generated app icons, apple icon, Open Graph/Twitter preview images, custom 404/error surfaces, and basic `robots.txt` plus `sitemap.xml` routes
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
 - production container boot now uses Prisma migrations instead of `db push`, and legacy installs are repaired against the live Prisma schema before migrations continue, even if an older image already wrote `_prisma_migrations` too early
+- candidate/release Docker builds and the Dockerized PR validation path now run with `CONTAINER_BUILD=1` and a capped Node heap so the self-hosted runner can finish `next build` without redoing type validation that the explicit `typecheck` step already enforced
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
 - deployment notes now also call out that `minio-init` should wait on `mc ready`, not only `mc alias set`, to avoid early bucket-bootstrap failures on Linux/Portainer stacks
@@ -77,6 +80,7 @@ Last updated: March 12, 2026
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - iframe-driven watch tracking now persists server-side state and group sessions propagate progress to every joined member in the same room entry, but other browsers still do not see second-by-second live cursor movement unless future realtime fan-out is added
 - Better Auth rate limiting stays enabled, but `/sign-in/email` and `/sign-up/email` now use a less aggressive custom rule so local E2E coverage does not trip the default 3-requests-per-10-seconds lockout
+- Better Auth-sensitive Playwright flows should use `http://localhost:3000` as the base URL during local runs; `127.0.0.1` counts as a different origin and causes auth requests to fail with `INVALID_ORIGIN`
 - the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have modeled defaults and per-user overrides, but delivery is still invite/activity-first rather than a full automation system
@@ -91,7 +95,7 @@ Last updated: March 12, 2026
 - when a server component needs button class variants, import `buttonVariants` from `components/ui/button-styles`, not from the client `components/ui/button` module
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
 - schema changes intended for shipped images must include a Prisma migration; `db push` remains a local/dev convenience only
-- manual `Publish container image` runs should default to `linux/arm64`; request `linux/amd64` or `linux/amd64,linux/arm64` only when a target host actually needs it
+- manual `Publish container image` runs should default to the current runner-native `linux/amd64`; request another platform only when a target host actually needs it
 - keep Docker image publish cache under a fixed GitHub Actions scope and prefer `mode=min` to avoid cache sprawl
 - after successful image publishes, prune older caches for the publish scope instead of disabling caching entirely
 - PRs to `main` are now the automatic verification gate, while merges to `main` are the automatic publish event; bump `package.json` in the branch before merging and keep auto-cancel enabled so superseded runs do not pile up
@@ -99,6 +103,9 @@ Last updated: March 12, 2026
 - release-workflow shell snippets now execute on the runner host, so any inline `node -e` compatibility logic must stay compatible with the runner's installed Node version instead of assuming modern syntax such as `??`
 - the self-hosted runner is containerized, so sibling Docker validation containers must ingest source via `git archive` or similar streaming instead of bind-mounting `${PWD}` directly
 - the self-hosted release workflow now prefers shell-based Git checkout over `actions/checkout`, and that bootstrap checkout must stay inline in the workflow because repository scripts are not available until the first fetch has already succeeded
+- the self-hosted release workflow should prefer source archives and GitHub HTTP APIs over runner-local Git checkout whenever possible; this runner has been unreliable with URL credentials, anonymous fetches, raw SHA fetches, and inherited GitHub auth headers across jobs
+- the self-hosted release runner currently has only about `2 CPU / 3.2 GiB`, so Docker image builds should avoid duplicating type validation inside `next build` and should keep Node heap usage explicitly bounded
+- PR candidate images should use the runner's native `docker build`/`docker push` path instead of a separate Buildx builder container unless multi-platform output is actually required; the extra Buildx container was enough overhead to keep killing candidate builds on this runner
 - keep `vitest` and `@vitest/coverage-v8` on the same major/minor line; partial Dependabot merges left the lockfile in a state where `npm ci` could no longer resolve peers on the release runner
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
@@ -126,6 +133,7 @@ While implementing:
 - prefer CDN-backed movie artwork URLs over raw TMDB image paths for persisted library entries
 - keep invite UX split clearly between list invites and the optional app-friends graph in profile
 - when expanding Playwright coverage, keep auth-heavy specs serial or consciously revisit the custom Better Auth rate-limit thresholds before increasing account-creation volume
+- keep `scripts/run-ci-validation.sh` archive-friendly: workflow jobs may provide a plain extracted source tree without `.git`, so the validation path must fall back to `tar` when Git metadata is unavailable
 
 Before finishing:
 
@@ -200,13 +208,19 @@ Before finishing:
 - March 11, 2026: added branded app metadata polish with generated icons, social preview images, custom 404/error states, public-route invite metadata, robots/sitemap routes, and smoke coverage for metadata plus missing-route recovery
 - March 11, 2026: consolidated the new metadata/error/icon work into `docs/public-surface.md` and linked it from the README so future sessions treat public-surface polish as a maintained part of the product, not as optional cleanup
 - March 12, 2026: replaced production `prisma db push` bootstrapping with migration-based deploys, added a legacy baseline bridge for older installs without `_prisma_migrations`, and added a workflow check to block image publishes when Prisma schema changes are missing migrations
-- March 12, 2026: changed manual image-publish runs to default to the runner-native `linux/arm64` platform so one-off publishes stay cheap on the self-hosted arm64 runner unless another target is explicitly requested
+- March 12, 2026: changed manual image-publish runs to default to the current runner-native `linux/amd64` platform so one-off publishes stay cheap on the active self-hosted runner unless another target is explicitly requested
 - March 12, 2026: constrained Docker BuildKit caching in the publish workflow to a fixed GHA scope with `mode=min` so repeated publish runs stop generating excessive cache entries
 - March 12, 2026: added post-publish cache pruning so the workflow keeps a small recent set of Docker publish caches instead of accumulating every stale cache forever
 - March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification, merges to `main` auto-publish the semver from `package.json`, and concurrency auto-cancels superseded runs
 - March 12, 2026: replaced the optimistic legacy migration bridge with Prisma diff-based schema repair so older installs and mis-baselined production databases both recover missing columns before the app boots
-- March 12, 2026: moved release validation onto an explicit Docker-based validation script on the self-hosted runner so Prisma checks always run beside a temporary Postgres container, switched the automatic candidate/release path to native `linux/arm64`, and standardized day-to-day branch work on `kevin`
+- March 12, 2026: moved release validation onto an explicit Docker-based validation script on the self-hosted runner, standardized day-to-day branch work on `kevin`, and now let the automatic candidate path detect the runner's native Docker architecture instead of forcing an emulated target
+- March 12, 2026: realigned the production Dockerfile to `node:22-alpine`, matching the app's declared Node engine, and added npm fetch retry settings to reduce transient network failures during registry-backed image builds
 - March 12, 2026: kept the merged release workflow compatible with the runner host's older Node runtime by removing nullish-coalescing syntax from inline `node -e` release metadata parsing
 - March 12, 2026: updated the Docker-based validation script to stream the repository into sibling containers with `git archive`, because bind-mounting `${PWD}` from the containerized self-hosted runner exposed an empty host path to Docker and broke `npm ci`
 - March 12, 2026: replaced `actions/checkout` with inline shell-based `git fetch` checkout logic in the self-hosted release workflow after checkout started failing on missing runner file-command paths during manual and PR-triggered runs
 - March 12, 2026: realigned `@vitest/coverage-v8` to `4.0.18` after a partial dependency update on `main` left the release workflow unable to complete `npm ci`
+- March 12, 2026: recreated the shared `kevin` integration branch from `main`, pinned the root ESLint dependency back to `9.39.4` after clean Docker validation exposed an `eslint-config-next` crash under ESLint 10, taught `scripts/run-ci-validation.sh` to inject minimal Better Auth env vars for clean builds, and noted that local Playwright auth runs must target `localhost` rather than `127.0.0.1`
+- March 12, 2026: stabilized the self-hosted workflow checkout around header-authenticated Git fetches against advertised refs after URL-embedded credentials, anonymous fetches, and raw SHA fetches all proved unreliable on the runner
+- March 12, 2026: reduced self-hosted runner build pressure by making both candidate-image builds and Dockerized PR validation skip duplicate TypeScript validation inside `next build`, while also capping `NODE_OPTIONS` during container builds after the 3.2 GiB runner was killing those builds with exit code 137
+- March 12, 2026: switched PR candidate publishing from `docker/build-push-action` to native `docker build` plus `docker push`, because the separate Buildx builder container still ran out of headroom on the 3.2 GiB self-hosted runner even after the lighter container build mode landed
+- March 12, 2026: switched the self-hosted workflow toward codeload/API-based source acquisition, taught `scripts/run-ci-validation.sh` to validate plain extracted source trees without `.git`, and stopped relying on runner-local Git fetch for PR/manual verification because checkout auth state on the runner remained unreliable

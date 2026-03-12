@@ -20,7 +20,7 @@ on:
         description: "Comma-separated Docker platforms to publish for manual runs"
         required: true
         type: string
-        default: "linux/arm64"
+        default: "linux/amd64"
       publish_latest:
         description: "Also publish the latest tag"
         required: true
@@ -45,25 +45,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${{ github.event.pull_request.head.repo.full_name }}/tar.gz/${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "${PWD}"
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Note forked PR release fallback
         if: github.event.pull_request.head.repo.full_name != github.repository
@@ -84,25 +73,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${{ github.event.pull_request.head.repo.full_name }}/tar.gz/${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "${PWD}"
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Prepare candidate image metadata
         id: prep
@@ -115,11 +93,7 @@ jobs:
           OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           {
             echo "candidate_image=ghcr.io/${OWNER_LC}/movieshare:pr-${PR_NUMBER}-candidate"
-            echo "cache_scope=publish-image"
           } >> "${GITHUB_OUTPUT}"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -129,64 +103,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push candidate image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: linux/arm64
-          tags: ${{ steps.prep.outputs.candidate_image }}
-          labels: |
-            org.opencontainers.image.title=movieshare
-            org.opencontainers.image.description=Self-hosted collaborative movie planning workspace
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
-            org.opencontainers.image.version=pr-${{ github.event.pull_request.number }}
-          cache-from: type=gha,scope=${{ steps.prep.outputs.cache_scope }}
-          cache-to: type=gha,mode=min,scope=${{ steps.prep.outputs.cache_scope }},ignore-error=true
-
-      - name: Prune stale publish caches
-        if: success()
-        uses: actions/github-script@v7
+        shell: bash
         env:
-          CACHE_KEY_PREFIX: ${{ steps.prep.outputs.cache_scope }}
-          CACHE_KEEP_COUNT: "6"
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const key = process.env.CACHE_KEY_PREFIX;
-            const keepCount = Number.parseInt(process.env.CACHE_KEEP_COUNT ?? "6", 10);
-            const caches = [];
+          CANDIDATE_IMAGE: ${{ steps.prep.outputs.candidate_image }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
 
-            for (let page = 1; ; page += 1) {
-              const response = await github.request("GET /repos/{owner}/{repo}/actions/caches", {
-                owner,
-                repo,
-                key,
-                sort: "last_accessed_at",
-                direction: "desc",
-                per_page: 100,
-                page,
-              });
+          docker build \
+            --label "org.opencontainers.image.title=movieshare" \
+            --label "org.opencontainers.image.description=Self-hosted collaborative movie planning workspace" \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${PR_HEAD_SHA}" \
+            --label "org.opencontainers.image.version=pr-${PR_NUMBER}" \
+            -t "${CANDIDATE_IMAGE}" \
+            .
 
-              caches.push(...response.data.actions_caches);
-
-              if (response.data.actions_caches.length < 100) {
-                break;
-              }
-            }
-
-            core.info(`Found ${caches.length} caches matching '${key}'. Keeping the ${Math.min(caches.length, keepCount)} most recent entries.`);
-
-            for (const cache of caches.slice(keepCount)) {
-              await github.request("DELETE /repos/{owner}/{repo}/actions/caches/{cache_id}", {
-                owner,
-                repo,
-                cache_id: cache.id,
-              });
-
-              core.info(`Deleted cache ${cache.id} (${cache.key}) last used ${cache.last_accessed_at}.`);
-            }
+          docker push "${CANDIDATE_IMAGE}"
 
   publish-merged-pr:
     if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
@@ -196,26 +130,6 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out merged revision
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REF: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
-          FETCH_DEPTH: "2"
-        run: |
-          set -euo pipefail
-          git config --global --add safe.directory "${PWD}"
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
-
       - name: Prepare release metadata
         id: prep
         shell: bash
@@ -223,11 +137,26 @@ jobs:
           DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
+
+          read_json_version() {
+            node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(typeof parsed.version === 'string' ? parsed.version : ''); });"
+          }
+
+          read_commit_field() {
+            local commit_sha="$1"
+            local field="$2"
+
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${commit_sha}" |
+              JSON_FIELD="${field}" node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const payload = JSON.parse(data); let value = ''; if (process.env.JSON_FIELD === 'tree') { value = payload && payload.commit && payload.commit.tree && typeof payload.commit.tree.sha === 'string' ? payload.commit.tree.sha : ''; } else if (process.env.JSON_FIELD === 'parent') { const parents = payload && Array.isArray(payload.parents) ? payload.parents : []; value = parents[0] && typeof parents[0].sha === 'string' ? parents[0].sha : ''; } process.stdout.write(value); });"
+          }
 
           if [ "${PR_HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]; then
             echo "Merged PR came from a fork, so there is no trusted candidate image to promote."
@@ -235,7 +164,7 @@ jobs:
             exit 1
           fi
 
-          VERSION="$(node -p "require('./package.json').version")"
+          VERSION="$(curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${MERGE_SHA}/package.json" | read_json_version)"
           VERSION="${VERSION#v}"
 
           if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -243,8 +172,10 @@ jobs:
             exit 1
           fi
 
-          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
-            PREVIOUS_VERSION="$(git show HEAD^:package.json 2>/dev/null | node -e "let data=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => { const parsed = JSON.parse(data); process.stdout.write(typeof parsed.version === 'string' ? parsed.version : ''); });")"
+          PREVIOUS_SHA="$(read_commit_field "${MERGE_SHA}" parent)"
+
+          if [ -n "${PREVIOUS_SHA}" ]; then
+            PREVIOUS_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${PREVIOUS_SHA}/package.json" | read_json_version)"
 
             if [ -n "${PREVIOUS_VERSION}" ] && [ "${PREVIOUS_VERSION}" = "${VERSION}" ]; then
               echo "package.json version is still ${VERSION}."
@@ -253,10 +184,8 @@ jobs:
             fi
           fi
 
-          git fetch --no-tags --depth=1 origin "${PR_HEAD_SHA}"
-
-          MERGED_TREE="$(git rev-parse 'HEAD^{tree}')"
-          PR_TREE="$(git rev-parse 'FETCH_HEAD^{tree}')"
+          MERGED_TREE="$(read_commit_field "${MERGE_SHA}" tree)"
+          PR_TREE="$(read_commit_field "${PR_HEAD_SHA}" tree)"
 
           if [ "${MERGED_TREE}" != "${PR_TREE}" ]; then
             echo "The merged tree differs from the verified PR head tree."
@@ -346,25 +275,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REF: ${{ github.sha }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${GITHUB_REPOSITORY}/tar.gz/${GITHUB_SHA}
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "${PWD}"
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Run application validation in Docker
         run: bash scripts/run-ci-validation.sh
@@ -379,25 +297,14 @@ jobs:
       - arm64
       - docker
     steps:
-      - name: Check out repository
+      - name: Download source archive
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHECKOUT_REF: ${{ github.sha }}
-          FETCH_DEPTH: "1"
+          ARCHIVE_URL: https://codeload.github.com/${GITHUB_REPOSITORY}/tar.gz/${GITHUB_SHA}
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "${PWD}"
-          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git remote remove origin >/dev/null 2>&1 || true
-            git clean -ffdx
-            git reset --hard HEAD
-          else
-            git init .
-          fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
-          git checkout --detach FETCH_HEAD
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          curl -fsSL "${ARCHIVE_URL}" | tar -xz --strip-components=1
 
       - name: Prepare image metadata
         id: prep

@@ -38,11 +38,22 @@ done
 
 docker volume create "${npm_cache_volume}" >/dev/null
 
-git archive --format=tar HEAD | docker run --rm -i \
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  archive_source=(git archive --format=tar HEAD)
+else
+  archive_source=(tar --exclude=.git -cf - .)
+fi
+
+"${archive_source[@]}" | docker run --rm -i \
   --network "${validation_network}" \
   -e DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/movieshare?schema=public" \
   -e SHADOW_DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/postgres?schema=public" \
+  -e BETTER_AUTH_URL="http://localhost:3000" \
+  -e NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000" \
+  -e BETTER_AUTH_SECRET="movieshare-validation-placeholder-secret-for-ci-only" \
+  -e CI=1 \
+  -e NODE_OPTIONS="--max-old-space-size=1536" \
   -e NEXT_TELEMETRY_DISABLED=1 \
   -v "${npm_cache_volume}:/npm-cache" \
   node:22-bookworm \
-  bash -lc "mkdir -p /workspace && tar -xf - -C /workspace && cd /workspace && npm ci --cache /npm-cache && npm run db:check-migrations && npm run lint && npm run typecheck && npm run build"
+  bash -lc "mkdir -p /workspace && tar -xf - -C /workspace && cd /workspace && npm ci --cache /npm-cache --no-audit --no-fund --ignore-scripts && npm run db:generate && npm run db:check-migrations && npm run lint && npm run typecheck && CONTAINER_BUILD=1 npm run build"
