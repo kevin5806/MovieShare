@@ -52,6 +52,9 @@ For semver tag pushes, `latest` is published automatically. For manual workflow 
 `publish_latest` now defaults to `false`, and manual runs default to `linux/amd64`
 unless you explicitly request more platforms.
 
+The workflow also keeps Docker build cache under one fixed GitHub Actions cache scope with
+`mode=min`, so repeated publishes do not keep exploding into a large number of stored caches.
+
 3. On the production server, create an env file from `.env.production.example`.
 4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
    deployment bundle.
@@ -108,6 +111,8 @@ Or run `Publish container image` manually from GitHub Actions with version `1.0.
 If you do this for production, leave `publish_latest` disabled unless you intentionally want
 automation that follows `latest` to move immediately. Manual runs now default to
 `linux/amd64`; request `linux/amd64,linux/arm64` only when you actually need a multi-arch image.
+If GitHub shows a large number of Actions caches from older runs, those are usually stale
+BuildKit caches created before the fixed-scope/min-mode policy.
 
 ### 2. Confirm the package exists
 

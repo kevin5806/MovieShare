@@ -393,6 +393,7 @@ Publishing behavior:
 - manual publish now defaults to `linux/amd64`; semver tag publishes still build `linux/amd64,linux/arm64`
 - no automatic push for normal development builds
 - the publish workflow now installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before any image is pushed
+- the Docker layer cache now uses one fixed GitHub Actions cache scope with `mode=min` to limit cache sprawl on repeated publish runs
 - production auto-updaters should track explicit version tags, not `latest`
 
 Recommended default registry:

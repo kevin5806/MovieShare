@@ -121,6 +121,7 @@ jobs:
             echo "ghcr_image=${GHCR_IMAGE}"
             echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
             echo "platforms=${PLATFORMS}"
+            echo "cache_scope=publish-image"
             echo "tags<<EOF"
             echo "${TAGS}" | sed 's/^[[:space:]]*//'
             echo "EOF"
@@ -171,5 +172,5 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ steps.prep.outputs.cache_scope }}
+          cache-to: type=gha,mode=min,scope=${{ steps.prep.outputs.cache_scope }},ignore-error=true
