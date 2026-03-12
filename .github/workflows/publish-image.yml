@@ -48,7 +48,6 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
           FETCH_DEPTH: "1"
         run: |
@@ -61,7 +60,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -87,7 +86,6 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
           FETCH_DEPTH: "1"
         run: |
@@ -100,7 +98,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -199,7 +197,6 @@ jobs:
       - name: Check out merged revision
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHECKOUT_REF: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
           FETCH_DEPTH: "2"
         run: |
@@ -212,7 +209,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -349,7 +346,6 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHECKOUT_REF: ${{ github.sha }}
           FETCH_DEPTH: "1"
         run: |
@@ -362,7 +358,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 
@@ -382,7 +378,6 @@ jobs:
       - name: Check out repository
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHECKOUT_REF: ${{ github.sha }}
           FETCH_DEPTH: "1"
         run: |
@@ -395,7 +390,7 @@ jobs:
           else
             git init .
           fi
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
           git checkout --detach FETCH_HEAD
 

@@ -42,6 +42,9 @@ git archive --format=tar HEAD | docker run --rm -i \
   --network "${validation_network}" \
   -e DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/movieshare?schema=public" \
   -e SHADOW_DATABASE_URL="postgresql://postgres:postgres@${postgres_container}:5432/postgres?schema=public" \
+  -e BETTER_AUTH_URL="http://localhost:3000" \
+  -e NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000" \
+  -e BETTER_AUTH_SECRET="movieshare-validation-placeholder-secret-for-ci-only" \
   -e NEXT_TELEMETRY_DISABLED=1 \
   -v "${npm_cache_volume}:/npm-cache" \
   node:22-bookworm \

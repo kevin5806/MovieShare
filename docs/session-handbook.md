@@ -45,6 +45,8 @@ Last updated: March 12, 2026
 - a Playwright plus axe-core smoke harness now exists for UI/client-side regression coverage
 - the Playwright suite now covers admin, auth, collaboration, lists/watch, profile/notifications, offline and client-error monitoring end-to-end against the Dockerized app
 - Playwright coverage is now aligned with the current copy and flows, and the watch spec explicitly ignores known third-party iframe console noise from the active embed provider so app regressions remain visible without failing on external CORS chatter
+- release validation now stays aligned with `eslint@9.39.4`; allowing the root dependency to float to ESLint 10 breaks `eslint-config-next` in a clean `npm ci` environment even when an already-installed local workspace still appears green
+- the Docker-based CI validation script now injects localhost-safe Better Auth placeholders so `next build` can validate a clean checkout without depending on an untracked `.env`
 - `npm run typecheck` now goes through `scripts/typecheck.mjs` because Next 16 typegen is intermittently leaving missing `.next/types` stub files on this project
 - the app shell now exposes working notification and account actions instead of dead navbar controls
 - the sidebar now exposes dedicated sections and direct menus for dashboard, lists, watch sessions, notifications, profile, and admin
@@ -77,6 +79,7 @@ Last updated: March 12, 2026
 - watch sessions are still tracking-first, not synchronized teleparty playback
 - iframe-driven watch tracking now persists server-side state and group sessions propagate progress to every joined member in the same room entry, but other browsers still do not see second-by-second live cursor movement unless future realtime fan-out is added
 - Better Auth rate limiting stays enabled, but `/sign-in/email` and `/sign-up/email` now use a less aggressive custom rule so local E2E coverage does not trip the default 3-requests-per-10-seconds lockout
+- Better Auth-sensitive Playwright flows should use `http://localhost:3000` as the base URL during local runs; `127.0.0.1` counts as a different origin and causes auth requests to fail with `INVALID_ORIGIN`
 - the watch playback iframe currently runs without the HTML `sandbox` attribute because the active embed integration needs direct client-side playback/event behavior
 - admin/provider UI must not make unsupported compliance or production-readiness claims
 - notifications now have modeled defaults and per-user overrides, but delivery is still invite/activity-first rather than a full automation system
@@ -99,6 +102,7 @@ Last updated: March 12, 2026
 - release-workflow shell snippets now execute on the runner host, so any inline `node -e` compatibility logic must stay compatible with the runner's installed Node version instead of assuming modern syntax such as `??`
 - the self-hosted runner is containerized, so sibling Docker validation containers must ingest source via `git archive` or similar streaming instead of bind-mounting `${PWD}` directly
 - the self-hosted release workflow now prefers shell-based Git checkout over `actions/checkout`, and that bootstrap checkout must stay inline in the workflow because repository scripts are not available until the first fetch has already succeeded
+- because the repository is public, self-hosted workflow checkout should use anonymous `https://github.com/<owner>/<repo>.git` fetches for source revisions and reserve `GITHUB_TOKEN` for GHCR login plus Actions/GitHub API calls only
 - keep `vitest` and `@vitest/coverage-v8` on the same major/minor line; partial Dependabot merges left the lockfile in a state where `npm ci` could no longer resolve peers on the release runner
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
@@ -210,3 +214,5 @@ Before finishing:
 - March 12, 2026: updated the Docker-based validation script to stream the repository into sibling containers with `git archive`, because bind-mounting `${PWD}` from the containerized self-hosted runner exposed an empty host path to Docker and broke `npm ci`
 - March 12, 2026: replaced `actions/checkout` with inline shell-based `git fetch` checkout logic in the self-hosted release workflow after checkout started failing on missing runner file-command paths during manual and PR-triggered runs
 - March 12, 2026: realigned `@vitest/coverage-v8` to `4.0.18` after a partial dependency update on `main` left the release workflow unable to complete `npm ci`
+- March 12, 2026: recreated the shared `kevin` integration branch from `main`, pinned the root ESLint dependency back to `9.39.4` after clean Docker validation exposed an `eslint-config-next` crash under ESLint 10, taught `scripts/run-ci-validation.sh` to inject minimal Better Auth env vars for clean builds, and noted that local Playwright auth runs must target `localhost` rather than `127.0.0.1`
+- March 12, 2026: simplified the self-hosted workflow checkout to anonymous Git fetches because the repository is public and token-authenticated fetches were failing on the runner despite GHCR/API token usage working correctly
