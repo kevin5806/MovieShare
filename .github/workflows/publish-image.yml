@@ -39,7 +39,11 @@ concurrency:
 jobs:
   verify-pr:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - movieshare-runner
     services:
       postgres:
         image: postgres:17-alpine
@@ -172,7 +176,11 @@ jobs:
 
   publish-merged-pr:
     if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - movieshare-runner
     steps:
       - name: Check out merged revision
         uses: actions/checkout@v4
@@ -304,7 +312,11 @@ jobs:
 
   publish-manual:
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - movieshare-runner
     services:
       postgres:
         image: postgres:17-alpine

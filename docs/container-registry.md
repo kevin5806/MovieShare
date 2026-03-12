@@ -142,6 +142,7 @@ Branch discipline note:
 - merge-time publish no longer rebuilds the image; it promotes the verified PR candidate instead
 - if the merged tree differs from the verified PR tree, auto-publish stops and `workflow_dispatch` is the fallback
 - a branch must bump `package.json` before merge, because `main` publishes that semver automatically
+- the workflow now targets the self-hosted runner label `movieshare-runner`; if jobs stay queued, check that the runner has that custom label in GitHub
 
 ### 2. Confirm the package exists
 
