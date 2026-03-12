@@ -2,7 +2,7 @@
 
 ## Status Snapshot
 
-Last updated: March 11, 2026
+Last updated: March 12, 2026
 
 - Phase 1: completed
 - Phase 2: completed
@@ -37,6 +37,7 @@ Last updated: March 11, 2026
 - branded metadata polish with custom icons, Open Graph/Twitter images, and custom 404/error surfaces
 - Playwright plus axe-core smoke coverage for browser/UI regressions
 - registry-first deployment path through GitHub Actions image publishing and source-free production Docker Compose
+- Prisma migration baseline plus legacy `db push` upgrade path for production installs
 - dedicated Docker development path with mounted source and hot reload instead of production rebuilds
 - initial reusable form controls for select, switch, checkbox lists and server-safe time rendering
 - Docker Compose self-hosting setup and living project documentation
@@ -89,6 +90,7 @@ Last updated: March 11, 2026
 - completed: Playwright runtime coverage aligned with the current UI copy and flows against the Dockerized app
 - completed: public app polish for metadata, social previews, missing-route recovery and crawlable sitemap/robots endpoints
 - completed: registry-first image publishing and source-free production deployment path
+- completed: Prisma migration bootstrap for production images, including legacy `db push` baselining and workflow drift checks
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods
 - completed: first real auth-method rollout for email code, magic link, passkeys and profile 2FA controls
@@ -106,6 +108,7 @@ Last updated: March 11, 2026
 - prefer server components and server actions unless client interactivity is required
 - current missing production areas are richer selection heuristics, full PWA polish, stronger presence and notifications, full responsive hardening and a real streaming adapter
 - current missing production areas also include broader push automation, digests and background/offline polish beyond the baseline service-worker implementation
+- schema changes are now expected to ship with real Prisma migrations so published images do not rely on `db push` at startup
 - current missing production areas also include deeper auth hardening, especially broader 2FA enforcement outside the password flow
 - current missing production areas also include broader account-security ergonomics beyond the new session manager, especially richer device naming and stronger second-factor coverage across every auth method
 - current missing production areas also include richer live presence for watch sessions; the progress model is in place, but second-by-second co-presence updates are still summary-driven rather than fully realtime

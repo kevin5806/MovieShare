@@ -25,6 +25,8 @@
     "check": "npm run lint && npm run typecheck",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:check-migrations": "node scripts/check-migrations.mjs",
     "db:push": "prisma db push",
     "db:seed": "tsx scripts/seed.ts",
     "user:promote-admin": "node scripts/promote-admin.mjs",

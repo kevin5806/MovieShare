@@ -1,6 +1,6 @@
 # Session Handbook
 
-Last updated: March 11, 2026
+Last updated: March 12, 2026
 
 ## How to use this file
 
@@ -15,6 +15,7 @@ Last updated: March 11, 2026
 - continue Phase 4 hardening: responsive cleanup, stronger presence/notifications, and better PWA polish
 - keep the new role/invite/notification layers coherent across admin, profile, and list pages
 - keep installation and first-run experience simple on fresh machines
+- keep production schema changes migration-backed so published images boot cleanly on existing databases
 - keep the new media storage stack stable so profile/list imagery stays easy to operate
 - improve production readiness without making unsupported compliance or deployment claims about streaming integrations
 - keep admin configuration controls working end-to-end, especially toggle-based forms
@@ -52,6 +53,7 @@ Last updated: March 11, 2026
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - branded app polish now includes generated app icons, apple icon, Open Graph/Twitter preview images, custom 404/error surfaces, and basic `robots.txt` plus `sitemap.xml` routes
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
+- production container boot now uses Prisma migrations instead of `db push`, and legacy installs without `_prisma_migrations` are auto-baselined against the pre-unique `Verification.identifier` schema before the remaining migration SQL is applied and marked resolved
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
 - deployment notes now also call out that `minio-init` should wait on `mc ready`, not only `mc alias set`, to avoid early bucket-bootstrap failures on Linux/Portainer stacks
@@ -88,6 +90,7 @@ Last updated: March 11, 2026
 - SSR and hydration safety matter, especially for date/time formatting and browser-only APIs
 - when a server component needs button class variants, import `buttonVariants` from `components/ui/button-styles`, not from the client `components/ui/button` module
 - production auto-updaters should prefer immutable version tags rather than `latest` when consuming GHCR images
+- schema changes intended for shipped images must include a Prisma migration; `db push` remains a local/dev convenience only
 - Next 16 typegen is currently inconsistent here; keep the `scripts/typecheck.mjs` stub workaround unless a future Next upgrade removes the missing `.next/types` references cleanly
 
 ## Working checklist for future sessions
@@ -108,6 +111,7 @@ While implementing:
 - avoid duplicating form logic or client-only formatting logic
 - be explicit about auth checks and route protection
 - avoid regressions in Docker startup or local setup flow
+- when touching `prisma/schema.prisma`, add/update `prisma/migrations` in the same change so published images and `npm run db:check-migrations` stay green
 - keep `minio`, `minio-init`, and `media-cdn` healthy when touching storage, env, or compose
 - prefer CDN-backed movie artwork URLs over raw TMDB image paths for persisted library entries
 - keep invite UX split clearly between list invites and the optional app-friends graph in profile
@@ -135,6 +139,7 @@ Before finishing:
 - Installation must stay easy: preserve `npm run setup`, reliable Docker startup, and clear README steps.
 - Production install should prefer tagged registry images over rebuilding from source on the target host.
 - Development should prefer `npm run dev` or the dedicated `app-dev` compose service over rebuilding the production image.
+- Production container bootstrap must stay migration-first: use `prisma migrate deploy` plus explicit compatibility handling for legacy installs, not `prisma db push`.
 - Container-exposed operational scripts must run without dev-only toolchains such as `tsx`.
 - When deploying through Portainer or a source-free host, do not assume relative bind-mounted files exist; ensure `infra/nginx/media-cdn.conf` is present on disk or use an absolute host path/Git-backed stack.
 - When bootstrapping MinIO buckets in Compose, wait for `mc ready` before running `mc mb` or anonymous-policy commands; `mc alias set` alone is not a sufficient readiness gate.
@@ -183,3 +188,4 @@ Before finishing:
 - March 11, 2026: added profile-level active session management and recent access history, verified cross-device session revocation with Playwright, and switched protected-session reads to bypass Better Auth cookie cache so revoked sessions are rejected immediately
 - March 11, 2026: added branded app metadata polish with generated icons, social preview images, custom 404/error states, public-route invite metadata, robots/sitemap routes, and smoke coverage for metadata plus missing-route recovery
 - March 11, 2026: consolidated the new metadata/error/icon work into `docs/public-surface.md` and linked it from the README so future sessions treat public-surface polish as a maintained part of the product, not as optional cleanup
+- March 12, 2026: replaced production `prisma db push` bootstrapping with migration-based deploys, added a legacy baseline bridge for older installs without `_prisma_migrations`, and added a workflow check to block image publishes when Prisma schema changes are missing migrations

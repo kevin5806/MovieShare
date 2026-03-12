@@ -1,9 +1,25 @@
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import pg from "pg";
 
 const { Client } = pg;
+const MIGRATIONS_DIR = "prisma/migrations";
+const PRISMA_SCHEMA_ARG = "--schema=prisma/schema.prisma";
+const BASELINE_MIGRATION_NAME = "202603120001_initial_schema";
+const LEGACY_CORE_TABLES = [
+  "Account",
+  "Movie",
+  "MovieList",
+  "MovieListItem",
+  "Session",
+  "StreamingProviderConfig",
+  "SystemConfig",
+  "User",
+  "Verification",
+];
 
 const STREAMING_NOTES =
   "Provider slot scaffolded for future work. Playback integration remains intentionally disabled until a compliant provider adapter is configured.";
@@ -39,10 +55,10 @@ async function waitForDatabase(maxAttempts = 30, delayMs = 2_000) {
   }
 }
 
-function runPrismaDbPush() {
+function runPrismaCommand(args) {
   const result = spawnSync(
     process.execPath,
-    ["node_modules/prisma/build/index.js", "db", "push", "--schema=prisma/schema.prisma"],
+    ["node_modules/prisma/build/index.js", ...args, PRISMA_SCHEMA_ARG],
     {
       env: process.env,
       stdio: "inherit",
@@ -50,8 +66,132 @@ function runPrismaDbPush() {
   );
 
   if (result.status !== 0) {
-    throw new Error(`prisma db push failed with exit code ${result.status ?? "unknown"}.`);
+    throw new Error(`prisma ${args.join(" ")} failed with exit code ${result.status ?? "unknown"}.`);
   }
+}
+
+function runPrismaMigrateDeploy() {
+  runPrismaCommand(["migrate", "deploy"]);
+}
+
+function markBaselineMigrationApplied() {
+  runPrismaCommand(["migrate", "resolve", "--applied", BASELINE_MIGRATION_NAME]);
+}
+
+function markMigrationApplied(migrationName) {
+  runPrismaCommand(["migrate", "resolve", "--applied", migrationName]);
+}
+
+function getMigrationNames() {
+  return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+async function applyLegacyPendingMigrations() {
+  const migrationNames = getMigrationNames().filter(
+    (migrationName) => migrationName !== BASELINE_MIGRATION_NAME,
+  );
+
+  if (migrationNames.length === 0) {
+    return;
+  }
+
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+  });
+
+  await client.connect();
+
+  try {
+    for (const migrationName of migrationNames) {
+      const migrationPath = path.join(MIGRATIONS_DIR, migrationName, "migration.sql");
+
+      if (!existsSync(migrationPath)) {
+        throw new Error(`Missing migration file: ${migrationPath}`);
+      }
+
+      console.log(`Applying legacy migration ${migrationName} directly from SQL.`);
+      await client.query(readFileSync(migrationPath, "utf8"));
+      markMigrationApplied(migrationName);
+    }
+  } finally {
+    await client.end();
+  }
+}
+
+async function inspectDatabaseState() {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+  });
+
+  await client.connect();
+
+  try {
+    const {
+      rows: [stateRow],
+    } = await client.query(
+      `
+        SELECT
+          EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name = '_prisma_migrations'
+          ) AS "hasMigrationTable",
+          COUNT(*)::int AS "appTableCount"
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_type = 'BASE TABLE'
+          AND table_name <> '_prisma_migrations'
+      `,
+    );
+
+    const { rows } = await client.query(
+      `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_type = 'BASE TABLE'
+          AND table_name = ANY($1::text[])
+      `,
+      [LEGACY_CORE_TABLES],
+    );
+
+    const foundCoreTables = new Set(rows.map((row) => row.table_name));
+    const missingLegacyTables = LEGACY_CORE_TABLES.filter((tableName) => !foundCoreTables.has(tableName));
+
+    return {
+      hasMigrationTable: stateRow.hasMigrationTable,
+      hasAppTables: stateRow.appTableCount > 0,
+      missingLegacyTables,
+    };
+  } finally {
+    await client.end();
+  }
+}
+
+async function prepareDatabaseMigrations() {
+  const state = await inspectDatabaseState();
+
+  if (state.hasMigrationTable || !state.hasAppTables) {
+    return false;
+  }
+
+  if (state.missingLegacyTables.length > 0) {
+    throw new Error(
+      `Existing tables were detected without Prisma migration history, but the schema does not match the known legacy db-push layout. Missing core tables: ${state.missingLegacyTables.join(", ")}.`,
+    );
+  }
+
+  // Older installs were advanced with `prisma db push`, so bridge them into migration history once.
+  console.log(
+    `Existing legacy schema detected without Prisma migration history. Marking ${BASELINE_MIGRATION_NAME} as already applied before running migrations.`,
+  );
+  markBaselineMigrationApplied();
+  await applyLegacyPendingMigrations();
+  return true;
 }
 
 async function seedDatabase() {
@@ -115,7 +255,8 @@ async function seedDatabase() {
 
 async function main() {
   await waitForDatabase();
-  runPrismaDbPush();
+  await prepareDatabaseMigrations();
+  runPrismaMigrateDeploy();
   await seedDatabase();
 
   const appProcess = spawn(process.execPath, ["server.js"], {

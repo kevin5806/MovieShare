@@ -76,6 +76,21 @@ Important boundaries:
 - system runtime settings live in `server/services/system-config.ts`
 - Prisma is the single persistence boundary
 
+## Prisma migrations
+
+Production releases now use Prisma migrations, not `prisma db push`.
+
+- `scripts/container-start.mjs` runs `prisma migrate deploy`
+- if an existing install was previously managed with `db push` and has no `_prisma_migrations` table yet, the container bootstraps a legacy baseline automatically
+- the baseline matches the legacy schema before `Verification.identifier` became unique
+- remaining migration SQL is then applied and marked as resolved so future boots can continue with normal `migrate deploy`
+
+Contributor rule:
+
+- any schema change meant to ship in Docker or through the image-publish workflow must include a matching file under `prisma/migrations/`
+- `npm run db:check-migrations` now fails when `prisma/schema.prisma` and the migrations directory drift apart
+- `npm run db:check-migrations` requires both `DATABASE_URL` and `SHADOW_DATABASE_URL`
+
 ## Streaming provider note
 
 The repository already includes:
@@ -354,7 +369,8 @@ The compose setup will:
 - start the media-cdn layer for public image delivery
 - build the Next.js app image
 - wait for the database to become reachable
-- run `prisma db push`
+- run `prisma migrate deploy`
+- auto-baseline legacy `db push` installs that do not have `_prisma_migrations` yet, then apply the remaining SQL migrations
 - seed the default streaming provider config
 - start the app on `http://localhost:3000`
 - expose a container healthcheck once the app is actually serving traffic
@@ -375,6 +391,7 @@ Publishing behavior:
 - manual publish through GitHub Actions `workflow_dispatch`
 - manual publish now keeps `publish_latest=false` by default
 - no automatic push for normal development builds
+- the publish workflow now installs dependencies and verifies that Prisma migrations match `prisma/schema.prisma` before any image is pushed
 - production auto-updaters should track explicit version tags, not `latest`
 
 Recommended default registry:
@@ -452,6 +469,8 @@ npm run lint
 npm run typecheck
 npm run build
 npm run db:generate
+npm run db:deploy
+npm run db:check-migrations
 npm run db:push
 npm run db:seed
 npm run user:promote-admin -- you@example.com
@@ -463,6 +482,7 @@ npm run user:promote-admin -- you@example.com
 - set a strong `BETTER_AUTH_SECRET` and keep the default placeholder out of production
 - use an `https://` `BETTER_AUTH_URL` outside localhost
 - prefer deploying from a tagged registry image on production hosts instead of rebuilding from source
+- schema changes intended for production images must ship with Prisma migrations; `db push` is a dev-only convenience here
 - keep deployment-specific streaming adapters disabled until their runtime config and review are complete
 - prefer SMTP and TMDB credentials from the admin panel only after securing the initial admin account
 
