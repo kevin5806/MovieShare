@@ -37,7 +37,7 @@ Last updated: March 12, 2026
 - branded metadata polish with custom icons, Open Graph/Twitter images, and custom 404/error surfaces
 - Playwright plus axe-core smoke coverage for browser/UI regressions
 - registry-first deployment path through GitHub Actions image publishing and source-free production Docker Compose
-- Prisma migration baseline plus legacy `db push` upgrade path for production installs
+- Prisma migration bootstrap plus legacy schema-drift repair for production installs
 - dedicated Docker development path with mounted source and hot reload instead of production rebuilds
 - initial reusable form controls for select, switch, checkbox lists and server-safe time rendering
 - Docker Compose self-hosting setup and living project documentation
@@ -90,7 +90,7 @@ Last updated: March 12, 2026
 - completed: Playwright runtime coverage aligned with the current UI copy and flows against the Dockerized app
 - completed: public app polish for metadata, social previews, missing-route recovery and crawlable sitemap/robots endpoints
 - completed: registry-first image publishing and source-free production deployment path
-- completed: Prisma migration bootstrap for production images, including legacy `db push` baselining and workflow drift checks
+- completed: Prisma migration bootstrap for production images, including legacy `db push` repair, mis-baselined install recovery and workflow drift checks
 - completed: self-hosted media storage and image delivery for avatars and list covers
 - completed: admin roadmap section for future access methods
 - completed: first real auth-method rollout for email code, magic link, passkeys and profile 2FA controls

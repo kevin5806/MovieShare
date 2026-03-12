@@ -81,9 +81,9 @@ Important boundaries:
 Production releases now use Prisma migrations, not `prisma db push`.
 
 - `scripts/container-start.mjs` runs `prisma migrate deploy`
-- if an existing install was previously managed with `db push` and has no `_prisma_migrations` table yet, the container bootstraps a legacy baseline automatically
-- the baseline matches the legacy schema before `Verification.identifier` became unique
-- remaining migration SQL is then applied and marked as resolved so future boots can continue with normal `migrate deploy`
+- if an existing install was previously managed with `db push` and has no `_prisma_migrations` table yet, the container repairs schema drift first and then records the local migrations as already applied
+- if an older production image already wrote `_prisma_migrations` too early and left the schema behind, the container now detects that drift and repairs it before continuing
+- `Verification.identifier` duplicates are normalized before repair SQL is applied so the unique index migration can succeed cleanly on older Better Auth data
 
 Contributor rule:
 
@@ -370,7 +370,7 @@ The compose setup will:
 - build the Next.js app image
 - wait for the database to become reachable
 - run `prisma migrate deploy`
-- auto-baseline legacy `db push` installs that do not have `_prisma_migrations` yet, then apply the remaining SQL migrations
+- repair legacy schema drift before or after `migrate deploy` when an older install is missing columns or has mismatched migration history
 - seed the default streaming provider config
 - start the app on `http://localhost:3000`
 - expose a container healthcheck once the app is actually serving traffic
