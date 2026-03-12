@@ -46,9 +46,24 @@ jobs:
       - docker
     steps:
       - name: Check out repository
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/ci-checkout.sh "${{ github.event.pull_request.head.sha }}" 1
+          CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
+          FETCH_DEPTH: "1"
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "${PWD}"
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            git remote remove origin >/dev/null 2>&1 || true
+            git clean -ffdx
+            git reset --hard HEAD
+          else
+            git init .
+          fi
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
+          git checkout --detach FETCH_HEAD
 
       - name: Note forked PR release fallback
         if: github.event.pull_request.head.repo.full_name != github.repository
@@ -70,9 +85,24 @@ jobs:
       - docker
     steps:
       - name: Check out repository
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/ci-checkout.sh "${{ github.event.pull_request.head.sha }}" 1
+          CHECKOUT_REF: ${{ github.event.pull_request.head.sha }}
+          FETCH_DEPTH: "1"
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "${PWD}"
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            git remote remove origin >/dev/null 2>&1 || true
+            git clean -ffdx
+            git reset --hard HEAD
+          else
+            git init .
+          fi
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
+          git checkout --detach FETCH_HEAD
 
       - name: Prepare candidate image metadata
         id: prep
@@ -167,9 +197,24 @@ jobs:
       - docker
     steps:
       - name: Check out merged revision
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/ci-checkout.sh "${{ github.event.pull_request.merge_commit_sha || github.sha }}" 2
+          CHECKOUT_REF: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          FETCH_DEPTH: "2"
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "${PWD}"
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            git remote remove origin >/dev/null 2>&1 || true
+            git clean -ffdx
+            git reset --hard HEAD
+          else
+            git init .
+          fi
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
+          git checkout --detach FETCH_HEAD
 
       - name: Prepare release metadata
         id: prep
@@ -302,9 +347,24 @@ jobs:
       - docker
     steps:
       - name: Check out repository
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/ci-checkout.sh "${{ github.sha }}" 1
+          CHECKOUT_REF: ${{ github.sha }}
+          FETCH_DEPTH: "1"
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "${PWD}"
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            git remote remove origin >/dev/null 2>&1 || true
+            git clean -ffdx
+            git reset --hard HEAD
+          else
+            git init .
+          fi
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
+          git checkout --detach FETCH_HEAD
 
       - name: Run application validation in Docker
         run: bash scripts/run-ci-validation.sh
@@ -320,9 +380,24 @@ jobs:
       - docker
     steps:
       - name: Check out repository
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/ci-checkout.sh "${{ github.sha }}" 1
+          CHECKOUT_REF: ${{ github.sha }}
+          FETCH_DEPTH: "1"
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "${PWD}"
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            git remote remove origin >/dev/null 2>&1 || true
+            git clean -ffdx
+            git reset --hard HEAD
+          else
+            git init .
+          fi
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --prune --depth="${FETCH_DEPTH}" origin "${CHECKOUT_REF}"
+          git checkout --detach FETCH_HEAD
 
       - name: Prepare image metadata
         id: prep
