@@ -20,7 +20,7 @@ on:
         description: "Comma-separated Docker platforms to publish for manual runs"
         required: true
         type: string
-        default: "linux/arm64"
+        default: "linux/amd64"
       publish_latest:
         description: "Also publish the latest tag"
         required: true
@@ -96,6 +96,28 @@ jobs:
             echo "cache_scope=publish-image"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: Detect runner Docker platform
+        id: platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          arch="$(docker info --format '{{.Architecture}}')"
+
+          case "${arch}" in
+            amd64|x86_64)
+              platform="linux/amd64"
+              ;;
+            arm64|aarch64)
+              platform="linux/arm64"
+              ;;
+            *)
+              echo "Unsupported Docker architecture: ${arch}" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "platform=${platform}" >> "${GITHUB_OUTPUT}"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -111,7 +133,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/arm64
+          platforms: ${{ steps.platform.outputs.platform }}
           tags: ${{ steps.prep.outputs.candidate_image }}
           labels: |
             org.opencontainers.image.title=movieshare
