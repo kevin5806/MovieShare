@@ -40,7 +40,7 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
 FROM deps AS builder
 
@@ -54,7 +54,7 @@ RUN --mount=type=cache,target=/app/.next/cache npm run build
 FROM base AS prisma-tools
 
 RUN printf '%s\n' '{"name":"prisma-tools","private":true}' > package.json
-RUN --mount=type=cache,target=/root/.npm npm install --no-save prisma@7.4.2
+RUN --mount=type=cache,target=/root/.npm npm install --no-save prisma@7.4.2 --no-audit --no-fund
 
 FROM base AS runner
 
