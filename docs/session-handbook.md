@@ -53,7 +53,7 @@ Last updated: March 12, 2026
 - a first PWA baseline exists with manifest, service worker registration, install prompt, icon and offline page
 - branded app polish now includes generated app icons, apple icon, Open Graph/Twitter preview images, custom 404/error surfaces, and basic `robots.txt` plus `sitemap.xml` routes
 - registry-first deployment is now supported through prebuilt images, GitHub Actions publishing, and a source-free production compose file
-- production container boot now uses Prisma migrations instead of `db push`, and legacy installs without `_prisma_migrations` are auto-baselined against the pre-unique `Verification.identifier` schema before the remaining migration SQL is applied and marked resolved
+- production container boot now uses Prisma migrations instead of `db push`, and legacy installs are repaired against the live Prisma schema before migrations continue, even if an older image already wrote `_prisma_migrations` too early
 - deployment docs now explain how to make the GHCR package public and how to install the published production image on a target host
 - deployment docs now also call out the Portainer/Linux bind-mount caveat for `infra/nginx/media-cdn.conf` so image-based deploys do not fail on missing host files
 - deployment notes now also call out that `minio-init` should wait on `mc ready`, not only `mc alias set`, to avoid early bucket-bootstrap failures on Linux/Portainer stacks
@@ -144,6 +144,7 @@ Before finishing:
 - Production install should prefer tagged registry images over rebuilding from source on the target host.
 - Development should prefer `npm run dev` or the dedicated `app-dev` compose service over rebuilding the production image.
 - Production container bootstrap must stay migration-first: use `prisma migrate deploy` plus explicit compatibility handling for legacy installs, not `prisma db push`.
+- Legacy production repair must not assume that `_prisma_migrations` means the schema is healthy; verify drift against `prisma/schema.prisma` and repair missing columns/indexes before the app starts serving traffic.
 - Container-exposed operational scripts must run without dev-only toolchains such as `tsx`.
 - When deploying through Portainer or a source-free host, do not assume relative bind-mounted files exist; ensure `infra/nginx/media-cdn.conf` is present on disk or use an absolute host path/Git-backed stack.
 - When bootstrapping MinIO buckets in Compose, wait for `mc ready` before running `mc mb` or anonymous-policy commands; `mc alias set` alone is not a sufficient readiness gate.
@@ -197,3 +198,4 @@ Before finishing:
 - March 12, 2026: constrained Docker BuildKit caching in the publish workflow to a fixed GHA scope with `mode=min` so repeated publish runs stop generating excessive cache entries
 - March 12, 2026: added post-publish cache pruning so the workflow keeps a small recent set of Docker publish caches instead of accumulating every stale cache forever
 - March 12, 2026: switched the release workflow to a branch-first model where PRs to `main` auto-run verification, merges to `main` auto-publish the semver from `package.json`, and concurrency auto-cancels superseded runs
+- March 12, 2026: replaced the optimistic legacy migration bridge with Prisma diff-based schema repair so older installs and mis-baselined production databases both recover missing columns before the app boots
