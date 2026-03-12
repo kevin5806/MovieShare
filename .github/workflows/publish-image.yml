@@ -2,8 +2,18 @@ name: Publish container image
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*.*.*"
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
   workflow_dispatch:
     inputs:
       version:
@@ -27,11 +37,57 @@ permissions:
   packages: write
 
 concurrency:
-  group: publish-image-${{ github.ref || github.run_id }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
+  verify-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: movieshare
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d movieshare"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/movieshare?schema=public
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Prisma migrations
+        run: npm run db:check-migrations
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build application
+        run: npm run build
+
   publish:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -69,56 +125,79 @@ jobs:
           set -euo pipefail
 
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            RELEASE_KIND="manual"
             RAW_VERSION="${INPUT_VERSION}"
             PLATFORMS="${INPUT_PLATFORMS}"
             PUBLISH_LATEST="${INPUT_PUBLISH_LATEST}"
-          else
+          elif [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
+            RELEASE_KIND="tag"
             RAW_VERSION="${GITHUB_REF_NAME}"
             PLATFORMS="linux/amd64,linux/arm64"
             PUBLISH_LATEST="true"
+          else
+            RELEASE_KIND="main"
+            RAW_VERSION="$(node -p "require('./package.json').version")"
+            SHORT_SHA="$(printf '%s' "${GITHUB_SHA}" | cut -c1-12)"
+            PLATFORMS="linux/amd64"
+            PUBLISH_LATEST="false"
           fi
 
           VERSION="${RAW_VERSION#v}"
-
-          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Only stable semver tags are published by this workflow."
-            echo "Examples: v1.2.3 or 1.2.3"
-            exit 1
-          fi
-
           OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           GHCR_IMAGE="ghcr.io/${OWNER_LC}/movieshare"
-          MAJOR="${VERSION%%.*}"
-          MINOR="${VERSION%.*}"
-
-          TAGS="${GHCR_IMAGE}:${VERSION}
-          ${GHCR_IMAGE}:${MINOR}
-          ${GHCR_IMAGE}:${MAJOR}"
-
-          if [ "${PUBLISH_LATEST}" = "true" ]; then
-            TAGS="${TAGS}
-            ${GHCR_IMAGE}:latest"
-          fi
-
           DOCKERHUB_ENABLED="false"
 
-          if [ -n "${DOCKERHUB_NAMESPACE}" ] && [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
-            DOCKERHUB_IMAGE="docker.io/${DOCKERHUB_NAMESPACE}/movieshare"
-            TAGS="${TAGS}
-            ${DOCKERHUB_IMAGE}:${VERSION}
-            ${DOCKERHUB_IMAGE}:${MINOR}
-            ${DOCKERHUB_IMAGE}:${MAJOR}"
+          if [ "${RELEASE_KIND}" = "main" ]; then
+            VERSION_LABEL="${VERSION}+sha.${SHORT_SHA}"
+            TAGS="${GHCR_IMAGE}:main
+            ${GHCR_IMAGE}:sha-${SHORT_SHA}"
+          else
+            if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Only stable semver tags are published by this workflow."
+              echo "Examples: v1.2.3 or 1.2.3"
+              exit 1
+            fi
+
+            VERSION_LABEL="${VERSION}"
+            MAJOR="${VERSION%%.*}"
+            MINOR="${VERSION%.*}"
+
+            TAGS="${GHCR_IMAGE}:${VERSION}
+            ${GHCR_IMAGE}:${MINOR}
+            ${GHCR_IMAGE}:${MAJOR}"
 
             if [ "${PUBLISH_LATEST}" = "true" ]; then
               TAGS="${TAGS}
-              ${DOCKERHUB_IMAGE}:latest"
+              ${GHCR_IMAGE}:latest"
+            fi
+          fi
+
+          if [ -n "${DOCKERHUB_NAMESPACE}" ] && [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            DOCKERHUB_IMAGE="docker.io/${DOCKERHUB_NAMESPACE}/movieshare"
+
+            if [ "${RELEASE_KIND}" = "main" ]; then
+              TAGS="${TAGS}
+              ${DOCKERHUB_IMAGE}:main
+              ${DOCKERHUB_IMAGE}:sha-${SHORT_SHA}"
+            else
+              TAGS="${TAGS}
+              ${DOCKERHUB_IMAGE}:${VERSION}
+              ${DOCKERHUB_IMAGE}:${MINOR}
+              ${DOCKERHUB_IMAGE}:${MAJOR}"
+
+              if [ "${PUBLISH_LATEST}" = "true" ]; then
+                TAGS="${TAGS}
+                ${DOCKERHUB_IMAGE}:latest"
+              fi
             fi
 
             DOCKERHUB_ENABLED="true"
           fi
 
           {
+            echo "release_kind=${RELEASE_KIND}"
             echo "version=${VERSION}"
+            echo "version_label=${VERSION_LABEL}"
             echo "ghcr_image=${GHCR_IMAGE}"
             echo "dockerhub_enabled=${DOCKERHUB_ENABLED}"
             echo "platforms=${PLATFORMS}"
@@ -172,7 +251,7 @@ jobs:
             org.opencontainers.image.description=Self-hosted collaborative movie planning workspace
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.version }}
+            org.opencontainers.image.version=${{ steps.prep.outputs.version_label }}
           cache-from: type=gha,scope=${{ steps.prep.outputs.cache_scope }}
           cache-to: type=gha,mode=min,scope=${{ steps.prep.outputs.cache_scope }},ignore-error=true
 

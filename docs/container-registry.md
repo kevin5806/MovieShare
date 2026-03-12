@@ -34,14 +34,30 @@ and network integration.
 
 ## GitHub Container Registry flow
 
-1. Push a release tag:
+1. Open a pull request to `main`.
+
+What happens automatically:
+
+- the workflow starts on the PR
+- it runs migration drift checks, lint, typecheck and production build validation
+- if you push new commits to the same PR, the older run is auto-cancelled
+
+2. Merge the PR into `main`.
+
+What happens automatically after merge:
+
+- the workflow publishes `ghcr.io/<owner>/movieshare:main`
+- it also publishes an immutable `ghcr.io/<owner>/movieshare:sha-<commit>` tag
+- for normal main merges, the publish defaults to `linux/amd64`
+
+3. For a stable multi-arch release tag, push a semver tag:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-2. GitHub Actions publishes:
+4. GitHub Actions publishes:
 
 - `ghcr.io/<owner>/movieshare:1.0.0`
 - `ghcr.io/<owner>/movieshare:1.0`
@@ -57,8 +73,8 @@ The workflow also keeps Docker build cache under one fixed GitHub Actions cache 
 After each successful publish, it also prunes older cache entries for that publish scope and
 keeps only a small recent set.
 
-3. On the production server, create an env file from `.env.production.example`.
-4. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
+5. On the production server, create an env file from `.env.production.example`.
+6. Keep `docker-compose.registry.yml` and `infra/nginx/media-cdn.conf` together in the
    deployment bundle.
 
 5. Pull and run the image:
@@ -116,6 +132,13 @@ automation that follows `latest` to move immediately. Manual runs now default to
 If GitHub shows a large number of Actions caches from older runs, those are usually stale
 BuildKit caches created before the fixed-scope/min-mode policy and the automatic post-publish
 cache pruning step.
+
+Branch discipline note:
+
+- day-to-day work should happen on branches
+- PRs to `main` are the automatic validation gate
+- merges to `main` are the automatic publish event
+- stable semver tags remain the explicit release channel when you want versioned `1.2.3`, `1.2`, `1`, and `latest` tags
 
 ### 2. Confirm the package exists
 
